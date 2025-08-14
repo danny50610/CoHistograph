@@ -7,3 +7,18 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.footer > div.container {
+    padding: 15px 10px;
+}
+
+.footer > div.container > .breadcrumb {
+    padding: 0;
+    margin-bottom: 0;
+    color: #ddd;
+}
+
+.footer > div.container > .breadcrumb a {
+    color: #ddd;
+}
+
