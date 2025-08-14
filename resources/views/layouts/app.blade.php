@@ -11,7 +11,7 @@
         if(View::hasSection('title')) {
             $title = View::yieldContent('title') . ' - ';
         }
-        $title .= config('illya.app.display-name');
+        $title .= config('cohistograph.app.display-name');
     @endphp
 
     {{-- section 似乎會先做 e ，所以用 {!! !!} 避免二次 e --}}
@@ -80,7 +80,7 @@
 <body>
 @include('components.navbar.navbar')
 
-<div id="illya-top-div" style="min-height: calc(100vh - 56px - 54px - 2rem);" class="mt-3 mb-3">
+<div style="min-height: calc(100vh - 56px - 54px - 2rem);" class="mt-3 mb-3">
     @include('components.page-alert')
     @yield('content')
 </div>
