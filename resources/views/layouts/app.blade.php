@@ -27,14 +27,6 @@
     <meta property="og:url" content="{{ Request::url() }}">
     <meta property="og:type" content="website">
     <link rel="canonical" href="{{ Request::url() }}">
-    <meta name="theme-color" content="#343a40">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=wAXRdRBYrP">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=wAXRdRBYrP">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=wAXRdRBYrP">
-    <link rel="manifest" href="/site.webmanifest?v=wAXRdRBYrP">
-    <link rel="mask-icon" href="/safari-pinned-tab.svg?v=wAXRdRBYrP" color="#343a40">
-    <link rel="shortcut icon" href="/favicon.ico?v=wAXRdRBYrP">
-    <meta name="msapplication-TileColor" content="#343a40">
     @yield('meta')
     @yield('structured-data')
 
