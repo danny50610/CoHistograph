@@ -11,7 +11,7 @@
             <a @lm_attrs($item) class="dropdown-item" href="{{ $item->url() }}" @lm_endattrs>
                 {{ $item->title }}
                 @if(Arr::get($item->attr(), 'target', false))
-                    <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                    <i class="fa-solid fa-external-link-alt" aria-hidden="true"></i>
                 @endif
             </a>
         @else
