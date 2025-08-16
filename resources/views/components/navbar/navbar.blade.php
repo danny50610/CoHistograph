@@ -16,7 +16,7 @@
                 @include('components.navbar.navbar-items', ['items' => Menu::get('left')->roots()])
             </ul>
             {{-- 右側選單 --}}
-            <ul class="navbar-nav ml-auto">
+            <ul class="navbar-nav ms-auto">
                 @include('components.navbar.navbar-items', ['items' => Menu::get('right')->roots()])
             </ul>
         </div>
