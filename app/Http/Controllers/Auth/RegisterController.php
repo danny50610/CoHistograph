@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\HomeController;
 use App\Models\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Validator;
@@ -11,7 +12,7 @@ class RegisterController extends Controller
 {
     use RegistersUsers;
 
-    protected $redirectTo = '/'; // TODO: login ?
+    protected $redirectTo = HomeController::AUTHENTICATED_REDIRECT;
 
     protected function validator(array $data): \Illuminate\Contracts\Validation\Validator
     {
