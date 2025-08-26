@@ -8,7 +8,12 @@ use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {
-/**
+    public function __construct()
+    {
+        $this->middleware('permission:role.manage');
+    }
+
+    /**
      * Show the application dashboard.
      *
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
