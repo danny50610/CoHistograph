@@ -4,6 +4,7 @@ namespace App\Http\Controllers\GraphSchema;
 
 use App\Http\Controllers\Controller;
 use App\Models\VertexType;
+use App\Rules\GraphSchema\AgeLabelName;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -38,7 +39,7 @@ class VertexTypeController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types'), Rule::unique('edge_types')],
-            'age_label_name' => ['required', 'string', Rule::unique('vertex_types'), Rule::unique('edge_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['string'],
         ]);
 
@@ -61,7 +62,7 @@ class VertexTypeController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
-            'age_label_name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'description' => ['string'],
         ]);
 
