@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class EdgeType extends Model
+{
+    protected $fillable = [
+        'name',
+        'description',
+        'age_label_name',
+        'start_vertex_id',
+        'end_vertex_id',
+    ];
+
+    public function startVertex(): BelongsTo
+    {
+        return $this->belongsTo(VertexType::class, 'start_vertex_id');
+    }
+
+    public function endVertex(): BelongsTo
+    {
+        return $this->belongsTo(VertexType::class, 'end_vertex_id');
+    }
+
+    public function properties(): HasMany
+    {
+        return $this->hasMany(EdgeProperty::class);
+    }
+}
