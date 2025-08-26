@@ -22,7 +22,7 @@ return new class extends Migration
         Schema::create('vertex_properties', function (Blueprint $table) {
             $table->id();
             $table->foreignId('vertex_type_id')->constrained('vertex_types')->cascadeOnUpdate()->restrictOnDelete();
-            $table->string('name')->unique();
+            $table->string('name');
             $table->string('description')->default('');
             $table->string('age_property_name');
             $table->string('age_property_type');
@@ -44,7 +44,7 @@ return new class extends Migration
         Schema::create('edge_properties', function (Blueprint $table) {
             $table->id();
             $table->foreignId('edge_type_id')->constrained('edge_types')->cascadeOnUpdate()->restrictOnDelete();
-            $table->string('name')->unique();
+            $table->string('name');
             $table->string('description')->default('');
             $table->string('age_property_name');
             $table->string('age_property_type');
@@ -57,6 +57,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('edge_properties');
+        Schema::dropIfExists('edge_types');
+        Schema::dropIfExists('vertex_properties');
         Schema::dropIfExists('vertex_types');
     }
 };
