@@ -8,6 +8,7 @@ return [
             'permissions' => [
                 'user.manage',
                 'role.manage',
+                'graph-schema.manage',
             ],
         ]
     ],
@@ -19,6 +20,10 @@ return [
         'role.manage' => [
             'display_name' => '管理角色',
             'description' => '新增、修改、刪除角色',
+        ],
+        'graph-schema.manage' => [
+            'display_name' => '管理 Graph Schema',
+            'description' => '新增、修改、刪除 Graph Schema',
         ],
     ],
 ];

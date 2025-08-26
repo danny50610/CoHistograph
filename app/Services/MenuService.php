@@ -28,6 +28,9 @@ class MenuService
                     'role.manage' => function (\Lavary\Menu\Item $adminMenu) {
                         $adminMenu->add('權限管理', ['route' => 'role.index'])->active('role/*');
                     },
+                    'graph-schema.manage' => function (\Lavary\Menu\Item $adminMenu) {
+                        $adminMenu->add('Graph Schema 管理', ['route' => 'graph-schema.vertex-type.index'])->active('graph-schema/*');
+                    },
                 ];
                 foreach ($adminPermissions as $permission => $callback) {
                     if ($user->hasPermission($permission)) {
