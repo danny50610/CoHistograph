@@ -13,11 +13,11 @@
 
 @if(!is_null($alertType))
     <div class="alert {{ $alertType }} alert-dismissible fade show" role="alert"
-         style="margin-bottom: 0; top: -1rem; padding-left: 0; padding-right: 0">
-        <div class="container " style="position: relative;">
+         style="margin-bottom: 0; top: -1rem; padding: 12px 0; border-radius: 0">
+        <div class="container" style="position: relative;">
             {!! $alertInfo !!} {{ $alertMessage }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="top: -13px">
-                <span aria-hidden="true">&times;</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"
+                style="padding: 12px 20px; top: -12px; height: 24px;">
             </button>
         </div>
     </div>
