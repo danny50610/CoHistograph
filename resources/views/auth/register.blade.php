@@ -82,7 +82,7 @@
                                 </div>
                             </div>
 
-                            {{-- <div class="form-group row">
+                            {{-- <div class="mb-3 row">
                                 <div class="col-md-10 ms-auto">
                                     {!! Captcha::display() !!}
                                 </div>

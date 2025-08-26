@@ -20,6 +20,25 @@ class MenuService
             if (Auth::check()) {
                 $user = Auth::user();
 
+                $adminMenu = null;
+                $adminPermissions = [
+                    'user.manage' => function (\Lavary\Menu\Item $adminMenu) {
+                        $adminMenu->add('會員管理', ['route' => 'user.index'])->active('user/*');
+                    },
+                    'role.manage' => function (\Lavary\Menu\Item $adminMenu) {
+                        $adminMenu->add('權限管理', ['route' => 'role.index'])->active('role/*');
+                    },
+                ];
+                foreach ($adminPermissions as $permission => $callback) {
+                    if ($user->hasPermission($permission)) {
+                        if (is_null($adminMenu)) {
+                            $adminMenu = $menu->add('網站管理', 'javascript:void(0)');
+                        }
+
+                        $callback($adminMenu);
+                    }
+                }
+
                 /** @var \Lavary\Menu\Item $userMenu */
                 $userMenu = $menu->add($user->name, 'javascript:void(0)');
                 // $userMenu->add('個人資料', ['route' => 'profile'])->active('profile/*');

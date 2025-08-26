@@ -12,7 +12,10 @@
         "laravel/ui": "^4.6",
         "lavary/laravel-menu": "^1.8",
         "santigarcor/laratrust": "^8.5",
-        "spatie/laravel-html": "^3.12"
+        "spatie/laravel-html": "^3.12",
+        "yajra/laravel-datatables-buttons": "^12.1",
+        "yajra/laravel-datatables-html": "^12",
+        "yajra/laravel-datatables-oracle": "^12"
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.6",
