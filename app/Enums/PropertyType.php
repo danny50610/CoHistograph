@@ -7,5 +7,6 @@ enum PropertyType: string
     case Integer = 'INTEGER';
     case Float = 'FLOAT';
     case Numeric = 'NUMERIC';
-    case boolean = 'BOOLEAN';
+    case Boolean = 'BOOLEAN';
+    case String = 'STRING';
 }
