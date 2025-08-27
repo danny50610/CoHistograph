@@ -15,7 +15,7 @@
         </div>
 
         <h2>基本資料</h2>
-        <a href="{{ route('graph-schema.edge-type.edit', $edgeType) }}" class="btn btn-primary mb-2">編輯</a>
+        <a href="{{ route('graph-schema.edge-type.edit', $edgeType) }}" class="btn btn-primary mb-2"><i class="fa-solid fa-pen-to-square"></i> 編輯</a>
         <div class="card mb-2">
             <div class="card-body">
                 <dl class="row">

@@ -9,7 +9,7 @@
         <h1>Graph Schema - Vertex Property - {{ $vertexProperty->name }}</h1>
 
         <div class="mb-2">
-            <a href="{{ route('graph-schema.vertex-property.edit', [$vertexType, $vertexProperty]) }}" class="btn btn-primary">編輯</a>
+            <a href="{{ route('graph-schema.vertex-property.edit', [$vertexType, $vertexProperty]) }}" class="btn btn-primary"><i class="fa-solid fa-pen-to-square"></i> 編輯</a>
             {{ html()->form('DELETE', route('graph-schema.vertex-property.destroy', [$vertexType, $vertexProperty]))->style('display: inline')->attribute('onSubmit', "return confirm('確定要刪除此 Vertex Property 嗎？');")->open() }}
             <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 刪除</button>
             {{ html()->form()->close() }}
