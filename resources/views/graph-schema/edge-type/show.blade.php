@@ -32,7 +32,7 @@
         </div>
 
         <h2>Properties</h2>
-        <a href="{{ route('graph-schema.edge-property.create', [$edgeType]) }}" class="btn btn-primary mb-2">新增</a>
+        <a href="{{ route('graph-schema.edge-property.create', [$edgeType]) }}" class="btn btn-primary mb-2"><i class="fa-solid fa-plus"></i> 新增</a>
         <div class="card mb-2">
             <div class="card-body">
                 <dl class="row">

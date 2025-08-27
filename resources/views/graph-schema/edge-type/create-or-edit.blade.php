@@ -25,11 +25,10 @@
 
                     <div class="row mb-2">
                         <div class="col-md-10 ms-auto">
+                            <button type="submit" class="btn btn-primary">儲存</button>
                             @if ($isEditMode)
-                                <button type="submit" class="btn btn-primary">更新</button>
                                 <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}" class="btn btn-secondary">返回</a>
                             @else
-                                <button type="submit" class="btn btn-primary">新增</button>
                                 <a href="{{ route('graph-schema.edge-type.index') }}" class="btn btn-secondary">返回列表</a>
                             @endif
                         </div>

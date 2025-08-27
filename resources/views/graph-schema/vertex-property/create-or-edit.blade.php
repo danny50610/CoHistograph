@@ -26,11 +26,7 @@
 
                     <div class="row mb-2">
                         <div class="col-md-10 ms-auto">
-                            @if ($isEditMode)
-                                <button type="submit" class="btn btn-primary">更新</button>
-                            @else
-                                <button type="submit" class="btn btn-primary">新增</button>
-                            @endif
+                            <button type="submit" class="btn btn-primary">儲存</button>
                             <a href="{{ route('graph-schema.vertex-type.show', [$vertexType]) }}" class="btn btn-secondary">返回</a>
                         </div>
                     </div>
