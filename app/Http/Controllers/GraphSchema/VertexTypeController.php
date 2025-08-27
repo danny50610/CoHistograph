@@ -40,13 +40,13 @@ class VertexTypeController extends Controller
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types'), Rule::unique('edge_types')],
-            'description' => ['string'],
+            'description' => ['nullable', 'string'],
         ]);
 
         $vertexType = VertexType::create([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description'),
+            'description' => $request->input('description', ''),
         ]);
 
         return redirect()->route('graph-schema.vertex-type.show', [$vertexType])
@@ -63,7 +63,7 @@ class VertexTypeController extends Controller
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
-            'description' => ['string'],
+            'description' => ['nullable', 'string'],
         ]);
 
         // TODO: age_label_name cannot change when exists
@@ -71,7 +71,7 @@ class VertexTypeController extends Controller
         $vertexType->update([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description'),
+            'description' => $request->input('description', ''),
         ]);
 
         return redirect()->route('graph-schema.vertex-type.show', [$vertexType])

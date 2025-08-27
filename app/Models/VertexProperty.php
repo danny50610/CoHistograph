@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PropertyType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,13 @@ class VertexProperty extends Model
         'age_property_name',
         'age_property_type',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'age_property_type' => PropertyType::class,
+        ];
+    }
 
     public function vertexType(): BelongsTo
     {

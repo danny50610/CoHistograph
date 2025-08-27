@@ -21,10 +21,12 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('user', UserController::class)->except(['create', 'store']);
     Route::resource('role', RoleController::class)->except(['show']);
 
-    Route::prefix('graph-schema')->name('graph-schema.')->group(function () {
+    Route::prefix('graph-schema')->name('graph-schema.')->scopeBindings()->group(function () {
         Route::resource('vertex-type', VertexTypeController::class);
-        Route::resource('vertex-type/{vertex_type}/vertex-property', VertexPropertyController::class);
+        Route::resource('vertex-type/{vertex_type}/vertex-property', VertexPropertyController::class)
+            ->except(['index']);
         Route::resource('edge-type', EdgeTypeController::class);
-        Route::resource('edge-type/{edge_type}/edge-property', EdgePropertyController::class);
+        Route::resource('edge-type/{edge_type}/edge-property', EdgePropertyController::class)
+            ->except(['index']);
     });
 });

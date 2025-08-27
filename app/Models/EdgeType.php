@@ -19,6 +19,11 @@ class EdgeType extends Model
         'end_vertex_id',
     ];
 
+    public function properties(): HasMany
+    {
+        return $this->hasMany(EdgeProperty::class);
+    }
+
     public function startVertex(): BelongsTo
     {
         return $this->belongsTo(VertexType::class, 'start_vertex_id');
@@ -29,8 +34,12 @@ class EdgeType extends Model
         return $this->belongsTo(VertexType::class, 'end_vertex_id');
     }
 
-    public function properties(): HasMany
+    protected function childRouteBindingRelationshipName($childType)
     {
-        return $this->hasMany(EdgeProperty::class);
+        if ($childType == 'edge_property') {
+            return 'properties';
+        }
+
+        return parent::childRouteBindingRelationshipName($childType);
     }
 }

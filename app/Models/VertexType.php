@@ -30,4 +30,13 @@ class VertexType extends Model
     {
         return $this->hasMany(EdgeType::class, 'end_vertex_id');
     }
+
+    protected function childRouteBindingRelationshipName($childType)
+    {
+        if ($childType == 'vertex_property') {
+            return 'properties';
+        }
+
+        return parent::childRouteBindingRelationshipName($childType);
+    }
 }

@@ -39,13 +39,13 @@ class EdgeTypeController extends Controller
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('edge_types'), Rule::unique('vertex_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types'), Rule::unique('vertex_types')],
-            'description' => ['string'],
+            'description' => ['nullable', 'string'],
         ]);
 
         $edgeType = EdgeType::create([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description'),
+            'description' => $request->input('description', ''),
         ]);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])
@@ -62,7 +62,7 @@ class EdgeTypeController extends Controller
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('edge_types')->ignore($edgeType)],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types')->ignore($edgeType)],
-            'description' => ['string'],
+            'description' => ['nullable', 'string'],
         ]);
 
         // TODO: age_label_name cannot change when exists
@@ -70,7 +70,7 @@ class EdgeTypeController extends Controller
         $edgeType->update([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description'),
+            'description' => $request->input('description', ''),
         ]);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])

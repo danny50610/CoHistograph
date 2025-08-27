@@ -44,7 +44,7 @@
                         </dt>
                         <dd class="col-md-10">
                             <span class="badge text-bg-info">{{ $properties->age_property_type }}</span>
-                            {{ $vertexType->description }}
+                            {{ $properties->description }}
                         </dd>
                     @empty
                         <span>目前沒有任何 Property</span>

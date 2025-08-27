@@ -27,6 +27,8 @@ return new class extends Migration
             $table->string('age_property_name');
             $table->string('age_property_type');
             $table->timestamps();
+
+            $table->unique(['vertex_type_id', 'age_property_name']);
         });
 
         Schema::create('edge_types', function (Blueprint $table) {
@@ -38,7 +40,7 @@ return new class extends Migration
             $table->foreignId('end_vertex_id')->constrained('vertex_types')->cascadeOnUpdate()->restrictOnDelete();
             $table->timestamps();
 
-            $table->unique(['start_vertex_id', 'end_vertex_id']);
+            $table->unique(['age_label_name', 'start_vertex_id', 'end_vertex_id']);
         });
 
         Schema::create('edge_properties', function (Blueprint $table) {
@@ -49,6 +51,8 @@ return new class extends Migration
             $table->string('age_property_name');
             $table->string('age_property_type');
             $table->timestamps();
+
+            $table->unique(['edge_type_id', 'age_property_name']);
         });
     }
 

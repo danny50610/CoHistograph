@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PropertyType;
 use App\Models\EdgeType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -22,7 +23,7 @@ class EdgePropertyFactory extends Factory
             'name' => $this->faker->word(),
             'description' => $this->faker->sentence(),
             'age_property_name' => $this->faker->word(),
-            'age_property_type' => $this->faker->randomElement(['string', 'integer', 'double', 'boolean']),
+            'age_property_type' => $this->faker->randomElement(PropertyType::class),
         ];
     }
 }
