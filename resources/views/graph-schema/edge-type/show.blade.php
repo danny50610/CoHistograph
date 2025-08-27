@@ -15,7 +15,7 @@
         </div>
 
         <h2>基本資料</h2>
-
+        <a href="{{ route('graph-schema.edge-type.edit', $edgeType) }}" class="btn btn-primary mb-2">編輯</a>
         <div class="card mb-2">
             <div class="card-body">
                 <dl class="row">
@@ -28,22 +28,24 @@
                     <dt class="col-md-2">描述</dt>
                     <dd class="col-md-10">{{ $edgeType->description }}</dd>
                 </dl>
-                <a href="{{ route('graph-schema.edge-type.edit', $edgeType) }}" class="btn btn-primary">編輯</a>
             </div>
         </div>
 
         <h2>Properties</h2>
-        {{-- TODO: 新增按鈕 --}}
+        <a href="{{ route('graph-schema.edge-property.create', [$edgeType]) }}" class="btn btn-primary mb-2">新增</a>
         <div class="card mb-2">
             <div class="card-body">
                 <dl class="row">
                     @forelse ($edgeType->properties as $properties)
                         <dt class="col-md-2">
                             {{ $properties->name }}
-                            <span class=text-body-secondary>({{ $properties->age_property_type }})</span>
+                            <span class=text-body-secondary>({{ $properties->age_property_name }})</span>
                             <a href="{{ route('graph-schema.edge-property.show', [$edgeType, $properties]) }}"><i class="fa-solid fa-receipt"></i></a>
                         </dt>
-                        <dd class="col-md-10">{{ $properties->description }}</dd>
+                        <dd class="col-md-10">
+                            <span class="badge text-bg-info">{{ $properties->age_property_type }}</span>
+                            {{ $properties->description }}
+                        </dd>
                     @empty
                         <span>目前沒有任何 Property</span>
                     @endforelse
