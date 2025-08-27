@@ -10,7 +10,7 @@
 
         <div class="mb-2">
             {{ html()->form('DELETE', route('graph-schema.vertex-type.destroy', [$vertexType]))->style('display: inline')->attribute('onSubmit', "return confirm('確定要刪除此 Vertex 嗎？');")->open() }}
-            <button type="submit" class="btn btn-danger">刪除</button>
+            <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 刪除</button>
             {{ html()->form()->close() }}
         </div>
 

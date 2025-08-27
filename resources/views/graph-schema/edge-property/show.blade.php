@@ -5,8 +5,16 @@
 @section('content')
     <div class="container">
         <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> 返回</a>
+
         <h1>Graph Schema - Edge Property - {{ $edgeProperty->name }}</h1>
-        <a href="{{ route('graph-schema.vertex-property.edit', [$edgeType, $edgeProperty]) }}" class="btn btn-primary mb-2">編輯</a>
+
+        <div class="mb-2">
+            <a href="{{ route('graph-schema.edge-property.edit', [$edgeType, $edgeProperty]) }}" class="btn btn-primary">編輯</a>
+            {{ html()->form('DELETE', route('graph-schema.edge-property.destroy', [$edgeType, $edgeProperty]))->style('display: inline')->attribute('onSubmit', "return confirm('確定要刪除此 Edge Property 嗎？');")->open() }}
+            <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 刪除</button>
+            {{ html()->form()->close() }}
+        </div>
+
         <div class="card mb-2">
             <div class="card-body">
                 <dl class="row">
