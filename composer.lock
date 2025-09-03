@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ac275ac82565231d2b8933024f99f2a7",
+    "content-hash": "a39c446d1b24d16a410b87349e2de0f4",
     "packages": [
         {
             "name": "brick/math",
@@ -134,6 +134,64 @@
                 }
             ],
             "time": "2024-02-09T16:56:22+00:00"
+        },
+        {
+            "name": "danny50610/laravel-apache-age-driver",
+            "version": "0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/danny50610/laravel-apache-age-driver.git",
+                "reference": "c9c7c75cd84933b603d68b75a63f845963a99646"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/danny50610/laravel-apache-age-driver/zipball/c9c7c75cd84933b603d68b75a63f845963a99646",
+                "reference": "c9c7c75cd84933b603d68b75a63f845963a99646",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/database": "^12.26"
+            },
+            "require-dev": {
+                "barryvdh/laravel-ide-helper": "^3.6",
+                "larastan/larastan": "^3.0",
+                "laravel/tinker": "^2.10",
+                "nunomaduro/collision": "^8.8",
+                "orchestra/testbench": "^10.6",
+                "phpunit/phpunit": "^12"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "ApacheAge": "Danny50610\\LaravelApacheAgeDriver\\ApacheAge"
+                    },
+                    "providers": [
+                        "Danny50610\\LaravelApacheAgeDriver\\ApacheAgeServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Danny50610\\LaravelApacheAgeDriver\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Chen, Danny",
+                    "email": "3949245+danny50610@users.noreply.github.com"
+                }
+            ],
+            "description": "A Laravel database driver for Apache AGE, enabling graph database capabilities.",
+            "support": {
+                "issues": "https://github.com/danny50610/laravel-apache-age-driver/issues",
+                "source": "https://github.com/danny50610/laravel-apache-age-driver/tree/0.1.0"
+            },
+            "time": "2025-09-03T13:04:06+00:00"
         },
         {
             "name": "dflydev/dot-access-data",

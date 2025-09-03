@@ -137,6 +137,5 @@ return [
     */
 
     'aliases' => Facade::defaultAliases()->merge([
-        'ApacheAge' => App\Facades\ApacheAge::class,
     ])->toArray(),
 ];

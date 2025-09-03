@@ -1,7 +1,7 @@
 <?php
 
-use App\Facades\ApacheAge;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -10,7 +10,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        ApacheAge::createGraph(config('cohistograph.app.graph.name'));
+        DB::apacheAgeCreateGraph(config('cohistograph.app.graph.name'));
     }
 
     /**
@@ -18,6 +18,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        ApacheAge::dropGraph(config('cohistograph.app.graph.name'), true);
+        DB::apacheAgeDropGraph(config('cohistograph.app.graph.name'), true);
     }
 };
