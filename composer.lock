@@ -4,8 +4,63 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a39c446d1b24d16a410b87349e2de0f4",
+    "content-hash": "fc876dca1fb0defde220afe8fef81b20",
     "packages": [
+        {
+            "name": "antlr/antlr4-php-runtime",
+            "version": "0.9.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/antlr/antlr-php-runtime.git",
+                "reference": "3afe41b19f8ea3d6b10400397712cb8181da5e25"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/antlr/antlr-php-runtime/zipball/3afe41b19f8ea3d6b10400397712cb8181da5e25",
+                "reference": "3afe41b19f8ea3d6b10400397712cb8181da5e25",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "^8.0",
+                "php": "^8.0",
+                "psr/log": "^2.0 || ^3.0"
+            },
+            "require-dev": {
+                "ergebnis/composer-normalize": "^2.15",
+                "phpstan/extension-installer": "^1.0",
+                "phpstan/phpstan": "^1.4",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-strict-rules": "^1.1",
+                "slevomat/coding-standard": "^7.0",
+                "squizlabs/php_codesniffer": "^3.6"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.2-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Antlr\\Antlr4\\Runtime\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "description": "PHP 8.0+ runtime for ANTLR 4",
+            "keywords": [
+                "antlr4",
+                "php",
+                "runtime"
+            ],
+            "support": {
+                "issues": "https://github.com/antlr/antlr-php-runtime/issues",
+                "source": "https://github.com/antlr/antlr-php-runtime/tree/0.9.1"
+            },
+            "time": "2023-09-04T20:27:34+00:00"
+        },
         {
             "name": "brick/math",
             "version": "0.13.1",
@@ -137,20 +192,22 @@
         },
         {
             "name": "danny50610/laravel-apache-age-driver",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/danny50610/laravel-apache-age-driver.git",
-                "reference": "c9c7c75cd84933b603d68b75a63f845963a99646"
+                "reference": "d090ff6539681043de252664a6121c9990b35984"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/danny50610/laravel-apache-age-driver/zipball/c9c7c75cd84933b603d68b75a63f845963a99646",
-                "reference": "c9c7c75cd84933b603d68b75a63f845963a99646",
+                "url": "https://api.github.com/repos/danny50610/laravel-apache-age-driver/zipball/d090ff6539681043de252664a6121c9990b35984",
+                "reference": "d090ff6539681043de252664a6121c9990b35984",
                 "shasum": ""
             },
             "require": {
-                "illuminate/database": "^12.26"
+                "antlr/antlr4-php-runtime": "^0.9.1",
+                "illuminate/database": "^12.26",
+                "php": "^8.4"
             },
             "require-dev": {
                 "barryvdh/laravel-ide-helper": "^3.6",
@@ -189,9 +246,9 @@
             "description": "A Laravel database driver for Apache AGE, enabling graph database capabilities.",
             "support": {
                 "issues": "https://github.com/danny50610/laravel-apache-age-driver/issues",
-                "source": "https://github.com/danny50610/laravel-apache-age-driver/tree/0.1.0"
+                "source": "https://github.com/danny50610/laravel-apache-age-driver/tree/0.2.0"
             },
-            "time": "2025-09-03T13:04:06+00:00"
+            "time": "2025-09-30T09:03:49+00:00"
         },
         {
             "name": "dflydev/dot-access-data",
