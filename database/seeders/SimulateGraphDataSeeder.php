@@ -73,7 +73,7 @@ class SimulateGraphDataSeeder extends Seeder
         $this->youtubeVideo = VertexType::create([
             'name' => 'Youtube 影片',
             'description' => '',
-            'age_label_name' => 'youtube-video',
+            'age_label_name' => 'youtube_video',
         ]);
 
         $this->youtubeVideoPropertyId = new VertexProperty([
@@ -106,7 +106,7 @@ class SimulateGraphDataSeeder extends Seeder
         $this->hasYoutubeVideoEdge = new EdgeType([
             'name' => 'Youtube 影片',
             'description' => '',
-            'age_label_name' => 'has-youtube-video',
+            'age_label_name' => 'has_youtube_video',
         ]);
         $this->hasYoutubeVideoEdge->startVertex()->associate($this->song);
         $this->hasYoutubeVideoEdge->endVertex()->associate($this->youtubeVideo);
@@ -115,9 +115,9 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createGraphData()
     {
-        // 星街すいせい - vocal -> 綺麗事 - has-youtube-video -> (https://www.youtube.com/watch?v=VPhLXeU25KA)
-        // AZKi - vocal -> いのち(2024 ver.) - has-youtube-video -> (https://www.youtube.com/watch?v=hQ3rYiaUsUY)
-        // AZKi × 星街すいせい - vocal -> The Last Frontier - has-youtube-video -> (https://www.youtube.com/watch?v=-9wUbw5qevU)
+        // 星街すいせい - vocal -> 綺麗事 - has_youtube_video -> (https://www.youtube.com/watch?v=VPhLXeU25KA)
+        // AZKi - vocal -> いのち(2024 ver.) - has_youtube_video -> (https://www.youtube.com/watch?v=hQ3rYiaUsUY)
+        // AZKi × 星街すいせい - vocal -> The Last Frontier - has_youtube_video -> (https://www.youtube.com/watch?v=-9wUbw5qevU)
 
         $this->createVtuber('星街すいせい');
         $this->createVtuber('AZKi');
