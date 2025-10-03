@@ -17,8 +17,24 @@ class VertexController extends Controller
         ]);
 
         if (is_null($request->type)) {
-            // TODO: list all vertex types with counts and links to their pages
-            return view('graph.vertex.all');
+            $vertexTypeList = VertexType::orderBy('id')->paginate();
+
+            $vertexInfoList = [];
+            /** @var VertexType $vertexType */
+            foreach ($vertexTypeList as $vertexType) {
+                // TODO: 只取前幾個就好
+                $vertexList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vertexType) {
+                    return $builder->matchNode('v', $vertexType->age_label_name)
+                        ->return('v');
+                })->get();
+
+                $vertexInfoList[] = [
+                    'type' => $vertexType,
+                    'vertexList' => $vertexList,
+                ];
+            }
+
+            return view('graph.vertex.all-type', compact('vertexTypeList', 'vertexInfoList'));
         } else {
             $type = $request->type;
             $vertexType = VertexType::where('age_label_name', $type)->first();
