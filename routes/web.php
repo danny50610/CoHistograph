@@ -1,9 +1,5 @@
 <?php
 
-use App\Http\Controllers\GraphSchema\EdgePropertyController;
-use App\Http\Controllers\GraphSchema\EdgeTypeController;
-use App\Http\Controllers\GraphSchema\VertexPropertyController;
-use App\Http\Controllers\GraphSchema\VertexTypeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -22,11 +18,16 @@ Route::group(['middleware' => ['auth']], function () {
     Route::resource('role', RoleController::class)->except(['show']);
 
     Route::prefix('graph-schema')->name('graph-schema.')->scopeBindings()->group(function () {
-        Route::resource('vertex-type', VertexTypeController::class);
-        Route::resource('vertex-type/{vertex_type}/vertex-property', VertexPropertyController::class)
+        Route::resource('vertex-type', \App\Http\Controllers\GraphSchema\VertexTypeController::class);
+        Route::resource('vertex-type/{vertex_type}/vertex-property', \App\Http\Controllers\GraphSchema\VertexPropertyController::class)
             ->except(['index']);
-        Route::resource('edge-type', EdgeTypeController::class);
-        Route::resource('edge-type/{edge_type}/edge-property', EdgePropertyController::class)
+        Route::resource('edge-type', \App\Http\Controllers\GraphSchema\EdgeTypeController::class);
+        Route::resource('edge-type/{edge_type}/edge-property', \App\Http\Controllers\GraphSchema\EdgePropertyController::class)
             ->except(['index']);
+    });
+
+    Route::prefix('graph')->name('graph.')->group(function () {
+        Route::resource('vertex', \App\Http\Controllers\Graph\VertexController::class)
+            ->only(['index', 'show']);
     });
 });
