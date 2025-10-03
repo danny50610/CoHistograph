@@ -142,7 +142,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createVtuber(string $name)
     {
-         DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
+        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
             return $builder->createNode(null, $this->vTuber->age_label_name, [
                 $this->vTuberPropertyName->age_property_name => $name,
             ])->setAs(['v']);
@@ -151,7 +151,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createSong(string $name)
     {
-         DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
+        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
             return $builder->createNode(null, $this->song->age_label_name, [
                 $this->songPropertyName->age_property_name => $name,
             ])->setAs(['v']);
@@ -160,7 +160,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createYoutubeVideo(string $id)
     {
-         DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id) {
+        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id) {
             return $builder->createNode(null, $this->youtubeVideo->age_label_name, [
                 $this->youtubeVideoPropertyId->age_property_name => $id,
             ])->setAs(['v']);
