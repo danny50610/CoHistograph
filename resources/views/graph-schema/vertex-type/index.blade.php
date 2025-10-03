@@ -8,7 +8,11 @@
 
         <h1>Graph Schema - Vertex 管理</h1>
 
-        <a href="{{ route('graph-schema.vertex-type.create') }}" class="btn btn-primary mb-2"><i class="fa-solid fa-plus"></i> 新增</a>
+        @permission('graph-schema.manage')
+            <a href="{{ route('graph-schema.vertex-type.create') }}" class="btn btn-primary mb-2">
+                <i class="fa-solid fa-plus"></i> 新增
+            </a>
+        @endpermission
 
         @forelse ($vertexTypeList as $vertexType)
             <div class="card">

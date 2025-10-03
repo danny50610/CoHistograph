@@ -13,7 +13,14 @@ class VertexTypeController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:graph-schema.manage');
+        $this->middleware('permission:graph-schema.manage')
+            ->only([
+                'create',
+                'store',
+                'edit',
+                'update',
+                'destroy',
+            ]);
     }
 
     public function index()

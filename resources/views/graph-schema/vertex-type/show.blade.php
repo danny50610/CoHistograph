@@ -8,14 +8,18 @@
 
         <h1>Graph Schema - Vertex - {{ $vertexType->name }}</h1>
 
+        @permission('graph-schema.manage')
         <div class="mb-2">
             {{ html()->form('DELETE', route('graph-schema.vertex-type.destroy', [$vertexType]))->style('display: inline')->attribute('onSubmit', "return confirm('確定要刪除此 Vertex 嗎？');")->open() }}
             <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 刪除</button>
             {{ html()->form()->close() }}
         </div>
+        @endpermission
 
         <h2>基本資料</h2>
+        @permission('graph-schema.manage')
         <a href="{{ route('graph-schema.vertex-type.edit', $vertexType) }}" class="btn btn-primary mb-2"><i class="fa-solid fa-pen-to-square"></i> 編輯</a>
+        @endpermission
         <div class="card mb-2">
             <div class="card-body">
                 <dl class="row">
@@ -32,7 +36,9 @@
         </div>
 
         <h2>Properties</h2>
+        @permission('graph-schema.manage')
         <a href="{{ route('graph-schema.vertex-property.create', [$vertexType]) }}" class="btn btn-primary mb-2"><i class="fa-solid fa-plus"></i> 新增</a>
+        @endpermission
         <div class="card mb-2">
             <div class="card-body">
                 <dl class="row">
