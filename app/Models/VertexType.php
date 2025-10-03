@@ -14,6 +14,7 @@ class VertexType extends Model
         'name',
         'description',
         'age_label_name',
+        'overview_order',
     ];
 
     public function properties(): HasMany

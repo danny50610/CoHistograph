@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->string('description')->default('');
             $table->string('age_label_name')->unique();
+            $table->tinyInteger('overview_order')->nullable();
             $table->timestamps();
         });
 

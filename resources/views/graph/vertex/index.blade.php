@@ -4,6 +4,8 @@
 
 @section('content')
     <div class="container">
+        <a href="{{ route('graph.vertex.index') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> 返回</a>
+
         <h1>Vertex - {{ $vertexType->name }}</h1>
 
         @forelse ($vertexList as $vertex)
