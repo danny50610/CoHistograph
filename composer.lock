@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "150ca536486a97c62596a3c7dd9ad381",
+    "content-hash": "cd155bc3cb62a67582119c7f00d76895",
     "packages": [
         {
             "name": "antlr/antlr4-php-runtime",
@@ -192,16 +192,16 @@
         },
         {
             "name": "danny50610/laravel-apache-age-driver",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/danny50610/laravel-apache-age-driver.git",
-                "reference": "d78d95aabfdbe7fb24400f5b68ae983f545b0b69"
+                "reference": "0c644a050cca4af0ef19eeb121df701a55e63921"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/danny50610/laravel-apache-age-driver/zipball/d78d95aabfdbe7fb24400f5b68ae983f545b0b69",
-                "reference": "d78d95aabfdbe7fb24400f5b68ae983f545b0b69",
+                "url": "https://api.github.com/repos/danny50610/laravel-apache-age-driver/zipball/0c644a050cca4af0ef19eeb121df701a55e63921",
+                "reference": "0c644a050cca4af0ef19eeb121df701a55e63921",
                 "shasum": ""
             },
             "require": {
@@ -246,9 +246,9 @@
             "description": "A Laravel database driver for Apache AGE, enabling graph database capabilities.",
             "support": {
                 "issues": "https://github.com/danny50610/laravel-apache-age-driver/issues",
-                "source": "https://github.com/danny50610/laravel-apache-age-driver/tree/0.3.0"
+                "source": "https://github.com/danny50610/laravel-apache-age-driver/tree/0.4.0"
             },
-            "time": "2025-10-03T05:00:18+00:00"
+            "time": "2025-10-04T05:31:53+00:00"
         },
         {
             "name": "dflydev/dot-access-data",

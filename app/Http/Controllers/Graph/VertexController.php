@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Graph;
 
 use App\Http\Controllers\Controller;
 use App\Models\VertexType;
+use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,8 +64,62 @@ class VertexController extends Controller
 
         $vertex = $vertex->v;
 
+        /** @var VertexType $vertexType */
         $vertexType = VertexType::where('age_label_name', $vertex->label)->firstOrFail();
 
-        return view('graph.vertex.show', compact('vertex', 'vertexType'));
+        $edgeInfoList = [];
+        $startEdgeTypeList = $vertexType->startEdgeTypes;
+        $endEdgeTypeList = $vertexType->endEdgeTypes;
+        foreach ($startEdgeTypeList as $edgeType) {
+            $edgeInfoList[$edgeType->age_label_name] = [
+                'type' => $edgeType,
+                'edges' => [],
+            ];
+        }
+        foreach ($endEdgeTypeList as $edgeType) {
+            $edgeInfoList[$edgeType->age_label_name] = [
+                'type' => $edgeType,
+                'edges' => [],
+            ];
+        }
+
+        // TODO: 分成兩次查詢比較快，有機會合併 code
+        $edgeList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType) {
+            return $builder->matchNode('v', $vertexType->age_label_name)
+                ->withMatchEdge(Direction::RIGHT, 'e')
+                ->withMatchNode('m')
+                ->where('id(v)', '=', $id)
+                ->return('e')
+                ->return('m');
+        })->get();
+
+        foreach ($edgeList as $item) {
+            $edge = $item->e;
+
+            $edgeInfoList[$edge->label]['edges'][] = [
+                'edge' => $edge,
+                'end_vertex' => $item->m,
+            ];
+        }
+
+        $edgeList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType) {
+            return $builder->matchNode('v', $vertexType->age_label_name)
+                ->withMatchEdge(Direction::LEFT, 'e')
+                ->withMatchNode('m')
+                ->where('id(v)', '=', $id)
+                ->return('e')
+                ->return('m');
+        })->get();
+
+        foreach ($edgeList as $item) {
+            $edge = $item->e;
+
+            $edgeInfoList[$edge->label]['edges'][] = [
+                'edge' => $edge,
+                'end_vertex' => $item->m,
+            ];
+        }
+
+        return view('graph.vertex.show', compact('vertex', 'vertexType', 'edgeInfoList'));
     }
 }

@@ -28,5 +28,26 @@
                 </dl>
             </div>
         </div>
+
+        <h2>Edge</h2>
+        @forelse ($edgeInfoList as $edgeInfo)
+            <div class="card mb-2">
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-md-2">
+                            {{ $edgeInfo['type']->name }}
+                        </dt>
+                        <dd class="col-md-10">
+                            @foreach ($edgeInfo['edges'] as $edge)
+                                {{ $edge['end_vertex']->properties['name'] ?? 'TODO:' }}
+                                <br/>
+                            @endforeach
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        @empty
+            <span>目前沒有任何 Edge</span>
+        @endforelse
     </div>
 @endsection
