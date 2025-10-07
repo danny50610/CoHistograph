@@ -48,9 +48,10 @@ jobs:
         cp .env.github-actions .env
         composer install --prefer-dist --no-progress
         php artisan migrate --force
+        php artisan migrate --database=pgsql-age --path=database/migrations-age --force
         mkdir .bin
         corepack enable --install-directory .bin
-        echo "$PWD/.bin" >> $GITHUB_PATH
+        echo "$(pwd)/.bin" >> $GITHUB_PATH
         yarn install
 
     - name: Build Frontend
