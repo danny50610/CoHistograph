@@ -51,10 +51,8 @@ jobs:
         php artisan migrate --database=pgsql-age --path=database/migrations-age --force
         mkdir .bin
         corepack enable --install-directory .bin
-        echo "$(pwd)/.bin" >> $GITHUB_PATH
-        sleep 5
-        echo $GITHUB_PATH
-        yarn install
+        export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+        .bin/yarn install
 
     - name: Build Frontend
       run: yarn run build
