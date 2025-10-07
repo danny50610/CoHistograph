@@ -46,8 +46,10 @@ jobs:
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
 
-    - name: Init Env
-      run: php artisan key:generate
+    - name: Prepare Env
+      run: |
+        cp .env.example .env
+        php artisan key:generate
 
     - name: Test
       run: composer run test
