@@ -50,6 +50,7 @@ jobs:
         php artisan migrate --force
         mkdir .bin
         corepack enable --install-directory .bin
+        echo "$PWD/..bin" >> $GITHUB_PATH
         yarn install
 
     - name: Build Frontend
