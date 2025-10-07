@@ -15,7 +15,7 @@ jobs:
 
     container:
       image: danny60072/gitlab-ci-pipeline-php:${{ matrix.phpVersion }}-node22
-      options: --user 1001
+      options: --user 1000
 
     services:
       db:
@@ -52,6 +52,7 @@ jobs:
         mkdir .bin
         corepack enable --install-directory .bin
         echo "$(pwd)/.bin" >> $GITHUB_PATH
+        sleep 5
         echo $GITHUB_PATH
         yarn install
 
