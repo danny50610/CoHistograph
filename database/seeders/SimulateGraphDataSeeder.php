@@ -46,6 +46,7 @@ class SimulateGraphDataSeeder extends Seeder
             'name' => 'VTuber',
             'description' => 'Virtual YouTuber',
             'age_label_name' => 'vtuber',
+            'show_property_name' => 'name',
         ]);
         $this->vTuberPropertyName = new VertexProperty([
             'name' => '名字',
@@ -60,6 +61,7 @@ class SimulateGraphDataSeeder extends Seeder
             'name' => '歌曲',
             'description' => '',
             'age_label_name' => 'song',
+            'show_property_name' => 'name',
         ]);
         $this->songPropertyName = new VertexProperty([
             'name' => '名稱',
@@ -74,6 +76,7 @@ class SimulateGraphDataSeeder extends Seeder
             'name' => 'Youtube 影片',
             'description' => '',
             'age_label_name' => 'youtube_video',
+            'show_property_name' => 'id',
         ]);
 
         $this->youtubeVideoPropertyId = new VertexProperty([

@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', $vertex->properties['name'] . ' - ' . $vertexType->name . ' - Vertex')
+@section('title', $vertex->properties[$vertexType->show_property_name] . ' - ' . $vertexType->name . ' - Vertex')
 
 @section('content')
     <div class="container">
         <a href="{{ route('graph.vertex.index', ['type' => $vertexType->age_label_name]) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> 返回</a>
 
-        <h1>Vertex - {{ $vertexType->name }} - {{ $vertex->properties['name'] }}</h1>
+        <h1>Vertex - {{ $vertexType->name }} - {{ $vertex->properties[$vertexType->show_property_name] }}</h1>
 
         <h2>Properties</h2>
         <div class="card mb-2">
@@ -37,7 +37,7 @@
                         </dt>
                         <dd class="col-md-10  mb-0">
                             @foreach ($edgeInfo['edges'] as $edge)
-                                {{ $edge['end_vertex']->properties['name'] ?? 'TODO:' }}
+                                {{ $edge['end_vertex']->properties[$edgeInfo['vertex_type']->show_property_name ?? 'name']}}
                                 <br/>
                             @endforeach
                         </dd>

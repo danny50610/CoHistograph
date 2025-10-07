@@ -7,6 +7,7 @@ use App\Models\VertexType;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class VertexController extends Controller
@@ -67,59 +68,54 @@ class VertexController extends Controller
         /** @var VertexType $vertexType */
         $vertexType = VertexType::where('age_label_name', $vertex->label)->firstOrFail();
 
-        $edgeInfoList = [];
-        $startEdgeTypeList = $vertexType->startEdgeTypes;
-        $endEdgeTypeList = $vertexType->endEdgeTypes;
-        foreach ($startEdgeTypeList as $edgeType) {
-            $edgeInfoList[$edgeType->age_label_name] = [
-                'type' => $edgeType,
-                'edges' => [],
-            ];
-        }
-        foreach ($endEdgeTypeList as $edgeType) {
-            $edgeInfoList[$edgeType->age_label_name] = [
-                'type' => $edgeType,
-                'edges' => [],
-            ];
-        }
-
-        // TODO: 分成兩次查詢比較快，有機會合併 code
-        $edgeList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType) {
-            return $builder->matchNode('v', $vertexType->age_label_name)
-                ->withMatchEdge(Direction::RIGHT, 'e')
-                ->withMatchNode('m')
-                ->where('id(v)', '=', $id)
-                ->return('e')
-                ->return('m');
-        })->get();
-
-        foreach ($edgeList as $item) {
-            $edge = $item->e;
-
-            $edgeInfoList[$edge->label]['edges'][] = [
-                'edge' => $edge,
-                'end_vertex' => $item->m,
-            ];
-        }
-
-        $edgeList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType) {
-            return $builder->matchNode('v', $vertexType->age_label_name)
-                ->withMatchEdge(Direction::LEFT, 'e')
-                ->withMatchNode('m')
-                ->where('id(v)', '=', $id)
-                ->return('e')
-                ->return('m');
-        })->get();
-
-        foreach ($edgeList as $item) {
-            $edge = $item->e;
-
-            $edgeInfoList[$edge->label]['edges'][] = [
-                'edge' => $edge,
-                'end_vertex' => $item->m,
-            ];
-        }
+        $edgeInfoList = $this->getVertexEdgeInfo($vertexType, $id);
 
         return view('graph.vertex.show', compact('vertex', 'vertexType', 'edgeInfoList'));
+    }
+
+    protected function getVertexEdgeInfo(VertexType $vertexType, $id)
+    {
+        $edgeInfoList = [];
+
+        $vertexType->load([
+            'startEdgeTypes',
+            'startEdgeTypes.endVertex',
+            'endEdgeTypes',
+            'endEdgeTypes.startVertex',
+        ]);
+
+        $this->mergeInfo($edgeInfoList, $vertexType, $id, $vertexType->startEdgeTypes, 'endVertex', Direction::RIGHT);
+        $this->mergeInfo($edgeInfoList, $vertexType, $id, $vertexType->endEdgeTypes, 'startVertex', Direction::LEFT);
+
+        return $edgeInfoList;
+    }
+
+    protected function mergeInfo(array &$edgeInfoList, VertexType $vertexType, $id, Collection $edgeTypeList, string $targetVertexName ,Direction $direction)
+    {
+        foreach ($edgeTypeList as $edgeType) {
+            $edgeInfoList[$edgeType->age_label_name] = [
+                'type' => $edgeType,
+                'vertex_type' => $edgeType->{$targetVertexName},
+                'edges' => [],
+            ];
+        }
+
+        $edgeList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType, $direction) {
+            return $builder->matchNode('v', $vertexType->age_label_name)
+                ->withMatchEdge($direction, 'e')
+                ->withMatchNode('m')
+                ->where('id(v)', '=', $id)
+                ->return('e')
+                ->return('m');
+        })->get();
+
+        foreach ($edgeList as $item) {
+            $edge = $item->e;
+
+            $edgeInfoList[$edge->label]['edges'][] = [
+                'edge' => $edge,
+                'end_vertex' => $item->m,
+            ];
+        }
     }
 }
