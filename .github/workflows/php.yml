@@ -53,7 +53,7 @@ jobs:
 
     - name: Install Node dependencies
       run: |
-        corepack enable
+        sudo corepack enable
         yarn install
 
     - name: Build Frontend
