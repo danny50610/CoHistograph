@@ -53,9 +53,7 @@ jobs:
         corepack enable --install-directory .bin
         export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
         .bin/yarn install
-
-    - name: Build Frontend
-      run: yarn run build
+        .bin/yarn run build
 
     - name: Test
       run: composer run test
