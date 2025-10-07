@@ -53,7 +53,7 @@ jobs:
 
     - name: Install Node dependencies
       run: |
-        corepack enable --install-directory ~/.local/bin
+        corepack enable --install-directory .bin
         yarn install
 
     - name: Build Frontend
