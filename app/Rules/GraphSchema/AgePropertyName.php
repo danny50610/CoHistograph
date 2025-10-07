@@ -24,8 +24,9 @@ class AgePropertyName implements ValidationRule
             return;
         }
 
-        if (preg_match('/^[a-z0-9_]*$/', $value) === false) {
+        if (preg_match('/^[a-z0-9_]*$/', $value) !== 1) {
             $fail(':attribute 只能包含小寫英文、數字、"_"');
+            return;
         }
     }
 }
