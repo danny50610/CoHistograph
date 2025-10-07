@@ -62,7 +62,14 @@ class VertexTypeController extends Controller
 
     public function edit(VertexType $vertexType)
     {
-        return view('graph-schema.vertex-type.create-or-edit', compact('vertexType'));
+        $propertyOptions = $vertexType->properties
+            ->map(fn ($item) => [
+                'value' => $item->age_property_name,
+                'label' => $item->name,
+            ])
+            ->toArray();
+
+        return view('graph-schema.vertex-type.create-or-edit', compact('vertexType', 'propertyOptions'));
     }
 
     public function update(Request $request, VertexType $vertexType)
@@ -71,6 +78,7 @@ class VertexTypeController extends Controller
             'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
+            'show_property_name' => ['nullable', 'string', Rule::in($vertexType->properties->pluck('age_property_name')->toArray())],
         ]);
 
         // TODO: age_label_name cannot change when exists
@@ -79,6 +87,7 @@ class VertexTypeController extends Controller
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description', ''),
+            'show_property_name' => $request->input('show_property_name', null),
         ]);
 
         return redirect()->route('graph-schema.vertex-type.show', [$vertexType])

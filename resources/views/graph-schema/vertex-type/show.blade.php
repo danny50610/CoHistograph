@@ -31,6 +31,9 @@
 
                     <dt class="col-md-2">描述</dt>
                     <dd class="col-md-10">{{ $vertexType->description }}</dd>
+
+                    <dt class="col-md-2">顯示用 Property</dt>
+                    <dd class="col-md-10">{{ $vertexType->show_property_name }}</dd>
                 </dl>
             </div>
         </div>
