@@ -52,7 +52,9 @@ jobs:
         php artisan key:generate
 
     - name: Install Node dependencies
-      run: yarn install
+      run: |
+        corepack enable
+        yarn install
 
     - name: Build Frontend
       run: yarn run build
