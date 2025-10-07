@@ -43,16 +43,12 @@ jobs:
         path: vendor
         key: ${{ runner.os }}-php-${{ matrix.phpVersion }}
 
-    - name: Install PHP dependencies
-      run: composer install --prefer-dist --no-progress
-
     - name: Prepare Env
       run: |
-        cp .env.example .env
-        php artisan key:generate
-
-    - name: Install Node dependencies
-      run: |
+        cp .env.github-actions .env
+        composer install --prefer-dist --no-progress
+        php artisan migrate --force
+        mkdir .bin
         corepack enable --install-directory .bin
         yarn install
 
