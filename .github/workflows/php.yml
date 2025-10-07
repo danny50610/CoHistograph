@@ -15,7 +15,7 @@ jobs:
 
     container:
       image: danny60072/gitlab-ci-pipeline-php:${{ matrix.phpVersion }}-node22
-      options: --user 1000
+      options: --user 1001
 
     services:
       db:
