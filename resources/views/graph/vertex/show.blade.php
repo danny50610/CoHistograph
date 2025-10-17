@@ -37,8 +37,9 @@
                         </dt>
                         <dd class="col-md-10  mb-0">
                             @foreach ($edgeInfo['edges'] as $edge)
-                                {{ $edge['end_vertex']->properties[$edgeInfo['vertex_type']->show_property_name ?? 'name']}}
-                                <br/>
+                                <a class="d-block" href="{{ route('graph.vertex.show', ['vertex' => $edge['end_vertex']->id]) }}">
+                                    {{ $edge['end_vertex']->properties[$edgeInfo['vertex_type']->show_property_name ?? 'name']}}
+                                </a>
                             @endforeach
                         </dd>
                     </dl>
