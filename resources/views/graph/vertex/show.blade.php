@@ -18,7 +18,7 @@
                             <span class=text-body-secondary>({{ $properties->age_property_name }})</span>
                         </dt>
                         <dd class="col-md-10 mb-0">
-                            {{ $vertex->properties[$properties->age_property_name] }}
+                            {{ $vertex->properties[$properties->age_property_name] ?? '' }}
                         </dd>
                     @empty
                         <span>目前沒有任何 Property</span>
