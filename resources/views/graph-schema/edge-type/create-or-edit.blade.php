@@ -20,7 +20,7 @@
                     @csrf
 
                     <x-forms.input id="name" label="名稱" :value="$edgeType->name ?? ''" required />
-                    <x-forms.input id="age_label_name" label="Label 名稱" :value="$edgeType->age_label_name ?? ''" required />
+                    <x-forms.input id="age_label_name" label="Label 名稱" :value="$edgeType->age_label_name ?? ''" helpText="只能包含小寫英文、數字、_" required />
                     <x-forms.input id="description" label="描述" :value="$edgeType->description ?? ''" />
 
                     <div class="row mb-2">

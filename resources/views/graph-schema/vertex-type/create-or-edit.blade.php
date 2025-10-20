@@ -20,7 +20,7 @@
                     @csrf
 
                     <x-forms.input id="name" label="名稱" :value="$vertexType->name ?? ''" required />
-                    <x-forms.input id="age_label_name" label="Label 名稱" :value="$vertexType->age_label_name ?? ''" required />
+                    <x-forms.input id="age_label_name" label="Label 名稱" :value="$vertexType->age_label_name ?? ''" helpText="只能包含小寫英文、數字、_" required />
                     <x-forms.input id="description" label="描述" :value="$vertexType->description ?? ''" />
                     @if($isEditMode)
                         <x-forms.select id="show_property_name" label="顯示 property" :value="$vertexType->show_property_name ?? ''" :options="$propertyOptions" />
