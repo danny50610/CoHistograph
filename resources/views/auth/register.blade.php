@@ -106,7 +106,7 @@
     </div>
 @endsection
 
-@section('js')
+@push('js')
     <script>
         function handleSubmit(form) {
             form.registerButton.disabled = true;
@@ -114,4 +114,4 @@
             return true;
         }
     </script>
-@endsection
+@endpush

@@ -13,7 +13,7 @@
     </div>
 @endsection
 
-@section('js')
+@push('js')
     @include('components.datatable.js', ['exportButton' => true])
     {!! $dataTable->scripts() !!}
-@endsection
+@endpush
