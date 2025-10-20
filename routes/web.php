@@ -18,6 +18,8 @@ Route::prefix('graph-schema')->name('graph-schema.')->scopeBindings()->group(fun
     Route::resource('edge-type', \App\Http\Controllers\GraphSchema\EdgeTypeController::class);
     Route::resource('edge-type/{edge_type}/edge-property', \App\Http\Controllers\GraphSchema\EdgePropertyController::class)
         ->except(['index']);
+
+    Route::get('visualization', [\App\Http\Controllers\GraphSchema\VisualizationController::class, 'index'])->name('visualization');
 });
 
 Route::prefix('graph')->name('graph.')->group(function () {
