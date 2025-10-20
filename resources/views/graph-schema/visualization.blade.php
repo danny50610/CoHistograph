@@ -84,7 +84,7 @@
 
     const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.id))
-        .force("charge", d3.forceManyBody().strength(-400))
+        .force("charge", d3.forceManyBody().strength(-2000)) // Increase the repulsion strength
         .force("x", d3.forceX())
         .force("y", d3.forceY());
 
@@ -96,6 +96,16 @@
         .join("path")
         .attr("stroke", 'black')
         .attr("marker-end", 'url(#arrowhead)');
+
+    // Add labels for links
+    const linkLabels = svg.append("g")
+        .selectAll("text")
+        .data(links)
+        .join("text")
+        .attr("font-size", 10)
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text(d => d.name);
 
     const node = svg.append("g")
         .attr("fill", "currentColor")
@@ -123,6 +133,10 @@
     simulation.on("tick", () => {
         link.attr("d", linkArc);
         node.attr("transform", d => `translate(${d.x},${d.y})`);
+
+        // Position link labels at the midpoint of each link
+        linkLabels.attr("x", d => (d.source.x + d.target.x) / 2)
+                  .attr("y", d => (d.source.y + d.target.y) / 2);
     });
 
     graphVisualization.append(svg.node());
