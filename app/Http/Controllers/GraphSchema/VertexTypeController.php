@@ -96,6 +96,7 @@ class VertexTypeController extends Controller
 
     public function destroy(VertexType $vertexType)
     {
+        // TODO: Implement the destroy method
         throw new \Exception('Not impl.');
     }
 }

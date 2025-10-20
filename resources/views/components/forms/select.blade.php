@@ -3,10 +3,12 @@
         {{ $label }}@if (!empty($required))<span class="text-danger">*</span>@endif
     </label>
     <div class="col-md-10">
-        <select id="{{ $id }}" name="{{ $id }}" class="form-select @if ($errors->has($id)) is-invalid @endif">
+        <select id="{{ $id }}" name="{{ $id }}" class="form-select @if ($errors->has($id)) is-invalid @endif"
+            @if (!empty($required)) required @endif
+        >
             <option @if (is_null(old($id, $value))) selected @endif" value></option>
             @foreach ($options as $option)
-                <option value="{{ $option['value'] }}" @if (old($id, $value) === $option['value']) selected @endif">{{ $option['label'] }}</option>
+                <option value="{{ $option['value'] }}" @if (old($id, $value) == $option['value']) selected @endif>{{ $option['label'] }}</option>
             @endforeach
         </select>
         @if (!is_null($helpText))

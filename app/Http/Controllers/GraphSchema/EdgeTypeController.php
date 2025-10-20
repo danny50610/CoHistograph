@@ -4,6 +4,7 @@ namespace App\Http\Controllers\GraphSchema;
 
 use App\Http\Controllers\Controller;
 use App\Models\EdgeType;
+use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -36,9 +37,23 @@ class EdgeTypeController extends Controller
         return view('graph-schema.edge-type.show', compact('edgeType'));
     }
 
+    protected function getVertexOptions()
+    {
+        return VertexType::orderBy('id')
+            ->select(['id', 'name'])
+            ->get()
+            ->map(fn ($item) => [
+                'value' => $item->id,
+                'label' => $item->name,
+            ])
+            ->toArray();
+    }
+
     public function create()
     {
-        return view('graph-schema.edge-type.create-or-edit');
+        $vertexOptions = $this->getVertexOptions();
+
+        return view('graph-schema.edge-type.create-or-edit', compact('vertexOptions'));
     }
 
     public function store(Request $request)
@@ -47,12 +62,16 @@ class EdgeTypeController extends Controller
             'name' => ['required', 'string', Rule::unique('edge_types'), Rule::unique('vertex_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types'), Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
+            'start_vertex_id' => ['required', 'exists:vertex_types,id', 'different:end_vertex_id'],
+            'end_vertex_id' => ['required', 'exists:vertex_types,id', 'different:start_vertex_id'],
         ]);
 
         $edgeType = EdgeType::create([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description', ''),
+            'description' => $request->input('description') ?? '',
+            'start_vertex_id' => $request->input('start_vertex_id'),
+            'end_vertex_id' => $request->input('end_vertex_id'),
         ]);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])
@@ -61,7 +80,9 @@ class EdgeTypeController extends Controller
 
     public function edit(EdgeType $edgeType)
     {
-        return view('graph-schema.edge-type.create-or-edit', compact('edgeType'));
+        $vertexOptions = $this->getVertexOptions();
+
+        return view('graph-schema.edge-type.create-or-edit', compact('edgeType', 'vertexOptions'));
     }
 
     public function update(Request $request, EdgeType $edgeType)
@@ -70,6 +91,8 @@ class EdgeTypeController extends Controller
             'name' => ['required', 'string', Rule::unique('edge_types')->ignore($edgeType)],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types')->ignore($edgeType)],
             'description' => ['nullable', 'string'],
+            'start_vertex_id' => ['required', 'exists:vertex_types,id', 'different:end_vertex_id'],
+            'end_vertex_id' => ['required', 'exists:vertex_types,id', 'different:start_vertex_id'],
         ]);
 
         // TODO: age_label_name cannot change when exists
@@ -77,7 +100,9 @@ class EdgeTypeController extends Controller
         $edgeType->update([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description', ''),
+            'description' => $request->input('description') ?? '',
+            'start_vertex_id' => $request->input('start_vertex_id'),
+            'end_vertex_id' => $request->input('end_vertex_id'),
         ]);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])
@@ -86,6 +111,7 @@ class EdgeTypeController extends Controller
 
     public function destroy(EdgeType $edgeType)
     {
+        // TODO: Implement the destroy method
         throw new \Exception('Not impl.');
     }
 }

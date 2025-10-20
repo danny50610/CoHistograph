@@ -22,6 +22,8 @@
                     <x-forms.input id="name" label="名稱" :value="$edgeType->name ?? ''" required />
                     <x-forms.input id="age_label_name" label="Label 名稱" :value="$edgeType->age_label_name ?? ''" helpText="只能包含小寫英文、數字、_" required />
                     <x-forms.input id="description" label="描述" :value="$edgeType->description ?? ''" />
+                    <x-forms.select id="start_vertex_id" label="起始節點" :value="$edgeType->start_vertex_id ?? ''" :options="$vertexOptions" required />
+                    <x-forms.select id="end_vertex_id" label="結束節點" :value="$edgeType->end_vertex_id ?? ''" :options="$vertexOptions" required />
 
                     <div class="row mb-2">
                         <div class="col-md-10 ms-auto">

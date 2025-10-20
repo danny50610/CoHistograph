@@ -63,5 +63,6 @@
         </div>
 
         {{-- TODO: 連出與連入的 Edge --}}
+        <h2>Edge</h2>
     </div>
 @endsection

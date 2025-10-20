@@ -9,7 +9,7 @@ use Illuminate\View\Component;
 class Select extends Component
 {
     public function __construct(
-        public string $value = '',
+        public mixed $value = '',
         public string $id = '',
         public string $label = '',
         public bool $required = false,
