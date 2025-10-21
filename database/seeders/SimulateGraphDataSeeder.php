@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class SimulateGraphDataSeeder extends Seeder
 {
+    protected VertexType $group;
+
     protected VertexType $vTuber;
     protected VertexProperty $vTuberPropertyName;
 
@@ -23,8 +25,12 @@ class SimulateGraphDataSeeder extends Seeder
     protected VertexType $youtubeVideo;
     protected VertexProperty $youtubeVideoPropertyId;
 
+    protected EdgeType $groupMemberEdge;
+
     protected EdgeType $vocalEdge;
     protected EdgeProperty $vocalEdgePropertyOrder;
+
+    protected EdgeType $groupVocalEdge;
 
     protected EdgeType $hasYoutubeVideoEdge;
 
@@ -42,6 +48,13 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createGraphSchema()
     {
+        $this->group = VertexType::create([
+            'name' => '團體',
+            'description' => '',
+            'age_label_name' => 'group',
+            'show_property_name' => 'name',
+        ]);
+
         $this->vTuber = VertexType::create([
             'name' => 'VTuber',
             'description' => 'Virtual YouTuber',
@@ -88,6 +101,16 @@ class SimulateGraphDataSeeder extends Seeder
         $this->youtubeVideoPropertyId->vertexType()->associate($this->youtubeVideo);
         $this->youtubeVideoPropertyId->save();
 
+        $this->groupMemberEdge = new EdgeType([
+            'name' => '團體',
+            'reverse_name' => '成員',
+            'description' => '',
+            'age_label_name' => 'member',
+        ]);
+        $this->groupMemberEdge->startVertex()->associate($this->vTuber);
+        $this->groupMemberEdge->endVertex()->associate($this->group);
+        $this->groupMemberEdge->save();
+
         $this->vocalEdge = new EdgeType([
             'name' => '主唱',
             'description' => '',
@@ -106,8 +129,18 @@ class SimulateGraphDataSeeder extends Seeder
         $this->vocalEdgePropertyOrder->edgeType()->associate($this->vocalEdge);
         $this->vocalEdgePropertyOrder->save();
 
+        $this->groupVocalEdge = new EdgeType([
+            'name' => '主唱',
+            'description' => '',
+            'age_label_name' => 'vocal',
+        ]);
+        $this->groupVocalEdge->startVertex()->associate($this->group);
+        $this->groupVocalEdge->endVertex()->associate($this->song);
+        $this->groupVocalEdge->save();
+
         $this->hasYoutubeVideoEdge = new EdgeType([
             'name' => 'Youtube 影片',
+            'reverse_name' => '歌曲',
             'description' => '',
             'age_label_name' => 'has_youtube_video',
         ]);

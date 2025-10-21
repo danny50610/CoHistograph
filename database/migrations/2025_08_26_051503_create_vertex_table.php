@@ -35,14 +35,13 @@ return new class extends Migration
 
         Schema::create('edge_types', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name');
+            $table->string('reverse_name')->default('');
             $table->string('description')->default('');
-            $table->string('age_label_name')->unique();
+            $table->string('age_label_name');
             $table->foreignId('start_vertex_id')->constrained('vertex_types')->cascadeOnUpdate()->restrictOnDelete();
             $table->foreignId('end_vertex_id')->constrained('vertex_types')->cascadeOnUpdate()->restrictOnDelete();
             $table->timestamps();
-
-            $table->unique(['age_label_name', 'start_vertex_id', 'end_vertex_id']);
         });
 
         Schema::create('edge_properties', function (Blueprint $table) {

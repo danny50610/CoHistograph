@@ -59,8 +59,8 @@ class EdgeTypeController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('edge_types'), Rule::unique('vertex_types')],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types'), Rule::unique('vertex_types')],
+            'name' => ['required', 'string', Rule::unique('vertex_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -88,8 +88,8 @@ class EdgeTypeController extends Controller
     public function update(Request $request, EdgeType $edgeType)
     {
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('edge_types')->ignore($edgeType)],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types')->ignore($edgeType)],
+            'name' => ['required', 'string', Rule::unique('vertex_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],

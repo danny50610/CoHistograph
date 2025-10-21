@@ -13,6 +13,7 @@ class EdgeType extends Model
 
     protected $fillable = [
         'name',
+        'reverse_name',
         'description',
         'age_label_name',
         'start_vertex_id',
