@@ -53,7 +53,7 @@ class VertexTypeController extends Controller
         $vertexType = VertexType::create([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description', ''),
+            'description' => $request->input('description') ?? '',
         ]);
 
         return redirect()->route('graph-schema.vertex-type.show', [$vertexType])
@@ -86,7 +86,7 @@ class VertexTypeController extends Controller
         $vertexType->update([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
-            'description' => $request->input('description', ''),
+            'description' => $request->input('description') ?? '',
             'show_property_name' => $request->input('show_property_name', null),
         ]);
 
