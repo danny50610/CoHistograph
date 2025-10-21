@@ -62,8 +62,8 @@ class EdgeTypeController extends Controller
             'name' => ['required', 'string', Rule::unique('edge_types'), Rule::unique('vertex_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types'), Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
-            'start_vertex_id' => ['required', 'exists:vertex_types,id', 'different:end_vertex_id'],
-            'end_vertex_id' => ['required', 'exists:vertex_types,id', 'different:start_vertex_id'],
+            'start_vertex_id' => ['required', 'exists:vertex_types,id'],
+            'end_vertex_id' => ['required', 'exists:vertex_types,id'],
         ]);
 
         $edgeType = EdgeType::create([
@@ -91,8 +91,8 @@ class EdgeTypeController extends Controller
             'name' => ['required', 'string', Rule::unique('edge_types')->ignore($edgeType)],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('edge_types')->ignore($edgeType)],
             'description' => ['nullable', 'string'],
-            'start_vertex_id' => ['required', 'exists:vertex_types,id', 'different:end_vertex_id'],
-            'end_vertex_id' => ['required', 'exists:vertex_types,id', 'different:start_vertex_id'],
+            'start_vertex_id' => ['required', 'exists:vertex_types,id'],
+            'end_vertex_id' => ['required', 'exists:vertex_types,id'],
         ]);
 
         // TODO: age_label_name cannot change when exists
