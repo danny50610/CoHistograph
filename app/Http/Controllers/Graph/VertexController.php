@@ -105,8 +105,7 @@ class VertexController extends Controller
                 ->withMatchEdge($direction, 'e')
                 ->withMatchNode('m')
                 ->where('id(v)', '=', $id)
-                ->return('e')
-                ->return('m');
+                ->return(['e', 'm']);
         })->get();
 
         foreach ($edgeList as $item) {
