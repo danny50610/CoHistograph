@@ -59,6 +59,31 @@
             </div>
         </div>
 
-        {{-- TODO: 連出與連入的 Vertex --}}
+        <h2>Vertex</h2>
+        <div class="card mb-2">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-md-2">
+                        起點
+                    </dt>
+                    <dd class="col-md-10">
+                        <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->startVertex]) }}">
+                            {{ $edgeType->startVertex->name}}
+                        </a>
+                    </dd>
+                </dl>
+                <dl class="row mb-0">
+                    <dt class="col-md-2">
+                        終點
+                    </dt>
+                    <dd class="col-md-10">
+                        <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->endVertex]) }}">
+                            {{ $edgeType->endVertex->name}}
+                        </a>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
     </div>
 @endsection
