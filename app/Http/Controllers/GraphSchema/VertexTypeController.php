@@ -32,7 +32,13 @@ class VertexTypeController extends Controller
 
     public function show(VertexType $vertexType)
     {
-        $vertexType->load('properties');
+        $vertexType->load([
+            'properties',
+            'startEdgeTypes',
+            'startEdgeTypes.endVertex',
+            'endEdgeTypes',
+            'endEdgeTypes.startVertex',
+        ]);
 
         return view('graph-schema.vertex-type.show', compact('vertexType'));
     }

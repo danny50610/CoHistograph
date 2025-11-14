@@ -62,7 +62,48 @@
             </div>
         </div>
 
-        {{-- TODO: 連出與連入的 Edge --}}
-        <h2>Edge</h2>
+        <h2>連入 Edge</h2>
+        <div class="card mb-2">
+            <div class="card-body">
+                @forelse ($vertexType->endEdgeTypes as $edgeType)
+                    <dl class="row mb-0">
+                        <dt class="col-md-2">
+                            <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
+                                {{ $edgeType->name }}
+                            </a>
+                        </dt>
+                        <dd class="col-md-10 mb-0">
+                            <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->startVertex]) }}">
+                                {{ $edgeType->startVertex->name}}
+                            </a>
+                        </dd>
+                    </dl>
+                @empty
+                    <span>沒有任何連入 Edge</span>
+                @endforelse
+            </div>
+        </div>
+
+        <h2>連出 Edge</h2>
+        <div class="card mb-2">
+            <div class="card-body">
+                @forelse ($vertexType->startEdgeTypes as $edgeType)
+                    <dl class="row mb-0">
+                        <dt class="col-md-2">
+                            <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
+                                {{ $edgeType->name }}
+                            </a>
+                        </dt>
+                        <dd class="col-md-10 mb-0">
+                            <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->endVertex]) }}">
+                                {{ $edgeType->endVertex->name}}
+                            </a>
+                        </dd>
+                    </dl>
+                @empty
+                    <span>沒有任何連出 Edge</span>
+                @endforelse
+            </div>
+        </div>
     </div>
 @endsection
