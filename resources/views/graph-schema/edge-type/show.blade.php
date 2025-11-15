@@ -26,6 +26,9 @@
                     <dt class="col-md-2">名稱</dt>
                     <dd class="col-md-10">{{ $edgeType->name }}</dd>
 
+                    <dt class="col-md-2">反向名稱</dt>
+                    <dd class="col-md-10">{{ $edgeType->reverse_name }}</dd>
+
                     <dt class="col-md-2">Label 名稱</dt>
                     <dd class="col-md-10">{{ $edgeType->age_label_name }}</dd>
 
