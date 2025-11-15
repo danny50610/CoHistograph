@@ -8,6 +8,10 @@
 
         <h1>Vertex - {{ $vertexType->name }}</h1>
 
+        <a href="{{ route('graph-schema.vertex-type.show', $vertexType) }}" class="btn btn-primary mb-2">
+            <i class="fa-solid fa-circle-info"></i> Schema
+        </a>
+
         @forelse ($vertexList as $vertex)
             <div class="card">
                 <div class="card-body">

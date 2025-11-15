@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Graph;
 
 use App\Http\Controllers\Controller;
+use App\Models\EdgeType;
 use App\Models\VertexType;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
@@ -18,7 +19,9 @@ class VertexController extends Controller
             'type' => 'nullable|string|max:255',
         ]);
 
-        if (is_null($request->type)) {
+        $type = $request->input('type');
+
+        if (is_null($type)) {
             $vertexTypeList = VertexType::orderBy('id')->paginate();
 
             $vertexInfoList = [];
@@ -38,8 +41,10 @@ class VertexController extends Controller
 
             return view('graph.vertex.all-type', compact('vertexTypeList', 'vertexInfoList'));
         } else {
-            $type = $request->type;
             $vertexType = VertexType::where('age_label_name', $type)->first();
+            if (is_null($vertexType)) {
+                abort(404);
+            }
 
             // TODO: paginate order by id
             $vertexList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($type) {
@@ -92,8 +97,9 @@ class VertexController extends Controller
 
     protected function mergeInfo(array &$edgeInfoList, VertexType $vertexType, $id, Collection $edgeTypeList, string $targetVertexName ,Direction $direction)
     {
+        /** @var EdgeType $edgeType */
         foreach ($edgeTypeList as $edgeType) {
-            $edgeInfoList[$edgeType->age_label_name] = [
+            $edgeInfoList[$edgeType->id] = [
                 'type' => $edgeType,
                 'vertex_type' => $edgeType->{$targetVertexName},
                 'edges' => [],
@@ -110,11 +116,16 @@ class VertexController extends Controller
 
         foreach ($edgeList as $item) {
             $edge = $item->e;
+            $vertex = $item->m;
 
-            $edgeInfoList[$edge->label]['edges'][] = [
-                'edge' => $edge,
-                'end_vertex' => $item->m,
-            ];
+            foreach ($edgeInfoList as $edgeTypeId => $info) {
+                if ($edge->label === $info['type']->age_label_name && $vertex->label === $info['vertex_type']->age_label_name) {
+                    $edgeInfoList[$edgeTypeId]['edges'][] = [
+                        'edge' => $edge,
+                        'end_vertex' => $vertex,
+                    ];
+                }
+            }
         }
     }
 }

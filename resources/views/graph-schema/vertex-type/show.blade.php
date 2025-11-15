@@ -8,13 +8,16 @@
 
         <h1>Graph Schema - Vertex - {{ $vertexType->name }}</h1>
 
-        @permission('graph-schema.manage')
         <div class="mb-2">
+            <a href="{{ route('graph.vertex.index', ['type' => $vertexType->age_label_name]) }}" class="btn btn-primary">
+                <i class="fa-solid fa-receipt"></i> Data
+            </a>
+            @permission('graph-schema.manage')
             {{ html()->form('DELETE', route('graph-schema.vertex-type.destroy', [$vertexType]))->style('display: inline')->attribute('onSubmit', "return confirm('確定要刪除此 Vertex 嗎？');")->open() }}
             <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 刪除</button>
             {{ html()->form()->close() }}
+            @endpermission
         </div>
-        @endpermission
 
         <h2>基本資料</h2>
         @permission('graph-schema.manage')
