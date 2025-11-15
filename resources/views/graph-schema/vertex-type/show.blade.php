@@ -69,8 +69,8 @@
                     <dl class="row mb-0">
                         <dt class="col-md-2">
                             <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
-                                {{ $edgeType->reverse_name == '' ? $edgeType->name : $edgeType->reverse_name }}
-                            </a>
+                                {{ $edgeType->reverse_name == '' ? $edgeType->name : $edgeType->reverse_name }}</a>
+                            <span class=text-body-secondary>({{ $edgeType->age_label_name }})</span>
                         </dt>
                         <dd class="col-md-10 mb-0">
                             <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->startVertex]) }}">
@@ -91,8 +91,8 @@
                     <dl class="row mb-0">
                         <dt class="col-md-2">
                             <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
-                                {{ $edgeType->name }}
-                            </a>
+                                {{ $edgeType->name }}</a>
+                            <span class=text-body-secondary>({{ $edgeType->age_label_name }})</span>
                         </dt>
                         <dd class="col-md-10 mb-0">
                             <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->endVertex]) }}">

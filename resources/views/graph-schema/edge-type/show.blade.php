@@ -68,8 +68,8 @@
                     </dt>
                     <dd class="col-md-10">
                         <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->startVertex]) }}">
-                            {{ $edgeType->startVertex->name}}
-                        </a>
+                            {{ $edgeType->startVertex->name}}</a>
+                        <span class=text-body-secondary>({{ $edgeType->startVertex->age_label_name }})</span>
                     </dd>
                 </dl>
                 <dl class="row mb-0">
@@ -78,8 +78,8 @@
                     </dt>
                     <dd class="col-md-10">
                         <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->endVertex]) }}">
-                            {{ $edgeType->endVertex->name}}
-                        </a>
+                            {{ $edgeType->endVertex->name}}</a>
+                        <span class=text-body-secondary>({{ $edgeType->endVertex->age_label_name }})</span>
                     </dd>
                 </dl>
             </div>
