@@ -112,7 +112,7 @@ class SimulateGraphDataSeeder extends Seeder
         $this->groupMemberEdge->save();
 
         $this->vocalEdge = new EdgeType([
-            'name' => '主唱',
+            'name' => '主唱(VTuber)',
             'description' => '',
             'age_label_name' => 'vocal',
         ]);
@@ -130,7 +130,7 @@ class SimulateGraphDataSeeder extends Seeder
         $this->vocalEdgePropertyOrder->save();
 
         $this->groupVocalEdge = new EdgeType([
-            'name' => '主唱',
+            'name' => '主唱(團體)',
             'description' => '',
             'age_label_name' => 'vocal',
         ]);
