@@ -49,6 +49,7 @@ jobs:
         composer install --prefer-dist --no-progress
         php artisan migrate --force
         php artisan migrate --database=pgsql-age --path=database/migrations-age --force
+        php artisan app:apply-role-and-permission-command
         mkdir .bin
         corepack enable --install-directory .bin
         export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
