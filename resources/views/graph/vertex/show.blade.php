@@ -41,9 +41,9 @@
                             <a href="{{ route('graph-schema.edge-type.show', [$edgeInfo['type']]) }}"><i class="fa-solid fa-circle-info"></i></a>
                         </dt>
                         <dd class="col-md-10  mb-0">
-                            @foreach ($edgeInfo['edges'] as $edge)
-                                <a class="d-block" href="{{ route('graph.vertex.show', ['vertex' => $edge['end_vertex']->id]) }}">
-                                    {{ $edge['end_vertex']->properties[$edgeInfo['vertex_type']->show_property_name ?? 'name']}}
+                            @foreach ($edgeInfo['vertexes'] as $vertex)
+                                <a class="d-block" href="{{ route('graph.vertex.show', ['vertex' => $vertex->id]) }}">
+                                    {{ $vertex->properties[$edgeInfo['vertex_type']->show_property_name ?? 'name']}}
                                 </a>
                             @endforeach
                         </dd>

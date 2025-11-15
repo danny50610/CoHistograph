@@ -102,7 +102,7 @@ class VertexController extends Controller
             $edgeInfoList[$edgeType->id] = [
                 'type' => $edgeType,
                 'vertex_type' => $edgeType->{$targetVertexName},
-                'edges' => [],
+                'vertexes' => [],
             ];
         }
 
@@ -120,10 +120,9 @@ class VertexController extends Controller
 
             foreach ($edgeInfoList as $edgeTypeId => $info) {
                 if ($edge->label === $info['type']->age_label_name && $vertex->label === $info['vertex_type']->age_label_name) {
-                    $edgeInfoList[$edgeTypeId]['edges'][] = [
-                        'edge' => $edge,
-                        'end_vertex' => $vertex,
-                    ];
+                    // TODO: 未來需要支援排序，例如歌曲的主唱順序
+                    $edgeInfoList[$edgeTypeId]['vertexes'][] = $vertex;
+                    break;
                 }
             }
         }
