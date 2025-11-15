@@ -25,7 +25,7 @@ class EdgeTypeController extends Controller
 
     public function index()
     {
-        $edgeTypeList = EdgeType::orderBy('id')->paginate();
+        $edgeTypeList = EdgeType::orderBy('id', 'desc')->paginate();
 
         return view('graph-schema.edge-type.index', compact('edgeTypeList'));
     }

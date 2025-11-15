@@ -25,7 +25,7 @@ class VertexTypeController extends Controller
 
     public function index()
     {
-        $vertexTypeList = VertexType::orderBy('id')->paginate();
+        $vertexTypeList = VertexType::orderBy('id', 'desc')->paginate();
 
         return view('graph-schema.vertex-type.index', compact('vertexTypeList'));
     }
