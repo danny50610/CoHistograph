@@ -69,7 +69,7 @@
                     <dl class="row mb-0">
                         <dt class="col-md-2">
                             <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
-                                {{ $edgeType->name }}
+                                {{ $edgeType->reverse_name == '' ? $edgeType->name : $edgeType->reverse_name }}
                             </a>
                         </dt>
                         <dd class="col-md-10 mb-0">
