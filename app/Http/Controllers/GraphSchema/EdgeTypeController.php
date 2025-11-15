@@ -60,7 +60,7 @@ class EdgeTypeController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types')],
-            'reverse_name' => ['string'],
+            'reverse_name' => ['nullable', 'string'],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -69,7 +69,7 @@ class EdgeTypeController extends Controller
 
         $edgeType = EdgeType::create([
             'name' => $request->input('name'),
-            'reverse_name' => $request->input('reverse_name', ''),
+            'reverse_name' => $request->input('reverse_name') ?? '',
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
             'start_vertex_id' => $request->input('start_vertex_id'),
@@ -91,7 +91,7 @@ class EdgeTypeController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types')],
-            'reverse_name' => ['string'],
+            'reverse_name' => ['nullable', 'string'],
             'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -102,7 +102,7 @@ class EdgeTypeController extends Controller
 
         $edgeType->update([
             'name' => $request->input('name'),
-            'reverse_name' => $request->input('reverse_name', ''),
+            'reverse_name' => $request->input('reverse_name') ?? '',
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
             'start_vertex_id' => $request->input('start_vertex_id'),
