@@ -56,7 +56,7 @@ class VertexTypeTest extends TestCase
                 'description' => 'Another person vertex type',
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors('name');
+            ->assertSessionHasErrors(['name' => 'The name has already been taken.']);
 
         $this->actingAs($this->user)
             ->post('/graph-schema/vertex-type', [
@@ -65,6 +65,63 @@ class VertexTypeTest extends TestCase
                 'description' => 'Another person vertex type',
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors('age_label_name');
+            ->assertSessionHasErrors(['age_label_name' => 'The age label name has already been taken.']);
+    }
+
+    public function test_update()
+    {
+        $vertexType = VertexType::create([
+            'name' => 'Person',
+            'age_label_name' => 'person',
+            'description' => 'A person vertex type',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'Individual',
+                'age_label_name' => 'individual',
+                'description' => 'An individual vertex type',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $updatedVertexType = VertexType::find($vertexType->id);
+        $this->assertNotNull($updatedVertexType);
+        $this->assertEquals('Individual', $updatedVertexType->name);
+        $this->assertEquals('individual', $updatedVertexType->age_label_name);
+        $this->assertEquals('An individual vertex type', $updatedVertexType->description);
+    }
+
+    public function test_update_fail_when_name_or_age_label_name_not_unique()
+    {
+        VertexType::create([
+            'name' => 'Person',
+            'age_label_name' => 'person',
+            'description' => 'A person vertex type',
+        ]);
+
+        $vertexType = VertexType::create([
+            'name' => 'Other',
+            'age_label_name' => 'other',
+            'description' => 'other vertex type',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'Person',
+                'age_label_name' => $vertexType->age_label_name,
+                'description' => $vertexType->description,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['name' => 'The name has already been taken.']);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => $vertexType->name,
+                'age_label_name' => 'person',
+                'description' => $vertexType->description,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_label_name' => 'The age label name has already been taken.']);
     }
 }
