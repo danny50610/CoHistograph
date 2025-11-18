@@ -59,8 +59,8 @@ jobs:
     - name: Test
       run: composer run test
 
-    # - name: Phpstan
-    #   run: composer run phpstan
+    - name: Phpstan
+      run: composer run phpstan
 
     # - name: Upload to Codecov
     #   uses: codecov/codecov-action@v5
