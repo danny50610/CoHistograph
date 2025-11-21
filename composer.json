@@ -65,7 +65,7 @@
         ],
         "test": [
             "@php artisan config:clear --ansi",
-            "@php artisan test"
+            "@php artisan test --coverage-clover ./coverage.xml --log-junit ./junit.xml"
         ],
         "phpstan": [
             "@php vendor/bin/phpstan analyse --memory-limit=2G"
