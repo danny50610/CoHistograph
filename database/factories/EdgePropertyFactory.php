@@ -22,7 +22,7 @@ class EdgePropertyFactory extends Factory
             'edge_type_id' => EdgeType::factory(),
             'name' => $this->faker->word(),
             'description' => $this->faker->sentence(),
-            'age_property_name' => $this->faker->word(),
+            'age_property_name' => $this->faker->unique()->word(),
             'age_property_type' => $this->faker->randomElement(PropertyType::class),
         ];
     }
