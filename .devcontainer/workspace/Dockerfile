@@ -23,10 +23,10 @@ RUN curl -sSL https://getcomposer.org/installer | php \
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get --assume-yes update && \
-    apt-get install --assume-yes supervisor libpq-dev && \
+    apt-get install --assume-yes supervisor zip unzip libzip-dev libpq-dev && \
     pecl install redis && \
     docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql && \
-    docker-php-ext-install pgsql pdo_pgsql && \
+    docker-php-ext-install zip pgsql pdo_pgsql && \
     docker-php-ext-enable redis
 
 COPY ./supervisord.conf /etc/supervisor.d/supervisord.conf
