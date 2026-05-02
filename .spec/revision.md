@@ -176,11 +176,11 @@ draft → pending_review → rejected
 |---|---|---|
 | id | bigint PK | |
 | revision_id | FK → revisions | |
-| user_id | FK → users | 執行此動作的使用者 |
+| actor_user_id | FK → users | 執行此動作的操作者（submitted 為提交者；approved/rejected 為審核者） |
 | action | string | `submitted`, `approved`, `rejected` |
 | comment | text nullable | 退回時必填 |
 | actions_snapshot | jsonb nullable | 僅 `submitted` 時填入，儲存當次提交的完整 `revision_actions` 陣列快照，每筆 action 為 jsonb 物件 |
-| created_at | timestamp | 建立時間（紀錄不可變，不需 updated_at） |
+| timestamps | | created_at, updated_at |
 
 **`revision_actions` 資料表**
 
@@ -199,7 +199,7 @@ draft → pending_review → rejected
 | end_vertex_age_id | bigint nullable | `create_edge` 時，end vertex 的 AGE graphid（與 `end_vertex_ref_order` 互斥） |
 | end_vertex_ref_order | integer nullable | `create_edge` 時，end vertex 引用同 Revision 內 `create_vertex` action 的 order（與 `end_vertex_age_id` 互斥） |
 | age_property_name | string nullable | `*_property` 操作時使用，對應 `vertex_properties.age_property_name` 或 `edge_properties.age_property_name` |
-| value | string nullable | `create_*_property` / `update_*_property` 時使用，套用時依 `age_property_type` 轉型 |
+| value | text nullable | `create_*_property` / `update_*_property` 時使用，套用時依 `age_property_type` 轉型 |
 | timestamps | | created_at, updated_at |
 
 ---
