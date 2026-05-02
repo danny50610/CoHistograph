@@ -10,6 +10,7 @@ use App\Models\VertexType;
 use App\Services\RevisionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 
 class RevisionController extends Controller
 {
@@ -17,7 +18,9 @@ class RevisionController extends Controller
 
     public function index(): View
     {
-        $revisions = Revision::where('user_id', auth()->id())
+        $user = Auth::user();
+
+        $revisions = Revision::where('user_id', $user->id)
             ->withCount('actions')
             ->with('reviews')
             ->orderByDesc('updated_at')
