@@ -9,116 +9,113 @@
 
 @section('content')
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
+        <a href="{{ $isEditMode ? route('revisions.show', $revision) : route('revisions.index') }}"
+            class="btn btn-secondary mb-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            {{ $isEditMode ? '返回修訂詳情' : '返回我的修訂' }}
+        </a>
 
-                <a href="{{ $isEditMode ? route('revisions.show', $revision) : route('revisions.index') }}"
-                   class="btn btn-secondary mb-2">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    {{ $isEditMode ? '返回修訂詳情' : '返回我的修訂' }}
-                </a>
+        <h1 class="h3 mb-3">{{ $methodText }}</h1>
 
-                <h1 class="h3 mb-3">{{ $methodText }}</h1>
-
-                {{-- Error summary --}}
-                @if ($errors->isNotEmpty())
-                    <div class="alert alert-danger">
-                        <div class="fw-semibold mb-1">請修正以下錯誤後再提交：</div>
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                <form method="POST"
-                      action="{{ $isEditMode ? route('revisions.update', $revision) : route('revisions.store') }}"
-                      id="revisionForm">
+        <div class="mb-3 d-flex flex-wrap gap-2">
+            @if ($isEditMode)
+                <button type="button" class="btn btn-primary" id="saveRevisionBtn">
+                    <i class="fa-solid fa-floppy-disk"></i> 儲存變更
+                </button>
+                <form method="POST" action="{{ route('revisions.submit', $revision) }}"
+                        onsubmit="return confirm('確認提交此修訂進行審核？提交後將無法再編輯。')">
                     @csrf
-                    @if ($isEditMode)
-                        @method('PUT')
-                    @endif
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa-solid fa-paper-plane"></i> 提交審核
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('revisions.destroy', $revision) }}"
+                        onsubmit="return confirm('確認刪除此修訂草稿？此操作無法復原。')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa-solid fa-trash"></i> 刪除草稿
+                    </button>
+                </form>
+            @endif
+        </div>
 
-                    {{-- Basic info card --}}
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <x-forms.input
-                                id="title"
-                                label="標題"
-                                :value="old('title', $revision->title ?? '')"
-                                required
-                            />
+        {{-- Error summary --}}
+        @if ($errors->isNotEmpty())
+            <div class="alert alert-danger">
+                <div class="fw-semibold mb-1">請修正以下錯誤後再提交：</div>
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
-                            <div class="mb-3 row">
-                                <label for="description" class="col-md-2 col-form-label">描述</label>
-                                <div class="col-md-10">
-                                    <textarea id="description" name="description"
-                                              class="form-control @error('description') is-invalid @enderror"
-                                              rows="3"
-                                              placeholder="選填">{{ old('description', $revision->description ?? '') }}</textarea>
-                                    @error('description')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
+        <form method="POST"
+                action="{{ $isEditMode ? route('revisions.update', $revision) : route('revisions.store') }}"
+                id="revisionForm">
+            @csrf
+            @if ($isEditMode)
+                @method('PUT')
+            @endif
+
+            {{-- Basic info card --}}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <x-forms.input
+                        id="title"
+                        label="標題"
+                        :value="old('title', $revision->title ?? '')"
+                        required
+                    />
+
+                    <div class="mb-3 row">
+                        <label for="description" class="col-md-2 col-form-label">描述</label>
+                        <div class="col-md-10">
+                            <textarea id="description" name="description"
+                                        class="form-control @error('description') is-invalid @enderror"
+                                        rows="3"
+                                        placeholder="選填">{{ old('description', $revision->description ?? '') }}</textarea>
+                            @error('description')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
-                    @if ($isEditMode)
-                        {{-- Actions list card --}}
-                        <div class="card mb-3">
-                            <div class="card-header d-flex align-items-center justify-content-between">
-                                <span class="fw-semibold">操作清單</span>
-                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                        onclick="revisionAddAction()">
-                                    <i class="fa-solid fa-plus"></i> 新增操作
-                                </button>
-                            </div>
-                            <div class="card-body" id="actionsContainer">
-                                <div id="actionsHiddenInputs"></div>
-                                <div class="text-secondary text-center py-4" id="actionsEmptyState"
-                                    @if ($revision->actions->isNotEmpty()) style="display:none" @endif>
-                                    尚無任何操作，點擊右上方「新增操作」開始
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
+                    @if(!$isEditMode)
                     <div class="row mb-3">
                         <div class="col-md-10 ms-auto d-flex flex-wrap gap-2">
-                            @if ($isEditMode)
-                                <button type="button" class="btn btn-primary" id="saveRevisionBtn">
-                                    <i class="fa-solid fa-floppy-disk"></i> 儲存變更
-                                </button>
-                                <form method="POST" action="{{ route('revisions.submit', $revision) }}"
-                                      onsubmit="return confirm('確認提交此修訂進行審核？提交後將無法再編輯。')">
-                                    @csrf
-                                    <button type="submit" class="btn btn-success">
-                                        <i class="fa-solid fa-paper-plane"></i> 提交審核
-                                    </button>
-                                </form>
-                                <form method="POST" action="{{ route('revisions.destroy', $revision) }}"
-                                      onsubmit="return confirm('確認刪除此修訂草稿？此操作無法復原。')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger">
-                                        <i class="fa-solid fa-trash"></i> 刪除草稿
-                                    </button>
-                                </form>
-                            @else
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fa-solid fa-floppy-disk"></i> 建立草稿
-                                </button>
-                                <a href="{{ route('revisions.index') }}" class="btn btn-secondary">取消</a>
-                            @endif
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-floppy-disk"></i> 建立草稿
+                            </button>
+                            <a href="{{ route('revisions.index') }}" class="btn btn-secondary">取消</a>
                         </div>
                     </div>
-
-                </form>{{-- end revisionForm --}}
-
+                    @endif
+                </div>
             </div>
-        </div>
+
+            @if ($isEditMode)
+                <h2>操作清單</h2>
+
+                <button type="button" class="btn btn-outline-primary mb-3"
+                        onclick="revisionAddAction()">
+                    <i class="fa-solid fa-plus"></i> 新增操作
+                </button>
+
+                {{-- Actions list card --}}
+                <div class="card mb-3">
+                    <div class="card-body" id="actionsContainer">
+                        <div id="actionsHiddenInputs"></div>
+                        <div class="text-secondary text-center py-4" id="actionsEmptyState"
+                            @if ($revision->actions->isNotEmpty()) style="display:none" @endif>
+                            尚無任何操作，點擊右上方「新增操作」開始
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </form>{{-- end revisionForm --}}
     </div>
 
     {{-- Action Modal (edit mode only) --}}
