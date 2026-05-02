@@ -24,26 +24,16 @@
                                 required
                             />
 
-                            <div class="row mb-3">
-                                <label for="description" class="col-md-2 col-form-label">描述</label>
-                                <div class="col-md-10">
-                                    <textarea
-                                        id="description"
-                                        name="description"
-                                        class="form-control @error('description') is-invalid @enderror"
-                                        rows="4"
-                                        placeholder="選填，描述這份修訂的目的"
-                                    >{{ old('description') }}</textarea>
-                                    @error('description')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
+                            <x-forms.textarea
+                                id="description"
+                                label="描述"
+                                placeholder="選填，描述這份修訂的目的"
+                            />
 
                             <div class="row">
                                 <div class="col-md-10 ms-auto">
                                     <button type="submit" class="btn btn-primary">建立草稿</button>
-                                    <a href="{{ $backRoute }}" class="btn btn-secondary">取消</a>
+                                    <a href="{{ route('revisions.index') }}" class="btn btn-secondary">取消</a>
                                 </div>
                             </div>
                         </form>
