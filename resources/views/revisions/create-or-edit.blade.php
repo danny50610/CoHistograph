@@ -396,7 +396,9 @@
             if (emptyState) { emptyState.style.display = ''; }
         } else {
             if (emptyState) { emptyState.style.display = 'none'; }
-            actions.forEach(a => {
+            actions.forEach((a, index) => {
+                const isFirst = index === 0;
+                const isLast = index === actions.length - 1;
                 const div       = document.createElement('div');
                 div.className   = 'card mb-2 action-dynamic-card';
                 div.id          = `action-card-${a.order}`;
@@ -408,11 +410,11 @@
                             </span>
                             <div class="d-flex gap-1">
                                 <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1"
-                                        onclick="revisionMoveAction(${a.order}, 'up')" title="上移">
+                                        onclick="revisionMoveAction(${a.order}, 'up')" title="上移" ${isFirst ? 'disabled' : ''}>
                                     <i class="fa-solid fa-arrow-up"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1"
-                                        onclick="revisionMoveAction(${a.order}, 'down')" title="下移">
+                                        onclick="revisionMoveAction(${a.order}, 'down')" title="下移" ${isLast ? 'disabled' : ''}>
                                     <i class="fa-solid fa-arrow-down"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-primary py-0 px-1"
