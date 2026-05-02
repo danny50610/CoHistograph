@@ -13,11 +13,11 @@
                 <div class="card mb-2">
                     <div class="card-body">
                         <dl class="row">
-                            <dt class="col-sm-3">名稱</dt>
-                            <dd class="col-sm-9">{{ $user->name }}</dd>
-
                             <dt class="col-sm-3">Email</dt>
                             <dd class="col-sm-9">{{ $user->email }}</dd>
+
+                            <dt class="col-sm-3">名稱</dt>
+                            <dd class="col-sm-9">{{ $user->name }}</dd>
 
                             <dt class="col-sm-3">角色</dt>
                             <dd class="col-sm-9">
