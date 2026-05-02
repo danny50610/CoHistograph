@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RevisionReviewAction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,7 @@ class RevisionReview extends Model
     protected function casts(): array
     {
         return [
+            'action' => RevisionReviewAction::class,
             'actions_snapshot' => 'array',
         ];
     }

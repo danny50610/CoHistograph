@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RevisionActionType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +26,13 @@ class RevisionAction extends Model
         'age_property_name',
         'value',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'action' => RevisionActionType::class,
+        ];
+    }
 
     public function revision(): BelongsTo
     {
