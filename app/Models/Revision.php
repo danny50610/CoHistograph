@@ -40,4 +40,29 @@ class Revision extends Model
     {
         return $this->hasMany(RevisionReview::class);
     }
+
+    public function isDraft(): bool
+    {
+        return $this->status === RevisionStatus::Draft;
+    }
+
+    public function isPendingReview(): bool
+    {
+        return $this->status === RevisionStatus::PendingReview;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === RevisionStatus::Rejected;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === RevisionStatus::Approved;
+    }
+
+    public function latestReview(): ?RevisionReview
+    {
+        return $this->reviews()->latest()->first();
+    }
 }

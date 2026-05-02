@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreRevisionRequest;
+use App\Http\Requests\UpdateRevisionRequest;
+use App\Models\EdgeType;
+use App\Models\Revision;
+use App\Models\VertexType;
 use App\Services\RevisionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class RevisionController extends Controller
 {
@@ -14,16 +17,18 @@ class RevisionController extends Controller
 
     public function index(): View
     {
-        return view('revisions.wip', [
-            'pageTitle' => '我的修訂',
-            'pageDescription' => '使用者修訂列表頁骨架已建立，後續會補上資料查詢與卡片列表。',
-            'wipActions' => [],
-        ]);
+        $revisions = Revision::where('user_id', auth()->id())
+            ->withCount('actions')
+            ->with('reviews')
+            ->orderByDesc('updated_at')
+            ->paginate(15);
+
+        return view('revisions.index', compact('revisions'));
     }
 
     public function create(): View
     {
-        return view('revisions.create');
+        return view('revisions.create-or-edit');
     }
 
     public function store(StoreRevisionRequest $request): RedirectResponse
@@ -34,39 +39,86 @@ class RevisionController extends Controller
         );
 
         return redirect()
-            ->route('revisions.show', $revision)
-            ->with('global', '修訂草稿建立完成');
+            ->route('revisions.edit', $revision)
+            ->with('global', '修訂草稿建立完成，請繼續新增操作');
     }
 
-    public function show(string $revision): View
+    public function show(Revision $revision): View
     {
-        return view('revisions.wip', [
-            'pageTitle' => '修訂詳情',
-            'pageDescription' => '單一修訂詳情頁骨架已建立，後續會補上草稿編輯、action 清單與歷程。',
-            'backRoute' => route('revisions.index'),
-            'backLabel' => '返回我的修訂',
-            'referenceId' => $revision,
-            'wipActions' => ['update', 'submit', 'reopen', 'destroy'],
+        $this->authorize('view', $revision);
+
+        $revision->load([
+            'user',
+            'actions' => fn ($q) => $q->orderBy('order'),
+            'reviews.actorUser',
         ]);
+
+        return view('revisions.show', compact('revision'));
     }
 
-    public function update(Request $request, string $revision): RedirectResponse
+    public function edit(Revision $revision): View
     {
-        throw new \Exception('Not impl.');
+        $this->authorize('update', $revision);
+
+        abort_unless($revision->isDraft(), 403, '只有草稿狀態可以編輯');
+
+        $revision->load([
+            'actions' => fn ($q) => $q->orderBy('order'),
+        ]);
+
+        $vertexTypes = VertexType::orderBy('name')->get();
+        $edgeTypes = EdgeType::with(['startVertex', 'endVertex'])->orderBy('name')->get();
+
+        return view('revisions.create-or-edit', compact(
+            'revision',
+            'vertexTypes',
+            'edgeTypes',
+        ));
     }
 
-    public function submit(string $revision): RedirectResponse
+    public function update(UpdateRevisionRequest $request, Revision $revision): RedirectResponse
     {
-        throw new \Exception('Not impl.');
+        $this->authorize('update', $revision);
+
+        abort_unless($revision->isDraft(), 403, '只有草稿狀態可以更新');
+
+        $this->revisionService->update($revision, $request->validated());
+
+        return redirect()
+            ->route('revisions.show', $revision)
+            ->with('global', '修訂已儲存');
     }
 
-    public function reopen(string $revision): RedirectResponse
+    public function submit(Revision $revision): RedirectResponse
     {
-        throw new \Exception('Not impl.');
+        $this->authorize('update', $revision);
+
+        $this->revisionService->submit($revision);
+
+        return redirect()
+            ->route('revisions.show', $revision)
+            ->with('global', '修訂已提交審核');
     }
 
-    public function destroy(string $revision): RedirectResponse
+    public function reopen(Revision $revision): RedirectResponse
     {
-        throw new \Exception('Not impl.');
+        $this->authorize('update', $revision);
+
+        $this->revisionService->reopen($revision);
+
+        return redirect()
+            ->route('revisions.show', $revision)
+            ->with('global', '修訂已重新開啟');
+    }
+
+    public function destroy(Revision $revision): RedirectResponse
+    {
+        $this->authorize('delete', $revision);
+
+        $this->revisionService->destroy($revision);
+
+        return redirect()
+            ->route('revisions.index')
+            ->with('global', '修訂已刪除');
     }
 }
