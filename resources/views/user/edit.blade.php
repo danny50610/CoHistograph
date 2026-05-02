@@ -13,23 +13,22 @@
                             @method('patch')
                             @csrf
 
-                            <div class="mb-3 row">
-                                <label for="email" class="col-md-2 col-form-label">信箱</label>
+                            <x-forms.input
+                                id="email"
+                                label="信箱"
+                                type="email"
+                                :value="$user->email"
+                                readonly
+                                disabled
+                                helpText="信箱作為帳號使用，故無法修改"
+                            />
 
-                                <div class="col-md-10">
-                                    <input id="email" type="email" class="form-control" value="{{ $user->email }}"
-                                           disabled readonly>
-                                    <small class="form-text text-muted">信箱作為帳號使用，故無法修改</small>
-                                </div>
-                            </div>
-
-                            <div class="mb-3 row">
-                                <label for="name" class="col-md-2 col-form-label">名稱</label>
-
-                                <div class="col-md-10">
-                                    <input id="email" type="email" class="form-control" value="{{ $user->name }}">
-                                </div>
-                            </div>
+                            <x-forms.input
+                                id="name"
+                                label="名稱"
+                                :value="$user->name"
+                                required
+                            />
 
                             <div class="mb-3 row">
                                 <label class="col-md-2 col-form-label">角色</label>
