@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreRevisionRequest;
+use App\Services\RevisionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class RevisionController extends Controller
 {
+    public function __construct(private RevisionService $revisionService) {}
+
     public function index(): View
     {
         return view('revisions.wip', [
@@ -19,18 +23,19 @@ class RevisionController extends Controller
 
     public function create(): View
     {
-        return view('revisions.wip', [
-            'pageTitle' => '新增修訂',
-            'pageDescription' => '新增修訂頁骨架已建立，後續會補上草稿建立表單。',
-            'backRoute' => route('revisions.index'),
-            'backLabel' => '返回我的修訂',
-            'wipActions' => [],
-        ]);
+        return view('revisions.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreRevisionRequest $request): RedirectResponse
     {
-        throw new \Exception('Not impl.');
+        $revision = $this->revisionService->create(
+            $request->user(),
+            $request->validated(),
+        );
+
+        return redirect()
+            ->route('revisions.show', $revision)
+            ->with('global', '修訂草稿建立完成');
     }
 
     public function show(string $revision): View
