@@ -21,7 +21,7 @@ class RevisionController extends Controller
             ->withCount('actions')
             ->with('reviews')
             ->orderByDesc('updated_at')
-            ->paginate(15);
+            ->paginate();
 
         return view('revisions.index', compact('revisions'));
     }
