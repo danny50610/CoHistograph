@@ -718,7 +718,6 @@
         }
       ]
     },
-    ,
     {
       "case_id": "F19",
       "title": "create_edge belongs_to 的終點頂點型別不符",
