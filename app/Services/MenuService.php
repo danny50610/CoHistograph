@@ -11,10 +11,10 @@ class MenuService
 {
     public function __construct()
     {
-        //左側
+        // 左側
         Menu::make('left', function (Builder $menu) {});
 
-        //右側
+        // 右側
         Menu::make('right', function (Builder $menu) {
             // 會員
             if (Auth::check()) {
@@ -31,6 +31,9 @@ class MenuService
                     'graph-schema.manage' => function (\Lavary\Menu\Item $adminMenu) {
                         $adminMenu->add('Graph Schema 管理', ['route' => 'graph-schema.vertex-type.index'])->active('graph-schema/*');
                     },
+                    'revision.review' => function (\Lavary\Menu\Item $adminMenu) {
+                        $adminMenu->add('修訂審核', ['route' => 'admin.revisions.index'])->active('admin/revisions*');
+                    },
                 ];
                 foreach ($adminPermissions as $permission => $callback) {
                     if ($user->hasPermission($permission)) {
@@ -45,6 +48,7 @@ class MenuService
                 /** @var \Lavary\Menu\Item $userMenu */
                 $userMenu = $menu->add($user->name, 'javascript:void(0)');
                 // $userMenu->add('個人資料', ['route' => 'profile'])->active('profile/*');
+                $userMenu->add('我的修訂', ['route' => 'revisions.index'])->active('revisions*');
                 $userMenu->add('登出', ['route' => 'logout'])->data(['method' => 'POST']);
             } else {
                 // 遊客
