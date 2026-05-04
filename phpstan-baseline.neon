@@ -25,12 +25,6 @@ parameters:
 			path: app/Http/Controllers/RoleController.php
 
 		-
-			message: '#^Parameter \#1 \$roles of method App\\Models\\User\:\:addRoles\(\) expects array, App\\Models\\Role\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/UserController.php
-
-		-
 			message: '#^Parameter \#3 \$fail of method App\\Rules\\GraphSchema\\AgeLabelName\:\:validate\(\) expects Closure\(string, string\|null\=\)\: Illuminate\\Translation\\PotentiallyTranslatedString, Closure\(\)\: void given\.$#'
 			identifier: argument.type
 			count: 12
