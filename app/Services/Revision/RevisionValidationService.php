@@ -2,6 +2,7 @@
 
 namespace App\Services\Revision;
 
+use App\Enums\RevisionActionType;
 use App\Models\Revision;
 
 /**
@@ -101,9 +102,20 @@ class RevisionValidationService
      */
     private function preloadAllAgeStates(\Illuminate\Database\Eloquent\Collection $actions): void
     {
+        $edgeTargetTypes = [
+            RevisionActionType::DeleteEdge,
+            RevisionActionType::CreateEdgeProperty,
+            RevisionActionType::UpdateEdgeProperty,
+            RevisionActionType::DeleteEdgeProperty,
+        ];
+
         foreach ($actions as $action) {
             if (! is_null($action->target_age_id)) {
-                $this->graphManager->loadAgeVertexState((int) $action->target_age_id);
+                if (in_array($action->action, $edgeTargetTypes, true)) {
+                    $this->graphManager->loadAgeEdgeState((int) $action->target_age_id);
+                } else {
+                    $this->graphManager->loadAgeVertexState((int) $action->target_age_id);
+                }
             }
 
             if (! is_null($action->start_vertex_age_id)) {

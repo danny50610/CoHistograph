@@ -407,10 +407,10 @@ class RevisionActionValidator
             RevisionActionType::DeleteEdge => ['target_age_id', 'target_ref_order'],
             RevisionActionType::CreateVertexProperty,
             RevisionActionType::UpdateVertexProperty => ['target_age_id', 'target_ref_order', 'age_property_name', 'value'],
-            RevisionActionType::DeleteVertexProperty => ['target_age_id', 'target_ref_order', 'age_property_name'],
+            RevisionActionType::DeleteVertexProperty => ['target_age_id', 'target_ref_order', 'age_property_name', 'value'],
             RevisionActionType::CreateEdgeProperty,
             RevisionActionType::UpdateEdgeProperty => ['target_age_id', 'target_ref_order', 'age_property_name', 'value'],
-            RevisionActionType::DeleteEdgeProperty => ['target_age_id', 'target_ref_order', 'age_property_name'],
+            RevisionActionType::DeleteEdgeProperty => ['target_age_id', 'target_ref_order', 'age_property_name', 'value'],
         };
 
         $fieldValues = [

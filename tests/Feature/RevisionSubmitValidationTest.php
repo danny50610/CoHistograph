@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PropertyType;
 use App\Enums\RevisionStatus;
+use App\Models\EdgeProperty;
 use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\User;
@@ -304,5 +306,356 @@ class RevisionSubmitValidationTest extends TestCase
         $authUser = $user;
 
         return $this->actingAs($authUser);
+    }
+
+    // -------------------------------------------------------------------------
+    // Happy-path tests: Cases 2-10 from .spec/cases.json
+    // -------------------------------------------------------------------------
+
+    /**
+     * Case 2: 新增曲目及演唱關係（首次提交驗證通過）
+     * Actions: create_vertex, create_vertex_property, create_edge, create_edge_property
+     */
+    public function test_revision_with_create_vertex_property_and_edge_property_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $artistId = $this->createAgeVertex($schema['artist']->age_label_name);
+
+        $revision = $this->createDraftRevision($user, [
+            // order 0: create track vertex (ref:0)
+            ['action' => 'create_vertex', 'vertex_type_label' => $schema['track']->age_label_name],
+            // order 1: set title on ref:0
+            ['action' => 'create_vertex_property', 'target_ref_order' => 0, 'age_property_name' => 'title', 'value' => 'Glitch Star'],
+            // order 2: create video_clip vertex (ref:2)
+            ['action' => 'create_vertex', 'vertex_type_label' => $schema['video_clip']->age_label_name],
+            // order 3: set clip_code on ref:2
+            ['action' => 'create_vertex_property', 'target_ref_order' => 2, 'age_property_name' => 'clip_code', 'value' => 'XYZ099'],
+            // order 4: linked_clip from ref:0 to ref:2
+            ['action' => 'create_edge', 'edge_type_label' => $schema['linked_clip']->age_label_name, 'start_vertex_ref_order' => 0, 'end_vertex_ref_order' => 2],
+            // order 5: performs from existing artist to ref:0
+            ['action' => 'create_edge', 'edge_type_label' => $schema['performs']->age_label_name, 'start_vertex_age_id' => $artistId, 'end_vertex_ref_order' => 0],
+            // order 6: set track_order on ref:5
+            ['action' => 'create_edge_property', 'target_ref_order' => 5, 'age_property_name' => 'track_order', 'value' => '1'],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 3: 更正演唱順序排名
+     * Actions: update_edge_property
+     */
+    public function test_revision_with_update_edge_property_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $artist1Id = $this->createAgeVertex($schema['artist']->age_label_name);
+        $artist2Id = $this->createAgeVertex($schema['artist']->age_label_name);
+        $trackId = $this->createAgeVertex($schema['track']->age_label_name);
+        $edge1Id = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artist1Id, $trackId, ['track_order' => 2]);
+        $edge2Id = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artist2Id, $trackId, ['track_order' => 1]);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'update_edge_property', 'target_age_id' => $edge1Id, 'age_property_name' => 'track_order', 'value' => '1'],
+            ['action' => 'update_edge_property', 'target_age_id' => $edge2Id, 'age_property_name' => 'track_order', 'value' => '2'],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 4: 補充缺失的頂點與邊屬性
+     * Actions: create_vertex_property (on existing vertex), create_edge_property (on existing edge)
+     */
+    public function test_revision_adding_missing_properties_to_existing_vertices_and_edges_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $artistId = $this->createAgeVertex($schema['artist']->age_label_name);
+        $trackId = $this->createAgeVertex($schema['track']->age_label_name);
+        $edgeId = $this->createAgeEdge($schema['performs']->age_label_name, $artistId, $trackId);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'create_vertex_property', 'target_age_id' => $artistId, 'age_property_name' => 'nickname', 'value' => 'Vorryn'],
+            ['action' => 'create_edge_property', 'target_age_id' => $edgeId, 'age_property_name' => 'track_order', 'value' => '1'],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 5: 替換影音片段連結
+     * Actions: delete_edge, delete_vertex, create_vertex, create_vertex_property, create_edge
+     * 必須先刪邊再刪頂點
+     */
+    public function test_revision_replacing_linked_clip_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $trackId = $this->createAgeVertex($schema['track']->age_label_name);
+        $oldClipId = $this->createAgeVertex($schema['video_clip']->age_label_name);
+        $linkedClipEdgeId = $this->createAgeEdge($schema['linked_clip']->age_label_name, $trackId, $oldClipId);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'delete_edge', 'target_age_id' => $linkedClipEdgeId],
+            ['action' => 'delete_vertex', 'target_age_id' => $oldClipId],
+            ['action' => 'create_vertex', 'vertex_type_label' => $schema['video_clip']->age_label_name],
+            ['action' => 'create_vertex_property', 'target_ref_order' => 2, 'age_property_name' => 'clip_code', 'value' => 'DEF088'],
+            ['action' => 'create_edge', 'edge_type_label' => $schema['linked_clip']->age_label_name, 'start_vertex_age_id' => $trackId, 'end_vertex_ref_order' => 2],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 6: 完整移除藝術家（正確順序，含所有相關邊）
+     * Actions: delete_edge_property, delete_edge, delete_vertex_property, delete_vertex
+     */
+    public function test_revision_fully_removing_artist_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $bandId = $this->createAgeVertex($schema['band']->age_label_name);
+        $artistId = $this->createAgeVertexWithProperties($schema['artist']->age_label_name, ['nickname' => 'Vorryn']);
+        $trackId = $this->createAgeVertex($schema['track']->age_label_name);
+        $track2Id = $this->createAgeVertex($schema['track']->age_label_name);
+        $belongsToId = $this->createAgeEdge($schema['belongs_to']->age_label_name, $artistId, $bandId);
+        $performs1Id = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artistId, $trackId, ['track_order' => 1]);
+        $performs2Id = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artistId, $track2Id, ['track_order' => 1]);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'delete_edge_property', 'target_age_id' => $performs1Id, 'age_property_name' => 'track_order'],
+            ['action' => 'delete_edge_property', 'target_age_id' => $performs2Id, 'age_property_name' => 'track_order'],
+            ['action' => 'delete_edge', 'target_age_id' => $performs1Id],
+            ['action' => 'delete_edge', 'target_age_id' => $performs2Id],
+            ['action' => 'delete_edge', 'target_age_id' => $belongsToId],
+            ['action' => 'delete_vertex_property', 'target_age_id' => $artistId, 'age_property_name' => 'nickname'],
+            ['action' => 'delete_vertex', 'target_age_id' => $artistId],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 7: 批量修正資料品質
+     * Actions: update_vertex_property, update_edge_property (batch)
+     */
+    public function test_revision_batch_updating_properties_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $artist1Id = $this->createAgeVertexWithProperties($schema['artist']->age_label_name, ['nickname' => 'Luminea']);
+        $artist2Id = $this->createAgeVertexWithProperties($schema['artist']->age_label_name, ['nickname' => 'vorryn']);
+        $trackId = $this->createAgeVertex($schema['track']->age_label_name);
+        $track2Id = $this->createAgeVertex($schema['track']->age_label_name);
+        $performs1Id = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artist1Id, $trackId, ['track_order' => 2]);
+        $performs2Id = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artist2Id, $track2Id, ['track_order' => 2]);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'update_vertex_property', 'target_age_id' => $artist1Id, 'age_property_name' => 'nickname', 'value' => 'Luminae'],
+            ['action' => 'update_vertex_property', 'target_age_id' => $artist2Id, 'age_property_name' => 'nickname', 'value' => 'Vorryn'],
+            ['action' => 'update_edge_property', 'target_age_id' => $performs1Id, 'age_property_name' => 'track_order', 'value' => '1'],
+            ['action' => 'update_edge_property', 'target_age_id' => $performs2Id, 'age_property_name' => 'track_order', 'value' => '1'],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 8: 補充曲目發行年份（INTEGER）與演唱掛名（STRING）
+     * Actions: create_vertex_property (INTEGER), create_edge_property (STRING)
+     */
+    public function test_revision_adding_integer_and_string_properties_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $artistId = $this->createAgeVertex($schema['artist']->age_label_name);
+        $trackId = $this->createAgeVertexWithProperties($schema['track']->age_label_name, ['title' => 'Nebula Call']);
+        $edgeId = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artistId, $trackId, ['track_order' => 1]);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'create_vertex_property', 'target_age_id' => $trackId, 'age_property_name' => 'release_year', 'value' => '2023'],
+            ['action' => 'create_edge_property', 'target_age_id' => $edgeId, 'age_property_name' => 'featuring', 'value' => 'feat. Vorryn'],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 9: 修正曲目發行年份（INTEGER）與演唱掛名（STRING）
+     * Actions: update_vertex_property (INTEGER), update_edge_property (STRING)
+     */
+    public function test_revision_correcting_integer_and_string_properties_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $artistId = $this->createAgeVertex($schema['artist']->age_label_name);
+        $trackId = $this->createAgeVertexWithProperties($schema['track']->age_label_name, ['title' => 'Nebula Call', 'release_year' => 2022]);
+        $edgeId = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artistId, $trackId, ['track_order' => 1, 'featuring' => 'feat. Voryn']);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'update_vertex_property', 'target_age_id' => $trackId, 'age_property_name' => 'release_year', 'value' => '2023'],
+            ['action' => 'update_edge_property', 'target_age_id' => $edgeId, 'age_property_name' => 'featuring', 'value' => 'feat. Vorryn'],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    /**
+     * Case 10: 移除曲目發行年份與演唱掛名
+     * Actions: delete_vertex_property, delete_edge_property
+     */
+    public function test_revision_deleting_properties_passes_validation(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $artistId = $this->createAgeVertex($schema['artist']->age_label_name);
+        $trackId = $this->createAgeVertexWithProperties($schema['track']->age_label_name, ['title' => 'Nebula Call', 'release_year' => 2023]);
+        $edgeId = $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artistId, $trackId, ['track_order' => 1, 'featuring' => 'feat. Vorryn']);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'delete_vertex_property', 'target_age_id' => $trackId, 'age_property_name' => 'release_year'],
+            ['action' => 'delete_edge_property', 'target_age_id' => $edgeId, 'age_property_name' => 'featuring'],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionMissing('revision_action_errors');
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Schema helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * 建立完整的測試 Schema（對應 spec 中的 preset_data schema）
+     * 使用唯一的 label 名稱避免測試間衝突。
+     *
+     * @return array{band: VertexType, artist: VertexType, track: VertexType, video_clip: VertexType, belongs_to: EdgeType, performs: EdgeType, linked_clip: EdgeType}
+     */
+    private function setupFullSchema(): array
+    {
+        $bandType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $artistType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $trackType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $videoClipType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+
+        VertexProperty::factory()->createOne(['vertex_type_id' => $artistType->id, 'age_property_name' => 'nickname', 'age_property_type' => PropertyType::String]);
+        VertexProperty::factory()->createOne(['vertex_type_id' => $trackType->id, 'age_property_name' => 'title', 'age_property_type' => PropertyType::String]);
+        VertexProperty::factory()->createOne(['vertex_type_id' => $trackType->id, 'age_property_name' => 'release_year', 'age_property_type' => PropertyType::Integer]);
+        VertexProperty::factory()->createOne(['vertex_type_id' => $videoClipType->id, 'age_property_name' => 'clip_code', 'age_property_type' => PropertyType::String]);
+
+        $belongsToType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'start_vertex_id' => $artistType->id,
+            'end_vertex_id' => $bandType->id,
+        ]);
+        $performsType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'start_vertex_id' => $artistType->id,
+            'end_vertex_id' => $trackType->id,
+        ]);
+        EdgeProperty::factory()->createOne(['edge_type_id' => $performsType->id, 'age_property_name' => 'track_order', 'age_property_type' => PropertyType::Integer]);
+        EdgeProperty::factory()->createOne(['edge_type_id' => $performsType->id, 'age_property_name' => 'featuring', 'age_property_type' => PropertyType::String]);
+        $linkedClipType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'start_vertex_id' => $trackType->id,
+            'end_vertex_id' => $videoClipType->id,
+        ]);
+
+        return [
+            'band' => $bandType,
+            'artist' => $artistType,
+            'track' => $trackType,
+            'video_clip' => $videoClipType,
+            'belongs_to' => $belongsToType,
+            'performs' => $performsType,
+            'linked_clip' => $linkedClipType,
+        ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Additional AGE helpers
+    // -------------------------------------------------------------------------
+
+    private function createAgeVertexWithProperties(string $label, array $properties): int
+    {
+        $result = DB::connection($this->graphConnection)
+            ->apacheAgeCypher($this->graphName, function (Builder $builder) use ($label, $properties) {
+                return $builder->createNode('v', $label, $properties)->return('v');
+            })
+            ->first();
+
+        return (int) $result->v->id;
+    }
+
+    private function createAgeEdgeWithProperties(string $label, int $startVertexId, int $endVertexId, array $properties): int
+    {
+        $result = DB::connection($this->graphConnection)
+            ->apacheAgeCypher($this->graphName, function (Builder $builder) use ($label, $startVertexId, $endVertexId, $properties) {
+                $builder = $builder
+                    ->matchNode('s')
+                    ->where('id(s)', '=', $startVertexId)
+                    ->matchNode('t')
+                    ->where('id(t)', '=', $endVertexId)
+                    ->createRaw("(s)-[e:{$label}]->(t)");
+
+                if ($properties !== []) {
+                    $edgeProperties = [];
+                    foreach ($properties as $key => $value) {
+                        $edgeProperties["e.{$key}"] = $value;
+                    }
+                    $builder = $builder->set($edgeProperties);
+                }
+
+                return $builder->return('e');
+            })
+            ->first();
+
+        return (int) $result->e->id;
     }
 }
