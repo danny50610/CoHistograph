@@ -96,7 +96,15 @@ class RevisionController extends Controller
     {
         $this->authorize('update', $revision);
 
-        $this->revisionService->submit($revision);
+        $validationResult = $this->revisionService->submit($revision);
+        if (! $validationResult->isValid()) {
+            return redirect()
+                ->route('revisions.show', $revision)
+                ->withErrors($validationResult->toMessageBag())
+                ->with('revision_error_summary', $validationResult->summary())
+                ->with('revision_action_errors', $validationResult->actionMessages())
+                ->with('revision_action_error_details', $validationResult->actionErrors());
+        }
 
         return redirect()
             ->route('revisions.show', $revision)

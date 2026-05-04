@@ -3,6 +3,12 @@
 @section('title', $revision->title)
 
 @section('content')
+    @php
+        /** @var array<int, list<string>> $actionErrorsByOrder */
+        $actionErrorsByOrder = session('revision_action_errors', []);
+        $revisionErrorSummary = session('revision_error_summary');
+    @endphp
+
     <div class="container">
 
         {{-- Back --}}
@@ -72,6 +78,19 @@
             </div>
         </div>
 
+        @if ($revisionErrorSummary || $errors->isNotEmpty())
+            <div class="alert alert-danger mb-3">
+                <div class="fw-semibold mb-1">{{ $revisionErrorSummary ?? '提交驗證失敗，請修正以下問題。' }}</div>
+                @if ($errors->isNotEmpty())
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+        @endif
+
         <h2>操作清單</h2>
 
         {{-- Actions list --}}
@@ -81,8 +100,8 @@
                     @include('revisions.partials.action-card', [
                         'action'       => $action,
                         'isEditable'   => false,
-                        'hasError'     => false,
-                        'actionErrors' => [],
+                        'hasError'     => isset($actionErrorsByOrder[$action->order]),
+                        'actionErrors' => $actionErrorsByOrder[$action->order] ?? [],
                     ])
                 @empty
                     <div class="text-secondary text-center py-4">

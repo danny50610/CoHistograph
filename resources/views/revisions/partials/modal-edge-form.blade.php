@@ -45,7 +45,7 @@
                         <option value="{{ $ca->order }}"
                             data-vertex-label="{{ $ca->vertex_type_label }}"
                             {{ (string) old('start_vertex_ref_order', $action?->start_vertex_ref_order) === (string) $ca->order ? 'selected' : '' }}>
-                            #{{ $ca->order }}：新增 {{ $ca->vertex_type_label }} Vertex
+                            #{{ $ca->order + 1 }}：新增 {{ $ca->vertex_type_label }} Vertex
                         </option>
                     @endforeach
                 </select>
@@ -77,7 +77,7 @@
                         <option value="{{ $ca->order }}"
                             data-vertex-label="{{ $ca->vertex_type_label }}"
                             {{ (string) old('end_vertex_ref_order', $action?->end_vertex_ref_order) === (string) $ca->order ? 'selected' : '' }}>
-                            #{{ $ca->order }}：新增 {{ $ca->vertex_type_label }} Vertex
+                            #{{ $ca->order + 1 }}：新增 {{ $ca->vertex_type_label }} Vertex
                         </option>
                     @endforeach
                 </select>

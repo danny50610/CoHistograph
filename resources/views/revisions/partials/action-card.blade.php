@@ -19,21 +19,21 @@
     // 目標摘要
     $targetLabel = null;
     if (!is_null($action->target_ref_order)) {
-        $targetLabel = '#' . $action->target_ref_order . ' 建立的項目';
+        $targetLabel = '#' . ($action->target_ref_order + 1) . ' 建立的項目';
     } elseif (!is_null($action->target_age_id)) {
         $targetLabel = 'ID:' . $action->target_age_id;
     }
 
     $startLabel = null;
     if (!is_null($action->start_vertex_ref_order)) {
-        $startLabel = '#' . $action->start_vertex_ref_order . ' 建立的 Vertex';
+        $startLabel = '#' . ($action->start_vertex_ref_order + 1) . ' 建立的 Vertex';
     } elseif (!is_null($action->start_vertex_age_id)) {
         $startLabel = 'ID:' . $action->start_vertex_age_id;
     }
 
     $endLabel = null;
     if (!is_null($action->end_vertex_ref_order)) {
-        $endLabel = '#' . $action->end_vertex_ref_order . ' 建立的 Vertex';
+        $endLabel = '#' . ($action->end_vertex_ref_order + 1) . ' 建立的 Vertex';
     } elseif (!is_null($action->end_vertex_age_id)) {
         $endLabel = 'ID:' . $action->end_vertex_age_id;
     }
@@ -57,7 +57,7 @@
     <div class="card-body py-2 px-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
             <span class="fw-semibold small text-secondary">
-                #{{ $action->order }} &middot; {{ $actionTypeLabel }}
+                #{{ $action->order + 1 }} &middot; {{ $actionTypeLabel }}
             </span>
             @if ($isEditable ?? false)
                 <div class="d-flex gap-1">

@@ -293,7 +293,7 @@
     // ----------------------------------------------------------------
     function confirmAddAction() {
         const data = collectModalFormData();
-        data.order = actions.length + 1;
+        data.order = actions.length;
         actions.push(data);
         rebuildActionCards();
         getModal().hide();
@@ -360,7 +360,7 @@
     };
 
     function renumberActions() {
-        actions.forEach((a, i) => { a.order = i + 1; });
+        actions.forEach((a, i) => { a.order = i; });
     }
 
     // ----------------------------------------------------------------
@@ -368,8 +368,8 @@
     // ----------------------------------------------------------------
     function actionSummary(a) {
         const t            = (label) => label ?? '—';
-        const refOrId      = (ref, id) => ref ? `#${ref} 建立的項目` : (id ? `ID:${id}` : '—');
-        const vertexRefOrId = (ref, id) => ref ? `#${ref} 建立的 Vertex` : (id ? `ID:${id}` : '—');
+        const refOrId      = (ref, id) => ref !== null && ref !== undefined ? `#${ref + 1} 建立的項目` : (id ? `ID:${id}` : '—');
+        const vertexRefOrId = (ref, id) => ref !== null && ref !== undefined ? `#${ref + 1} 建立的 Vertex` : (id ? `ID:${id}` : '—');
 
         switch (a.action) {
             case 'create_vertex':          return `新增 Vertex：${t(a.vertex_type_label)}`;
@@ -406,7 +406,7 @@
                     <div class="card-body py-2 px-3">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
                             <span class="fw-semibold small text-secondary">
-                                #${a.order} &middot; ${actionLabels[a.action] ?? a.action}
+                                #${a.order + 1} &middot; ${actionLabels[a.action] ?? a.action}
                             </span>
                             <div class="d-flex gap-1">
                                 <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1"

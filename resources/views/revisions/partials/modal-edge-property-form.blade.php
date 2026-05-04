@@ -28,7 +28,7 @@
                     <option value="{{ $ca->order }}"
                         data-edge-label="{{ $ca->edge_type_label }}"
                         {{ (string) old('target_ref_order', $action?->target_ref_order) === (string) $ca->order ? 'selected' : '' }}>
-                        #{{ $ca->order }}：新增 {{ $ca->edge_type_label }} Edge
+                        #{{ $ca->order + 1 }}：新增 {{ $ca->edge_type_label }} Edge
                     </option>
                 @endforeach
             </select>

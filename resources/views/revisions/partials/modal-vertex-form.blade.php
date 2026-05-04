@@ -46,7 +46,7 @@
                     @foreach ($createVertexActions as $ca)
                         <option value="{{ $ca->order }}"
                             {{ (string) old('target_ref_order', $action?->target_ref_order) === (string) $ca->order ? 'selected' : '' }}>
-                            #{{ $ca->order }}：新增 {{ $ca->vertex_type_label }} Vertex
+                            #{{ $ca->order + 1 }}：新增 {{ $ca->vertex_type_label }} Vertex
                         </option>
                     @endforeach
                 </select>

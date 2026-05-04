@@ -5,10 +5,14 @@ namespace App\Services;
 use App\Enums\RevisionStatus;
 use App\Models\Revision;
 use App\Models\User;
+use App\Services\Revision\RevisionValidationResult;
+use App\Services\Revision\RevisionValidationService;
 use Illuminate\Support\Facades\DB;
 
 class RevisionService
 {
+    public function __construct(private RevisionValidationService $revisionValidationService) {}
+
     public function create(User $user, array $data): Revision
     {
         return Revision::create([
@@ -31,7 +35,7 @@ class RevisionService
 
             foreach ($data['actions'] as $index => $actionData) {
                 $revision->actions()->create([
-                    'order' => $index + 1,
+                    'order' => $index,
                     'action' => $actionData['action'],
                     'target_age_id' => $actionData['target_age_id'] ?? null,
                     'target_ref_order' => $actionData['target_ref_order'] ?? null,
@@ -48,11 +52,19 @@ class RevisionService
         });
     }
 
-    public function submit(Revision $revision): void
+    public function submit(Revision $revision): RevisionValidationResult
     {
         abort_unless($revision->isDraft(), 422, '只有草稿狀態的修訂可以提交審核');
 
+        $revision->load('actions');
+        $validationResult = $this->revisionValidationService->validate($revision);
+        if (! $validationResult->isValid()) {
+            return $validationResult;
+        }
+
         $revision->update(['status' => RevisionStatus::PendingReview]);
+
+        return $validationResult;
     }
 
     public function reopen(Revision $revision): void
