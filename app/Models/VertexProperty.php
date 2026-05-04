@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $vertex_type_id
+ * @property string $age_property_name
+ * @property \App\Enums\PropertyType $age_property_type
+ */
 class VertexProperty extends Model
 {
     use HasFactory;

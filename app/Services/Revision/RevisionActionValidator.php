@@ -53,11 +53,6 @@ class RevisionActionValidator
     {
         $order = (int) $action->order;
         $actionType = $action->action;
-        if (! $actionType instanceof RevisionActionType) {
-            $this->addActionError($result, $order, 'INVALID_ACTION_TYPE', '不支援的操作類型');
-
-            return;
-        }
 
         $this->validateAllowedFields($action, $result);
 
@@ -390,9 +385,6 @@ class RevisionActionValidator
     {
         $order = (int) $action->order;
         $actionType = $action->action;
-        if (! $actionType instanceof RevisionActionType) {
-            return;
-        }
 
         $allowed = match ($actionType) {
             RevisionActionType::CreateVertex => ['vertex_type_label'],

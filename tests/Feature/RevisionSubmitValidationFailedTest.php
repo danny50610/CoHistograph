@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
-use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -823,9 +822,6 @@ class RevisionSubmitValidationFailedTest extends TestCase
 
     private function actAs(User $user): static
     {
-        /** @var AuthenticatableContract $authUser */
-        $authUser = $user;
-
-        return $this->actingAs($authUser);
+        return $this->actingAs($user);
     }
 }

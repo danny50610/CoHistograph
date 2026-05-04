@@ -8,6 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property string $title
+ * @property string|null $description
+ * @property \App\Enums\RevisionStatus $status
+ * @property int $user_id
+ */
 class Revision extends Model
 {
     use HasFactory;
@@ -33,11 +40,13 @@ class Revision extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<RevisionAction, $this> */
     public function actions(): HasMany
     {
         return $this->hasMany(RevisionAction::class);
     }
 
+    /** @return HasMany<RevisionReview, $this> */
     public function reviews(): HasMany
     {
         return $this->hasMany(RevisionReview::class);
@@ -65,6 +74,7 @@ class Revision extends Model
 
     public function latestReview(): ?RevisionReview
     {
+        /** @var RevisionReview|null */
         return $this->reviews()->latest()->first();
     }
 }

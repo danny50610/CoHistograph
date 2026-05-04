@@ -4,6 +4,7 @@ namespace App\Services\Revision;
 
 use App\Enums\RevisionActionType;
 use App\Models\Revision;
+use App\Models\RevisionAction;
 
 /**
  * 協調 Revision 驗證流程的服務
@@ -99,6 +100,8 @@ class RevisionValidationService
 
     /**
      * 預載所有需要從 Age 圖數據庫查詢的狀態
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, RevisionAction>  $actions
      */
     private function preloadAllAgeStates(\Illuminate\Database\Eloquent\Collection $actions): void
     {
