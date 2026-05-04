@@ -11,6 +11,7 @@
                @if (!is_null($autocomplete)) autocomplete="{{ $autocomplete }}"  @endif
                @if (!is_null($inputMode)) inputmode="{{ $inputMode }}"  @endif
                value="{{ old($id, $value) }}"
+               {{ $attributes }}
                >
         @if (!is_null($helpText))
         <div id="{{ $id }}helpBlock" class="form-text">
