@@ -19,7 +19,6 @@ class Input extends Component
         public ?string $helpText = null,
         public ?string $autocomplete = null,
         public ?string $inputMode = null,
-        public ?string $name = null,
     ) {
     }
 

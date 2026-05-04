@@ -27,8 +27,7 @@
                             />
 
                             <x-forms.input
-                                id="password-confirm"
-                                name="password_confirmation"
+                                id="password_confirmation"
                                 label="確認密碼"
                                 type="password"
                                 autocomplete="new-password"
