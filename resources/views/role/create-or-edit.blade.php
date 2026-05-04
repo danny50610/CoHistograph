@@ -20,46 +20,14 @@
                                 @method('patch')
                             @endif
                             @csrf
-                            <div class="form-group row">
-                                <label for="name" class="col-md-2 col-form-label">英文名稱 *</label>
-                                <div class="col-md-10">
-                                    @if($isEditMode && $role->protection)
-                                        <input id="name" type="text"
-                                               class="form-control{{ $errors->has('name') ? ' is-invalid' : '' }}"
-                                               name="name"
-                                               value="{{ $role->name }}"
-                                               placeholder="如：admin" disabled>
-                                        {{ html()->hidden('name', $role->name) }}
-                                    @else
-                                        <input id="name" type="text"
-                                               class="form-control{{ $errors->has('name') ? ' is-invalid' : '' }}"
-                                               name="name"
-                                               value="{{ $role->name ?? '' }}"
-                                               placeholder="admin" required>
-                                    @endif
-                                    @if($errors->has('name'))
-                                        <span class="invalid-feedback">
-                                        <strong>{{ $errors->first('name') }}</strong>
-                                    </span>
-                                    @endif
-                                </div>
-                            </div>
+                            @if($isEditMode && $role->protection)
+                                <x-forms.input id="name" label="英文名稱" :value="$role->name" placeholder="如：admin" disabled />
+                                {{ html()->hidden('name', $role->name) }}
+                            @else
+                                <x-forms.input id="name" label="英文名稱" :value="$role->name ?? ''" placeholder="admin" required />
+                            @endif
 
-                            <div class="form-group row">
-                                <label for="display_name" class="col-md-2 col-form-label">顯示名稱 *</label>
-                                <div class="col-md-10">
-                                    <input id="display_name" type="text"
-                                           class="form-control{{ $errors->has('display_name') ? ' is-invalid' : '' }}"
-                                           value="{{ $role->display_name ?? '' }}"
-                                           name="display_name"
-                                           placeholder="管理員" required>
-                                    @if($errors->has('display_name'))
-                                        <span class="invalid-feedback">
-                                        <strong>{{ $errors->first('display_name') }}</strong>
-                                    </span>
-                                    @endif
-                                </div>
-                            </div>
+                            <x-forms.input id="display_name" label="顯示名稱" :value="$role->display_name ?? ''" placeholder="管理員" required />
 
                             <div class="form-group row">
                                 <label class="col-md-2 col-form-label">權限</label>

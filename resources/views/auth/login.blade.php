@@ -12,38 +12,9 @@
                         <form role="form" method="POST" action="{{ route('login') }}">
                             @csrf
 
-                            <div class="mb-3 row">
-                                <label for="email" class="col-md-2 col-form-label">信箱</label>
+                            <x-forms.input id="email" label="信箱" type="email" required autofocus />
 
-                                <div class="col-md-10">
-                                    <input id="email" type="email"
-                                           class="form-control{{ $errors->has('email') ? ' is-invalid' : '' }}"
-                                           name="email"
-                                           value="{{ old('email') }}" required autofocus>
-
-                                    @if ($errors->has('email'))
-                                        <div class="invalid-feedback">
-                                            <strong>{{ $errors->first('email') }}</strong>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="mb-3 row">
-                                <label for="password" class="col-md-2 col-form-label">密碼</label>
-
-                                <div class="col-md-10">
-                                    <input id="password" type="password"
-                                           class="form-control{{ $errors->has('password') ? ' is-invalid' : '' }}"
-                                           name="password" required>
-
-                                    @if ($errors->has('password'))
-                                        <div class="invalid-feedback">
-                                            <strong>{{ $errors->first('password') }}</strong>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
+                            <x-forms.input id="password" label="密碼" type="password" required />
 
                             <div class="mb-3 row">
                                 <div class="col-md-10 ms-auto">
