@@ -35,10 +35,11 @@
     }));
 
     const nodeRadius = 32;
+    const defaultWidth = 800;
     const color = d3.scaleOrdinal(d3.schemeTableau10);
 
     const graphVisualization = document.getElementById('graph-visualization');
-    const width = graphVisualization.clientWidth || 800;
+    const width = graphVisualization.clientWidth || defaultWidth;
     const height = 600;
 
     const svg = d3.create("svg")
@@ -157,7 +158,7 @@
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist === 0) {
-            return '';
+            return `M${d.source.x},${d.source.y}L${d.source.x},${d.source.y}`;
         }
 
         const nx = dx / dist;

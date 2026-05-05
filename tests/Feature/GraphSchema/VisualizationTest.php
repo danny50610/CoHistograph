@@ -30,23 +30,10 @@ class VisualizationTest extends TestCase
 
     public function test_visualization_page_contains_vertex_and_edge_data(): void
     {
-        $vertexA = VertexType::create([
-            'name' => 'Person',
-            'age_label_name' => 'person',
-            'description' => '',
-        ]);
-
-        $vertexB = VertexType::create([
-            'name' => 'Company',
-            'age_label_name' => 'company',
-            'description' => '',
-        ]);
-
-        EdgeType::create([
+        $vertexA = VertexType::factory()->create(['name' => 'Person']);
+        $vertexB = VertexType::factory()->create(['name' => 'Company']);
+        EdgeType::factory()->create([
             'name' => 'WorksAt',
-            'reverse_name' => 'HasEmployee',
-            'age_label_name' => 'works_at',
-            'description' => '',
             'start_vertex_id' => $vertexA->id,
             'end_vertex_id' => $vertexB->id,
         ]);
@@ -62,11 +49,7 @@ class VisualizationTest extends TestCase
 
     public function test_visualization_data_contains_urls(): void
     {
-        $vertex = VertexType::create([
-            'name' => 'Person',
-            'age_label_name' => 'person',
-            'description' => '',
-        ]);
+        $vertex = VertexType::factory()->create();
 
         $response = $this->actingAs($this->user)
             ->get('/graph-schema/visualization')
