@@ -15,6 +15,25 @@
 
         <div id="graph-visualization" style="border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa;"></div>
     </div>
+
+    {{-- Detail Modal --}}
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="detailModalBody"></div>
+                <div class="modal-footer">
+                    <a id="detailModalLink" href="#" class="btn btn-primary">
+                        <i class="fa-solid fa-receipt"></i> 前往詳細頁面
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('js')
@@ -25,14 +44,86 @@
     const vertexTypeList = @json($vertexTypeList);
     const edgeTypeList = @json($edgeTypeList);
 
-    const nodes = vertexTypeList.map(v => ({ id: v.id, name: v.name, url: v.url }));
+    const nodes = vertexTypeList.map(v => ({
+        id: v.id,
+        name: v.name,
+        age_label_name: v.age_label_name,
+        description: v.description,
+        properties: v.properties,
+        url: v.url,
+    }));
     const links = edgeTypeList.map(e => ({
         id: e.id,
         source: e.start_vertex_id,
         target: e.end_vertex_id,
         name: e.name,
+        reverse_name: e.reverse_name,
+        age_label_name: e.age_label_name,
+        description: e.description,
+        start_vertex_name: e.start_vertex_name,
+        end_vertex_name: e.end_vertex_name,
+        properties: e.properties,
         url: e.url,
     }));
+
+    const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+
+    function buildPropertiesHtml(properties) {
+        if (!properties || properties.length === 0) {
+            return '<p class="text-body-secondary mb-0">目前沒有任何 Property</p>';
+        }
+        let html = '<dl class="row mb-0">';
+        for (const p of properties) {
+            html += `<dt class="col-md-5">${p.name} <span class="text-body-secondary">(${p.age_property_name})</span></dt>`;
+            html += `<dd class="col-md-7 mb-0"><span class="badge text-bg-info">${p.age_property_type}</span></dd>`;
+        }
+        html += '</dl>';
+        return html;
+    }
+
+    function showVertexDetail(d) {
+        document.getElementById('detailModalLabel').textContent = `Vertex - ${d.name}`;
+        const body = `
+            <dl class="row mb-2">
+                <dt class="col-md-5">名稱</dt>
+                <dd class="col-md-7">${d.name}</dd>
+                <dt class="col-md-5">Label 名稱</dt>
+                <dd class="col-md-7">${d.age_label_name}</dd>
+                <dt class="col-md-5">描述</dt>
+                <dd class="col-md-7">${d.description || ''}</dd>
+            </dl>
+            <strong>Properties</strong>
+            <div class="mt-1">${buildPropertiesHtml(d.properties)}</div>
+        `;
+        document.getElementById('detailModalBody').innerHTML = body;
+        document.getElementById('detailModalLink').href = d.url;
+        detailModal.show();
+    }
+
+    function showEdgeDetail(d) {
+        document.getElementById('detailModalLabel').textContent = `Edge - ${d.name}`;
+        const body = `
+            <dl class="row mb-2">
+                <dt class="col-md-5">名稱</dt>
+                <dd class="col-md-7">${d.name}</dd>
+                <dt class="col-md-5">反向名稱</dt>
+                <dd class="col-md-7">${d.reverse_name || ''}</dd>
+                <dt class="col-md-5">Label 名稱</dt>
+                <dd class="col-md-7">${d.age_label_name}</dd>
+                <dt class="col-md-5">描述</dt>
+                <dd class="col-md-7">${d.description || ''}</dd>
+                <dt class="col-md-5">起點 Vertex</dt>
+                <dd class="col-md-7">${d.start_vertex_name}</dd>
+                <dt class="col-md-5">終點 Vertex</dt>
+                <dd class="col-md-7">${d.end_vertex_name}</dd>
+            </dl>
+            <strong>Properties</strong>
+            <div class="mt-1">${buildPropertiesHtml(d.properties)}</div>
+        `;
+        document.getElementById('detailModalBody').innerHTML = body;
+        document.getElementById('detailModalLink').href = d.url;
+        detailModal.show();
+    }
 
     const nodeRadius = 32;
     const defaultWidth = 800;
@@ -95,7 +186,7 @@
         .attr("dominant-baseline", "middle")
         .attr("cursor", "pointer")
         .text(d => d.name)
-        .on("click", (event, d) => { window.location.href = d.url; });
+        .on("click", (event, d) => { showEdgeDetail(d); });
 
     let dragMoved = false;
 
@@ -125,7 +216,7 @@
         .call(dragBehavior)
         .on("click", (event, d) => {
             if (!dragMoved) {
-                window.location.href = d.url;
+                showVertexDetail(d);
             }
         });
 
