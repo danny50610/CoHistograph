@@ -11,7 +11,7 @@
             placeholder="{{ $placeholder }}"
             @if (!empty($required)) required @endif
             @if (!is_null($helpText)) aria-describedby="{{ $id }}helpBlock" @endif
-        >{{ old($id) }}</textarea>
+        >{{ old($id, $value) }}</textarea>
         @if (!is_null($helpText))
         <div id="{{ $id }}helpBlock" class="form-text">
             {{ $helpText }}

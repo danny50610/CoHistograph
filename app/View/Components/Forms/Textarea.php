@@ -14,7 +14,8 @@ class Textarea extends Component
         public string $placeholder = '',
         public int $rows = 8,
         public bool $required = false,
-        public ?string $helpText = null
+        public ?string $helpText = null,
+        public string $value = '',
     ) {}
 
     public function render(): View|Closure|string
