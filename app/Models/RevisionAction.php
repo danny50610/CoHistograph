@@ -47,9 +47,6 @@ class RevisionAction extends Model
     {
         return [
             'action' => RevisionActionType::class,
-            'target_age_id' => 'integer',
-            'start_vertex_age_id' => 'integer',
-            'end_vertex_age_id' => 'integer',
         ];
     }
 
