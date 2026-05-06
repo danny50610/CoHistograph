@@ -41,8 +41,8 @@
     integrity="sha512-vc58qvvBdrDR4etbxMdlTt4GBQk1qjvyORR2nrsPsFPyrs+/u5c3+1Ct6upOgdZoIl7eq6k3a1UPDSNAQi/32A=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script type="module">
-    const vertexTypeList = @json($vertexTypeList);
-    const edgeTypeList = @json($edgeTypeList);
+    const vertexTypeList = @json($vertexTypeList, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
+    const edgeTypeList = @json($edgeTypeList, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
 
     const nodes = vertexTypeList.map(v => ({
         id: v.id,
