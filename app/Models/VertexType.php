@@ -18,6 +18,7 @@ class VertexType extends Model
         'show_property_name',
     ];
 
+    /** @return HasMany<VertexProperty, $this> */
     public function properties(): HasMany
     {
         return $this->hasMany(VertexProperty::class);
