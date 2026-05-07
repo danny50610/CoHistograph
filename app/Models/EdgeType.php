@@ -20,16 +20,19 @@ class EdgeType extends Model
         'end_vertex_id',
     ];
 
+    /** @return HasMany<EdgeProperty, $this> */
     public function properties(): HasMany
     {
         return $this->hasMany(EdgeProperty::class);
     }
 
+    /** @return BelongsTo<VertexType, $this> */
     public function startVertex(): BelongsTo
     {
         return $this->belongsTo(VertexType::class, 'start_vertex_id');
     }
 
+    /** @return BelongsTo<VertexType, $this> */
     public function endVertex(): BelongsTo
     {
         return $this->belongsTo(VertexType::class, 'end_vertex_id');
