@@ -24,7 +24,7 @@ class VisualizationTest extends TestCase
     public function test_visualization_page_is_accessible(): void
     {
         $this->actingAs($this->user)
-            ->get('/graph-schema/visualization')
+            ->get(route('graph-schema.visualization'))
             ->assertOk();
     }
 
@@ -39,7 +39,7 @@ class VisualizationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get('/graph-schema/visualization')
+            ->get(route('graph-schema.visualization'))
             ->assertOk();
 
         $response->assertSee('Person');
@@ -52,7 +52,7 @@ class VisualizationTest extends TestCase
         $vertex = VertexType::factory()->create();
 
         $response = $this->actingAs($this->user)
-            ->get('/graph-schema/visualization')
+            ->get(route('graph-schema.visualization'))
             ->assertOk();
 
         $expectedUrl = route('graph-schema.vertex-type.show', $vertex);
