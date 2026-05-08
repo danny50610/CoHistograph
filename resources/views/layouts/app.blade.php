@@ -49,6 +49,8 @@
     @stack('css')
     @stack('head-js')
 
+    <x-inertia::head />
+
     @if(isset($disableGoogleAnalytics) ? !$disableGoogleAnalytics : true)
         @if(config('app.env') == 'production' && !empty(config('services.google_analytics.id')))
             {{-- @formatter:off --}}
@@ -75,6 +77,7 @@
 <div style="min-height: calc(100vh - 56px - 54px - 2rem);" class="mt-3 mb-3">
     @include('components.page-alert')
     @yield('content')
+    <x-inertia::app />
 </div>
 
 @include('components.footer')

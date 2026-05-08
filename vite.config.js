@@ -1,3 +1,4 @@
+import inertia from '@inertiajs/vite'
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 
@@ -10,5 +11,6 @@ export default defineConfig({
             ],
             refresh: true,
         }),
+        inertia({ ssr: false }),
     ],
 });
