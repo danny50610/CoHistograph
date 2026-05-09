@@ -70,6 +70,34 @@ class VertexTypeTest extends TestCase
             ->assertSessionHasErrors(['age_label_name' => 'The age label name has already been taken.']);
     }
 
+    public function test_create_fail_when_name_clashes_with_edge_type()
+    {
+        EdgeType::factory()->create(['name' => 'participated_in']);
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/vertex-type', [
+                'name' => 'participated_in',
+                'age_label_name' => 'participated_in_vt',
+                'description' => '',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['name']);
+    }
+
+    public function test_create_fail_when_age_label_name_clashes_with_edge_type()
+    {
+        EdgeType::factory()->create(['age_label_name' => 'participated_in']);
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/vertex-type', [
+                'name' => 'SomeNewVertex',
+                'age_label_name' => 'participated_in',
+                'description' => '',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_label_name']);
+    }
+
     public function test_update()
     {
         $vertexType = VertexType::create([
@@ -125,6 +153,36 @@ class VertexTypeTest extends TestCase
             ])
             ->assertStatus(302)
             ->assertSessionHasErrors(['age_label_name' => 'The age label name has already been taken.']);
+    }
+
+    public function test_update_fail_when_name_clashes_with_edge_type()
+    {
+        $vertexType = VertexType::factory()->create();
+        EdgeType::factory()->create(['name' => 'participated_in']);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'participated_in',
+                'age_label_name' => $vertexType->age_label_name,
+                'description' => $vertexType->description,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['name']);
+    }
+
+    public function test_update_fail_when_age_label_name_clashes_with_edge_type()
+    {
+        $vertexType = VertexType::factory()->create();
+        EdgeType::factory()->create(['age_label_name' => 'participated_in']);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => $vertexType->name,
+                'age_label_name' => 'participated_in',
+                'description' => $vertexType->description,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_label_name']);
     }
 
     public function test_destroy_success()
