@@ -44,10 +44,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
           integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @stack('css')
     @stack('head-js')
+
+    <x-inertia::head />
 
     @if(isset($disableGoogleAnalytics) ? !$disableGoogleAnalytics : true)
         @if(config('app.env') == 'production' && !empty(config('services.google_analytics.id')))
@@ -75,6 +77,7 @@
 <div style="min-height: calc(100vh - 56px - 54px - 2rem);" class="mt-3 mb-3">
     @include('components.page-alert')
     @yield('content')
+    <x-inertia::app />
 </div>
 
 @include('components.footer')

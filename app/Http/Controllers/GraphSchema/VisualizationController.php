@@ -7,10 +7,12 @@ use App\Models\EdgeProperty;
 use App\Models\EdgeType;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class VisualizationController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
         $vertexTypeList = VertexType::with('properties')->orderBy('id')->get()->map(fn (VertexType $vt) => [
             'id' => $vt->id,
@@ -43,6 +45,12 @@ class VisualizationController extends Controller
             'url' => route('graph-schema.edge-type.show', $et),
         ]);
 
-        return view('graph-schema.visualization', compact('vertexTypeList', 'edgeTypeList'));
+        return Inertia::render('GraphSchema/Visualization', [
+            'vertexTypeList' => $vertexTypeList,
+            'edgeTypeList' => $edgeTypeList,
+            'routeVertexTypeIndex' => route('graph-schema.vertex-type.index'),
+            'routeEdgeTypeIndex' => route('graph-schema.edge-type.index'),
+            'routeVisualization' => route('graph-schema.visualization'),
+        ]);
     }
 }

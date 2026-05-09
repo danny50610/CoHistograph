@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class VisualizationTest extends TestCase
@@ -87,11 +88,17 @@ class VisualizationTest extends TestCase
     {
         $vertex = VertexType::factory()->create();
 
+        $expectedUrl = route('graph-schema.vertex-type.show', $vertex);
+
         $response = $this->actingAs($this->user)
             ->get(route('graph-schema.visualization'))
-            ->assertOk();
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('GraphSchema/Visualization')
+                ->has('vertexTypeList')
+            );
 
-        $expectedUrl = route('graph-schema.vertex-type.show', $vertex);
-        $response->assertSee($expectedUrl);
+        $vertexUrls = collect($response->inertiaProps('vertexTypeList'))->pluck('url');
+        $this->assertContains($expectedUrl, $vertexUrls->all());
     }
 }
