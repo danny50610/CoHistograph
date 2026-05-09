@@ -23,7 +23,7 @@ class EdgeTypeTest extends TestCase
         $this->user->addRole('admin');
     }
 
-    public function test_create()
+    public function test_create_success()
     {
         $startVertex = VertexType::factory()->create();
         $endVertex = VertexType::factory()->create();
@@ -83,7 +83,7 @@ class EdgeTypeTest extends TestCase
             ->assertSessionHasErrors(['age_label_name']);
     }
 
-    public function test_update()
+    public function test_update_success()
     {
         $edgeType = EdgeType::factory()->create();
         $newStartVertex = VertexType::factory()->create();

@@ -23,7 +23,7 @@ class EdgePropertyTest extends TestCase
         $this->user->addRole('admin');
     }
 
-    public function test_store()
+    public function test_store_success()
     {
         $edgeType = EdgeType::factory()->create();
 
@@ -63,7 +63,7 @@ class EdgePropertyTest extends TestCase
         $this->assertCount(1, EdgeProperty::where('edge_type_id', $edgeType->id)->get());
     }
 
-    public function test_update()
+    public function test_update_success()
     {
         $edgeType = EdgeType::factory()->create();
         $edgeProperty = EdgeProperty::factory()->for($edgeType)->create();

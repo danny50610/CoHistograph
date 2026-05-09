@@ -23,7 +23,7 @@ class VertexPropertyTest extends TestCase
         $this->user->addRole('admin');
     }
 
-    public function test_store()
+    public function test_store_success()
     {
         $vertexType = VertexType::factory()->create();
 
@@ -63,7 +63,7 @@ class VertexPropertyTest extends TestCase
         $this->assertCount(1, VertexProperty::where('vertex_type_id', $vertexType->id)->get());
     }
 
-    public function test_update()
+    public function test_update_success()
     {
         $vertexType = VertexType::factory()->create();
         $vertexProperty = VertexProperty::factory()->for($vertexType)->create();
