@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\GraphSchema;
 
+use App\Models\EdgeType;
 use App\Models\User;
+use App\Models\VertexProperty;
 use App\Models\VertexType;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
@@ -123,5 +125,43 @@ class VertexTypeTest extends TestCase
             ])
             ->assertStatus(302)
             ->assertSessionHasErrors(['age_label_name' => 'The age label name has already been taken.']);
+    }
+
+    public function test_destroy_success()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/vertex-type/{$vertexType->id}")
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertModelMissing($vertexType);
+    }
+
+    public function test_destroy_fail_when_has_properties()
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create();
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/vertex-type/{$vertexType->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('warning');
+
+        $this->assertModelExists($vertexType);
+    }
+
+    public function test_destroy_fail_when_has_edge_types()
+    {
+        $vertexType = VertexType::factory()->create();
+        EdgeType::factory()->create(['start_vertex_id' => $vertexType->id]);
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/vertex-type/{$vertexType->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('warning');
+
+        $this->assertModelExists($vertexType);
     }
 }

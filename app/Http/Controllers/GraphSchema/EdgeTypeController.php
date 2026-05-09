@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\EdgeType;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
+use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class EdgeTypeController extends Controller
@@ -115,7 +118,25 @@ class EdgeTypeController extends Controller
 
     public function destroy(EdgeType $edgeType)
     {
-        // TODO: Implement the destroy method
-        throw new \Exception('Not impl.');
+        if ($edgeType->properties()->exists()) {
+            return redirect()->back()->with('warning', "無法刪除，因為 Edge「{$edgeType->name}」還有屬性");
+        }
+
+        $hasEdges = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
+            return $builder->matchNode()
+                ->withMatchEdge(Direction::BOTH, 'e', $edgeType->age_label_name)
+                ->withMatchNode()
+                ->limit(1)
+                ->return('e');
+        })->get()->isNotEmpty();
+
+        if ($hasEdges) {
+            return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有「{$edgeType->name}」類型的 Edge 資料");
+        }
+
+        $edgeType->delete();
+
+        return redirect()->route('graph-schema.edge-type.index')
+            ->with('global', "Edge「{$edgeType->name}」刪除完成");
     }
 }

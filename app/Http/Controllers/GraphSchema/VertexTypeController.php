@@ -5,8 +5,9 @@ namespace App\Http\Controllers\GraphSchema;
 use App\Http\Controllers\Controller;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
-use Exception;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class VertexTypeController extends Controller
@@ -102,7 +103,27 @@ class VertexTypeController extends Controller
 
     public function destroy(VertexType $vertexType)
     {
-        // TODO: Implement the destroy method
-        throw new \Exception('Not impl.');
+        if ($vertexType->startEdgeTypes()->exists() || $vertexType->endEdgeTypes()->exists()) {
+            return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有 Edge 類型關聯");
+        }
+
+        if ($vertexType->properties()->exists()) {
+            return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有屬性");
+        }
+
+        $hasVertices = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+            return $builder->matchNode('v', $vertexType->age_label_name)
+                ->limit(1)
+                ->return('v');
+        })->get()->isNotEmpty();
+
+        if ($hasVertices) {
+            return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有「{$vertexType->name}」類型的 Vertex 資料");
+        }
+
+        $vertexType->delete();
+
+        return redirect()->route('graph-schema.vertex-type.index')
+            ->with('global', "Vertex「{$vertexType->name}」刪除完成");
     }
 }

@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\EdgeProperty;
 use App\Models\EdgeType;
 use App\Rules\GraphSchema\AgePropertyName;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class EdgePropertyController extends Controller
@@ -85,8 +87,21 @@ class EdgePropertyController extends Controller
             ->with('global', "Edge Property「{$edgeProperty->name}」更新完成");
     }
 
-    public function destroy(EdgeProperty $edgeProperty)
+    public function destroy(EdgeType $edgeType, EdgeProperty $edgeProperty)
     {
-        throw new \Exception('Not impl.');
+        $hasData = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
+            return $builder->matchRaw('()-[e:' . $edgeType->age_label_name . ']-() WHERE e.' . $edgeProperty->age_property_name . ' IS NOT NULL')
+                ->limit(1)
+                ->return('e');
+        })->get()->isNotEmpty();
+
+        if ($hasData) {
+            return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有 Edge 使用「{$edgeProperty->name}」屬性");
+        }
+
+        $edgeProperty->delete();
+
+        return redirect()->route('graph-schema.edge-type.show', [$edgeType])
+            ->with('global', "Edge Property「{$edgeProperty->name}」刪除完成");
     }
 }

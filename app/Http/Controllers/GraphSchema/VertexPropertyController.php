@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgePropertyName;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class VertexPropertyController extends Controller
@@ -85,8 +87,21 @@ class VertexPropertyController extends Controller
             ->with('global', "Vertex Property「{$vertexProperty->name}」更新完成");
     }
 
-    public function destroy(VertexProperty $vertexProperty)
+    public function destroy(VertexType $vertexType, VertexProperty $vertexProperty)
     {
-        throw new \Exception('Not impl.');
+        $hasData = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
+            return $builder->matchRaw('(v:' . $vertexType->age_label_name . ') WHERE v.' . $vertexProperty->age_property_name . ' IS NOT NULL')
+                ->limit(1)
+                ->return('v');
+        })->get()->isNotEmpty();
+
+        if ($hasData) {
+            return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有 Vertex 使用「{$vertexProperty->name}」屬性");
+        }
+
+        $vertexProperty->delete();
+
+        return redirect()->route('graph-schema.vertex-type.show', [$vertexType])
+            ->with('global', "Vertex Property「{$vertexProperty->name}」刪除完成");
     }
 }
