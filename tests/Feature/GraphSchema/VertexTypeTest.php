@@ -164,4 +164,17 @@ class VertexTypeTest extends TestCase
 
         $this->assertModelExists($vertexType);
     }
+
+    public function test_destroy_fail_when_used_as_end_vertex_by_edge_type()
+    {
+        $vertexType = VertexType::factory()->create();
+        EdgeType::factory()->create(['end_vertex_id' => $vertexType->id]);
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/vertex-type/{$vertexType->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('warning');
+
+        $this->assertModelExists($vertexType);
+    }
 }

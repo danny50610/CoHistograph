@@ -89,6 +89,9 @@ class EdgePropertyController extends Controller
 
     public function destroy(EdgeType $edgeType, EdgeProperty $edgeProperty)
     {
+        // age_label_name and age_property_name are validated to [a-z0-9_] only,
+        // so embedding them directly in the Cypher query is safe.
+        // Cypher does not support parameterized label/property names.
         $hasData = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
             return $builder->matchRaw('()-[e:' . $edgeType->age_label_name . ']-() WHERE e.' . $edgeProperty->age_property_name . ' IS NOT NULL')
                 ->limit(1)
