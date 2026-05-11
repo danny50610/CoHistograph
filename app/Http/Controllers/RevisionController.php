@@ -11,6 +11,8 @@ use App\Services\RevisionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class RevisionController extends Controller
 {
@@ -59,7 +61,7 @@ class RevisionController extends Controller
         return view('revisions.show', compact('revision'));
     }
 
-    public function edit(Revision $revision): View
+    public function edit(Revision $revision): InertiaResponse
     {
         $this->authorize('update', $revision);
 
@@ -69,14 +71,18 @@ class RevisionController extends Controller
             'actions' => fn ($q) => $q->orderBy('order'),
         ]);
 
-        $vertexTypes = VertexType::orderBy('name')->get();
-        $edgeTypes = EdgeType::with(['startVertex', 'endVertex'])->orderBy('name')->get();
+        $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
+        $edgeTypes = EdgeType::with(['startVertex', 'endVertex', 'properties'])->orderBy('name')->get();
 
-        return view('revisions.create-or-edit', compact(
-            'revision',
-            'vertexTypes',
-            'edgeTypes',
-        ));
+        return Inertia::render('Revisions/Edit', [
+            'revision' => $revision,
+            'vertexTypes' => $vertexTypes,
+            'edgeTypes' => $edgeTypes,
+            'routeShow' => route('revisions.show', $revision),
+            'routeUpdate' => route('revisions.update', $revision),
+            'routeSubmit' => route('revisions.submit', $revision),
+            'routeDestroy' => route('revisions.destroy', $revision),
+        ]);
     }
 
     public function update(UpdateRevisionRequest $request, Revision $revision): RedirectResponse
