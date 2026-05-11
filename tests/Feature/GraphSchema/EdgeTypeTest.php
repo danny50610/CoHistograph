@@ -6,7 +6,10 @@ use App\Models\EdgeProperty;
 use App\Models\EdgeType;
 use App\Models\User;
 use App\Models\VertexType;
+use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class EdgeTypeTest extends TestCase
@@ -159,6 +162,26 @@ class EdgeTypeTest extends TestCase
     {
         $edgeType = EdgeType::factory()->create();
         EdgeProperty::factory()->for($edgeType)->create();
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/edge-type/{$edgeType->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('warning');
+
+        $this->assertModelExists($edgeType);
+    }
+
+    public function test_destroy_fail_when_has_graph_edges_data()
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
+                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
 
         $this->actingAs($this->user)
             ->delete("/graph-schema/edge-type/{$edgeType->id}")

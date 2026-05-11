@@ -6,7 +6,10 @@ use App\Enums\PropertyType;
 use App\Models\EdgeProperty;
 use App\Models\EdgeType;
 use App\Models\User;
+use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class EdgePropertyTest extends TestCase
@@ -114,5 +117,28 @@ class EdgePropertyTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertModelMissing($edgeProperty);
+    }
+
+    public function test_destroy_fail_when_property_used_in_graph_data()
+    {
+        $edgeType = EdgeType::factory()->create();
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create();
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
+                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name, [
+                        $edgeProperty->age_property_name => 'in_use',
+                    ])
+                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('warning');
+
+        $this->assertModelExists($edgeProperty);
     }
 }

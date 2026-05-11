@@ -64,7 +64,7 @@ class EdgeTypeController extends Controller
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types')],
             'reverse_name' => ['nullable', 'string'],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -95,7 +95,7 @@ class EdgeTypeController extends Controller
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types')],
             'reverse_name' => ['nullable', 'string'],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -122,13 +122,14 @@ class EdgeTypeController extends Controller
             return redirect()->back()->with('warning', "無法刪除，因為 Edge「{$edgeType->name}」還有屬性");
         }
 
-        $hasEdges = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
-            return $builder->matchNode()
-                ->withMatchEdge(Direction::BOTH, 'e', $edgeType->age_label_name)
-                ->withMatchNode()
-                ->limit(1)
-                ->return('e');
-        })->get()->isNotEmpty();
+        $hasEdges = DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
+                return $builder->matchNode()
+                    ->withMatchEdge(Direction::BOTH, 'e', $edgeType->age_label_name)
+                    ->withMatchNode()
+                    ->return('e')
+                    ->limit(1);
+            })->get()->isNotEmpty();
 
         if ($hasEdges) {
             return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有「{$edgeType->name}」類型的 Edge 資料");

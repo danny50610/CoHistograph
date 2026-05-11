@@ -6,7 +6,9 @@ use App\Models\EdgeType;
 use App\Models\User;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class VertexTypeTest extends TestCase
@@ -227,6 +229,25 @@ class VertexTypeTest extends TestCase
     {
         $vertexType = VertexType::factory()->create();
         EdgeType::factory()->create(['end_vertex_id' => $vertexType->id]);
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/vertex-type/{$vertexType->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('warning');
+
+        $this->assertModelExists($vertexType);
+    }
+
+    public function test_destroy_fail_when_has_graph_vertices_data()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+                return $builder->createNode(null, $vertexType->age_label_name, [
+                    'name' => 'in_use_vertex',
+                ])->setAs(['v']);
+            })->get();
 
         $this->actingAs($this->user)
             ->delete("/graph-schema/vertex-type/{$vertexType->id}")

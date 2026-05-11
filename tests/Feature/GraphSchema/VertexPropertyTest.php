@@ -6,7 +6,9 @@ use App\Enums\PropertyType;
 use App\Models\User;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class VertexPropertyTest extends TestCase
@@ -114,5 +116,25 @@ class VertexPropertyTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertModelMissing($vertexProperty);
+    }
+
+    public function test_destroy_fail_when_property_used_in_graph_data()
+    {
+        $vertexType = VertexType::factory()->create();
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create();
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
+                return $builder->createNode(null, $vertexType->age_label_name, [
+                    $vertexProperty->age_property_name => 'in_use',
+                ])->setAs(['v']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('warning');
+
+        $this->assertModelExists($vertexProperty);
     }
 }

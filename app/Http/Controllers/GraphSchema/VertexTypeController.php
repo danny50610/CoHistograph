@@ -53,7 +53,7 @@ class VertexTypeController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types'), Rule::unique('edge_types')],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types'), Rule::unique('edge_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
         ]);
 
@@ -83,7 +83,7 @@ class VertexTypeController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
             'show_property_name' => ['nullable', 'string', Rule::in($vertexType->properties->pluck('age_property_name')->toArray())],
         ]);
@@ -111,11 +111,12 @@ class VertexTypeController extends Controller
             return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有屬性");
         }
 
-        $hasVertices = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
-            return $builder->matchNode('v', $vertexType->age_label_name)
-                ->limit(1)
-                ->return('v');
-        })->get()->isNotEmpty();
+        $hasVertices = DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+                return $builder->matchNode('v', $vertexType->age_label_name)
+                    ->return('v')
+                    ->limit(1);
+            })->get()->isNotEmpty();
 
         if ($hasVertices) {
             return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有「{$vertexType->name}」類型的 Vertex 資料");

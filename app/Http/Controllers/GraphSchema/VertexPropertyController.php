@@ -33,11 +33,11 @@ class VertexPropertyController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
-                    return $query->where('vertex_type_id', $vertexType->id);
-                })
+                return $query->where('vertex_type_id', $vertexType->id);
+            }),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName()],
+            'age_property_name' => ['required', 'string', new AgePropertyName],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -67,10 +67,10 @@ class VertexPropertyController extends Controller
                 'string',
                 Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
                     return $query->where('vertex_type_id', $vertexType->id);
-                })->ignore($vertexProperty)
+                })->ignore($vertexProperty),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName()],
+            'age_property_name' => ['required', 'string', new AgePropertyName],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -92,11 +92,12 @@ class VertexPropertyController extends Controller
         // age_label_name and age_property_name are validated to [a-z0-9_] only,
         // so embedding them directly in the Cypher query is safe.
         // Cypher does not support parameterized label/property names.
-        $hasData = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
-            return $builder->matchRaw('(v:' . $vertexType->age_label_name . ') WHERE v.' . $vertexProperty->age_property_name . ' IS NOT NULL')
-                ->limit(1)
-                ->return('v');
-        })->get()->isNotEmpty();
+        $hasData = DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
+                return $builder->matchRaw('(v:'.$vertexType->age_label_name.') WHERE v.'.$vertexProperty->age_property_name.' IS NOT NULL')
+                    ->return('v')
+                    ->limit(1);
+            })->get()->isNotEmpty();
 
         if ($hasData) {
             return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有 Vertex 使用「{$vertexProperty->name}」屬性");

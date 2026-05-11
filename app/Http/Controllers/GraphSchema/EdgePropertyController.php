@@ -33,11 +33,11 @@ class EdgePropertyController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
-                    return $query->where('edge_type_id', $edgeType->id);
-                })
+                return $query->where('edge_type_id', $edgeType->id);
+            }),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName()],
+            'age_property_name' => ['required', 'string', new AgePropertyName],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -67,10 +67,10 @@ class EdgePropertyController extends Controller
                 'string',
                 Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
                     return $query->where('edge_type_id', $edgeType->id);
-                })->ignore($edgeProperty)
+                })->ignore($edgeProperty),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName()],
+            'age_property_name' => ['required', 'string', new AgePropertyName],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -92,11 +92,12 @@ class EdgePropertyController extends Controller
         // age_label_name and age_property_name are validated to [a-z0-9_] only,
         // so embedding them directly in the Cypher query is safe.
         // Cypher does not support parameterized label/property names.
-        $hasData = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
-            return $builder->matchRaw('()-[e:' . $edgeType->age_label_name . ']-() WHERE e.' . $edgeProperty->age_property_name . ' IS NOT NULL')
-                ->limit(1)
-                ->return('e');
-        })->get()->isNotEmpty();
+        $hasData = DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
+                return $builder->matchRaw('()-[e:'.$edgeType->age_label_name.']-() WHERE e.'.$edgeProperty->age_property_name.' IS NOT NULL')
+                    ->return('e')
+                    ->limit(1);
+            })->get()->isNotEmpty();
 
         if ($hasData) {
             return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有 Edge 使用「{$edgeProperty->name}」屬性");
