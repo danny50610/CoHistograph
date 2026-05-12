@@ -106,22 +106,41 @@ function actionSummary(a) {
     }
 }
 
-function moveUp(index) {
-    if (index === 0) {
-        return;
-    }
-    const arr = form.actions;
-    [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
-    renumber();
+const dragSrcIndex = ref(null);
+const dragOverIndex = ref(null);
+
+function onDragStart(event, index) {
+    dragSrcIndex.value = index;
+    event.dataTransfer.effectAllowed = 'move';
 }
 
-function moveDown(index) {
-    if (index === form.actions.length - 1) {
+function onDragOver(event, index) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    dragOverIndex.value = index;
+}
+
+function onDragLeave() {
+    dragOverIndex.value = null;
+}
+
+function onDrop(index) {
+    if (dragSrcIndex.value === null || dragSrcIndex.value === index) {
+        dragSrcIndex.value = null;
+        dragOverIndex.value = null;
         return;
     }
     const arr = form.actions;
-    [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
+    const [moved] = arr.splice(dragSrcIndex.value, 1);
+    arr.splice(index, 0, moved);
     renumber();
+    dragSrcIndex.value = null;
+    dragOverIndex.value = null;
+}
+
+function onDragEnd() {
+    dragSrcIndex.value = null;
+    dragOverIndex.value = null;
 }
 
 function deleteAction(index) {
@@ -264,31 +283,32 @@ const createEdgeActions = computed(() =>
                     v-for="(action, index) in form.actions"
                     :key="index"
                     class="card mb-2"
+                    :class="{
+                        'opacity-50': dragSrcIndex === index,
+                        'border-primary': dragOverIndex === index && dragSrcIndex !== index,
+                    }"
+                    draggable="true"
+                    @dragstart="onDragStart($event, index)"
+                    @dragover="onDragOver($event, index)"
+                    @dragleave="onDragLeave"
+                    @drop="onDrop(index)"
+                    @dragend="onDragEnd"
                 >
                     <div class="card-body py-2 px-3">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
-                            <span class="fw-semibold small text-secondary">
-                                #{{ index + 1 }} &middot; {{ actionLabels[action.action] ?? action.action }}
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span
+                                    class="text-secondary"
+                                    style="cursor: grab; touch-action: none"
+                                    title="拖曳排序"
+                                >
+                                    <i class="fa-solid fa-grip-vertical"></i>
+                                </span>
+                                <span class="fw-semibold small text-secondary">
+                                    #{{ index + 1 }} &middot; {{ actionLabels[action.action] ?? action.action }}
+                                </span>
+                            </div>
                             <div class="d-flex gap-1">
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary py-0 px-1"
-                                    title="上移"
-                                    :disabled="index === 0"
-                                    @click="moveUp(index)"
-                                >
-                                    <i class="fa-solid fa-arrow-up"></i>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary py-0 px-1"
-                                    title="下移"
-                                    :disabled="index === form.actions.length - 1"
-                                    @click="moveDown(index)"
-                                >
-                                    <i class="fa-solid fa-arrow-down"></i>
-                                </button>
                                 <button
                                     type="button"
                                     class="btn btn-sm btn-outline-primary py-0 px-1"
