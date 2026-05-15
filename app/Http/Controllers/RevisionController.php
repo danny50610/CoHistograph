@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class RevisionController extends Controller
 {
@@ -104,7 +105,7 @@ class RevisionController extends Controller
         ]);
     }
 
-    public function update(UpdateRevisionRequest $request, Revision $revision): RedirectResponse
+    public function update(UpdateRevisionRequest $request, Revision $revision): SymfonyResponse
     {
         $this->authorize('update', $revision);
 
@@ -112,9 +113,9 @@ class RevisionController extends Controller
 
         $this->revisionService->update($revision, $request->validated());
 
-        return redirect()
-            ->route('revisions.show', $revision)
-            ->with('global', '修訂已儲存');
+        session()->flash('global', '修訂已儲存');
+
+        return Inertia::location(route('revisions.show', $revision));
     }
 
     public function submit(Revision $revision): RedirectResponse

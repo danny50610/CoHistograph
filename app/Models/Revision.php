@@ -13,6 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $title
  * @property string|null $description
  * @property \App\Enums\RevisionStatus $status
+ * @property bool|null $last_validation_is_valid
+ * @property string|null $last_validation_summary
+ * @property array<int, string>|null $last_validation_general_errors
+ * @property array<int, list<string>>|null $last_validation_action_errors
+ * @property \Illuminate\Support\Carbon|null $last_validated_at
  * @property int $user_id
  */
 class Revision extends Model
@@ -25,6 +30,11 @@ class Revision extends Model
         'title',
         'description',
         'status',
+        'last_validation_is_valid',
+        'last_validation_summary',
+        'last_validation_general_errors',
+        'last_validation_action_errors',
+        'last_validated_at',
         'user_id',
     ];
 
@@ -32,6 +42,10 @@ class Revision extends Model
     {
         return [
             'status' => RevisionStatus::class,
+            'last_validation_is_valid' => 'boolean',
+            'last_validation_general_errors' => 'array',
+            'last_validation_action_errors' => 'array',
+            'last_validated_at' => 'datetime',
         ];
     }
 

@@ -4,9 +4,30 @@
 
 @section('content')
     @php
+        /** @var array<int, list<string>>|null $sessionActionErrorsByOrder */
+        $sessionActionErrorsByOrder = session('revision_action_errors');
+
+        /** @var array<int, list<string>> $cachedActionErrorsByOrder */
+        $cachedActionErrorsByOrder = is_array($revision->last_validation_action_errors)
+            ? $revision->last_validation_action_errors
+            : [];
+
         /** @var array<int, list<string>> $actionErrorsByOrder */
-        $actionErrorsByOrder = session('revision_action_errors', []);
-        $revisionErrorSummary = session('revision_error_summary');
+        $actionErrorsByOrder = is_array($sessionActionErrorsByOrder)
+            ? $sessionActionErrorsByOrder
+            : $cachedActionErrorsByOrder;
+
+        /** @var array<int, string> $cachedGeneralErrors */
+        $cachedGeneralErrors = is_array($revision->last_validation_general_errors)
+            ? $revision->last_validation_general_errors
+            : [];
+
+        $revisionErrorSummary = session('revision_error_summary') ?? $revision->last_validation_summary;
+
+        $isSubmitValidationError = session()->has('revision_error_summary') || $errors->isNotEmpty();
+        $hasCachedValidation = !is_null($revision->last_validated_at);
+        $isValidationPass = !$isSubmitValidationError && $revision->last_validation_is_valid === true;
+        $showValidationResult = $isSubmitValidationError || $hasCachedValidation;
     @endphp
 
     <div class="container">
@@ -78,15 +99,30 @@
             </div>
         </div>
 
-        @if ($revisionErrorSummary || $errors->isNotEmpty())
-            <div class="alert alert-danger mb-3">
-                <div class="fw-semibold mb-1">{{ $revisionErrorSummary ?? '提交驗證失敗，請修正以下問題。' }}</div>
+        @if ($showValidationResult)
+            <div class="alert {{ $isValidationPass ? 'alert-success' : 'alert-danger' }} mb-3">
+                <div class="fw-semibold mb-1">
+                    {{ $revisionErrorSummary ?? ($isValidationPass ? '檢查通過' : '檢查未通過，請修正以下問題。') }}
+                </div>
+
                 @if ($errors->isNotEmpty())
                     <ul class="mb-0">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>
+                @elseif (!$isValidationPass && $cachedGeneralErrors !== [])
+                    <ul class="mb-0">
+                        @foreach ($cachedGeneralErrors as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                @if ($hasCachedValidation)
+                    <div class="small text-secondary mt-2">
+                        最近檢查時間：{{ $revision->last_validated_at }}
+                    </div>
                 @endif
             </div>
         @endif

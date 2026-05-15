@@ -51,6 +51,20 @@ class RevisionService
                 ]);
             }
         });
+
+        $revision->refresh()->load('actions');
+
+        $validationResult = $this->revisionValidationService->validate($revision);
+
+        $revision->update([
+            'last_validation_is_valid' => $validationResult->isValid(),
+            'last_validation_summary' => $validationResult->isValid()
+                ? '檢查通過'
+                : '檢查未通過，請修正錯誤後再繼續',
+            'last_validation_general_errors' => $validationResult->generalErrors(),
+            'last_validation_action_errors' => $validationResult->actionMessages(),
+            'last_validated_at' => now(),
+        ]);
     }
 
     public function submit(Revision $revision): RevisionValidationResult
