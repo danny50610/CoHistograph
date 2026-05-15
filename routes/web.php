@@ -37,6 +37,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('revisions', [RevisionController::class, 'store'])->name('revisions.store');
     Route::get('revisions/{revision}', [RevisionController::class, 'show'])->name('revisions.show');
     Route::get('revisions/{revision}/edit', [RevisionController::class, 'edit'])->name('revisions.edit');
+    Route::post('revisions/{revision}/validate', [RevisionController::class, 'validateDraft'])->name('revisions.validate');
     Route::put('revisions/{revision}', [RevisionController::class, 'update'])->name('revisions.update');
     Route::post('revisions/{revision}/submit', [RevisionController::class, 'submit'])->name('revisions.submit');
     Route::post('revisions/{revision}/reopen', [RevisionController::class, 'reopen'])->name('revisions.reopen');

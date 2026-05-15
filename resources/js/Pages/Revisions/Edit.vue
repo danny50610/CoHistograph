@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 import ActionModal from './Partials/ActionModal.vue';
 
 const props = defineProps({
@@ -9,8 +9,7 @@ const props = defineProps({
     edgeTypes: Array,
     routeShow: String,
     routeUpdate: String,
-    routeSubmit: String,
-    routeDestroy: String,
+    routeValidate: String,
 });
 
 const form = useForm({
@@ -36,19 +35,146 @@ function save() {
     form.put(props.routeUpdate);
 }
 
-function submitForReview() {
-    if (!confirm('確認提交此修訂進行審核？提交後將無法再編輯。')) {
-        return;
-    }
-    router.post(props.routeSubmit);
+const isCheckingRules = ref(false);
+const hasCheckedRules = ref(false);
+const isRuleValid = ref(null);
+const ruleSummary = ref('');
+const ruleGeneralErrors = ref([]);
+const ruleActionMessages = ref({});
+const ruleFieldErrors = ref([]);
+
+const RULE_CHECK_DEBOUNCE_MS = 500;
+let ruleCheckTimer = null;
+let ruleCheckController = null;
+
+function collectFieldErrors(validationErrors) {
+    return Object.values(validationErrors).flatMap((messages) =>
+        Array.isArray(messages) ? messages : [messages],
+    );
 }
 
-function destroyRevision() {
-    if (!confirm('確認刪除此修訂草稿？此操作無法復原。')) {
+function scheduleRuleCheck() {
+    if (ruleCheckTimer !== null) {
+        clearTimeout(ruleCheckTimer);
+    }
+
+    ruleCheckTimer = setTimeout(() => {
+        void runRuleCheck();
+    }, RULE_CHECK_DEBOUNCE_MS);
+}
+
+function getCsrfToken() {
+    return document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute('content');
+}
+
+async function runRuleCheck() {
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
         return;
     }
-    router.delete(props.routeDestroy);
+
+    if (ruleCheckController !== null) {
+        ruleCheckController.abort();
+    }
+
+    const controller = new AbortController();
+    ruleCheckController = controller;
+    isCheckingRules.value = true;
+
+    try {
+        const response = await fetch(props.routeValidate, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            credentials: 'same-origin',
+            signal: controller.signal,
+            body: JSON.stringify({
+                title: form.title,
+                description: form.description,
+                actions: form.actions.map((action, index) => ({
+                    ...action,
+                    order: index,
+                })),
+            }),
+        });
+
+        if (response.status === 422) {
+            const data = await response.json();
+            hasCheckedRules.value = true;
+            isRuleValid.value = false;
+            ruleSummary.value = '欄位格式未通過，請先修正';
+            ruleFieldErrors.value = collectFieldErrors(data.errors ?? {});
+            ruleGeneralErrors.value = [];
+            ruleActionMessages.value = {};
+
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        hasCheckedRules.value = true;
+        isRuleValid.value = Boolean(data.is_valid);
+        ruleSummary.value = data.summary ?? '';
+        ruleGeneralErrors.value = data.general_errors ?? [];
+        ruleActionMessages.value = data.action_messages ?? {};
+        ruleFieldErrors.value = [];
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
+
+        hasCheckedRules.value = true;
+        isRuleValid.value = null;
+        ruleSummary.value = '目前無法完成規則檢查，請稍後再試';
+        ruleGeneralErrors.value = [];
+        ruleActionMessages.value = {};
+        ruleFieldErrors.value = [];
+    } finally {
+        if (ruleCheckController === controller) {
+            ruleCheckController = null;
+            isCheckingRules.value = false;
+        }
+    }
 }
+
+function getActionRuleMessages(index) {
+    return ruleActionMessages.value[index] ?? [];
+}
+
+watch(
+    () => ({
+        title: form.title,
+        description: form.description,
+        actions: form.actions,
+    }),
+    () => {
+        scheduleRuleCheck();
+    },
+    { deep: true },
+);
+
+onMounted(() => {
+    scheduleRuleCheck();
+});
+
+onBeforeUnmount(() => {
+    if (ruleCheckTimer !== null) {
+        clearTimeout(ruleCheckTimer);
+    }
+
+    if (ruleCheckController !== null) {
+        ruleCheckController.abort();
+    }
+});
 
 // ── action list helpers ──────────────────────────────────────────────
 
@@ -215,12 +341,6 @@ const createEdgeActions = computed(() =>
             <button type="button" class="btn btn-primary" :disabled="form.processing" @click="save">
                 <i class="fa-solid fa-floppy-disk"></i> 儲存變更
             </button>
-            <button type="button" class="btn btn-success" :disabled="form.processing" @click="submitForReview">
-                <i class="fa-solid fa-paper-plane"></i> 提交審核
-            </button>
-            <button type="button" class="btn btn-danger" :disabled="form.processing" @click="destroyRevision">
-                <i class="fa-solid fa-trash"></i> 刪除草稿
-            </button>
         </div>
 
         <!-- Error summary -->
@@ -271,6 +391,31 @@ const createEdgeActions = computed(() =>
         <button type="button" class="btn btn-outline-primary mb-3" @click="openAddModal">
             <i class="fa-solid fa-plus"></i> 新增操作
         </button>
+
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="fw-semibold">規則檢查</div>
+                    <span v-if="isCheckingRules" class="badge text-bg-secondary">檢查中</span>
+                    <span v-else-if="hasCheckedRules && isRuleValid === true" class="badge text-bg-success">符合規則</span>
+                    <span v-else-if="hasCheckedRules && isRuleValid === false" class="badge text-bg-danger">不符合規則</span>
+                    <span v-else-if="hasCheckedRules" class="badge text-bg-warning">檢查未完成</span>
+                </div>
+
+                <div v-if="isCheckingRules" class="small text-secondary mt-1">正在檢查最新編輯內容...</div>
+                <div v-else-if="ruleSummary" class="small mt-1" :class="isRuleValid === false ? 'text-danger' : 'text-secondary'">
+                    {{ ruleSummary }}
+                </div>
+
+                <ul v-if="ruleFieldErrors.length > 0" class="small text-danger mt-2 mb-0">
+                    <li v-for="(message, idx) in ruleFieldErrors" :key="`field-${idx}`">{{ message }}</li>
+                </ul>
+
+                <ul v-if="ruleGeneralErrors.length > 0" class="small text-danger mt-2 mb-0">
+                    <li v-for="(message, idx) in ruleGeneralErrors" :key="`general-${idx}`">{{ message }}</li>
+                </ul>
+            </div>
+        </div>
 
         <!-- Actions list -->
         <div class="card mb-3">
@@ -328,6 +473,11 @@ const createEdgeActions = computed(() =>
                             </div>
                         </div>
                         <div class="small">{{ actionSummary(action) }}</div>
+                        <ul v-if="getActionRuleMessages(index).length > 0" class="small text-danger mt-2 mb-0">
+                            <li v-for="(message, msgIdx) in getActionRuleMessages(index)" :key="`a-${index}-m-${msgIdx}`">
+                                {{ message }}
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>

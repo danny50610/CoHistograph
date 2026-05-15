@@ -9,6 +9,7 @@ use App\Models\Revision;
 use App\Models\VertexType;
 use App\Services\RevisionService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -80,8 +81,26 @@ class RevisionController extends Controller
             'edgeTypes' => $edgeTypes,
             'routeShow' => route('revisions.show', $revision),
             'routeUpdate' => route('revisions.update', $revision),
-            'routeSubmit' => route('revisions.submit', $revision),
-            'routeDestroy' => route('revisions.destroy', $revision),
+            'routeValidate' => route('revisions.validate', $revision),
+        ]);
+    }
+
+    public function validateDraft(UpdateRevisionRequest $request, Revision $revision): JsonResponse
+    {
+        $this->authorize('update', $revision);
+
+        abort_unless($revision->isDraft(), 403, '只有草稿狀態可以檢查');
+
+        $validationResult = $this->revisionService->validateDraftData($revision, $request->validated());
+
+        return response()->json([
+            'is_valid' => $validationResult->isValid(),
+            'summary' => $validationResult->isValid()
+                ? '檢查通過'
+                : '檢查未通過，請修正錯誤後再繼續',
+            'general_errors' => $validationResult->generalErrors(),
+            'action_messages' => $validationResult->actionMessages(),
+            'action_errors' => $validationResult->actionErrors(),
         ]);
     }
 

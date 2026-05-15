@@ -5,6 +5,7 @@ namespace App\Services\Revision;
 use App\Enums\RevisionActionType;
 use App\Models\Revision;
 use App\Models\RevisionAction;
+use Illuminate\Support\Collection;
 
 /**
  * 協調 Revision 驗證流程的服務
@@ -29,9 +30,17 @@ class RevisionValidationService
         $this->graphManager->bootSchemaMaps();
 
         $result = new RevisionValidationResult;
-        $actions = $revision->actions()
-            ->orderBy('order')
-            ->get();
+        if ($revision->relationLoaded('actions')) {
+            /** @var Collection<int, RevisionAction> $actions */
+            $actions = $revision->actions
+                ->sortBy('order')
+                ->values();
+        } else {
+            /** @var Collection<int, RevisionAction> $actions */
+            $actions = $revision->actions()
+                ->orderBy('order')
+                ->get();
+        }
 
         if ($actions->isEmpty()) {
             $result->addGeneralError('至少需要一筆操作才能提交審核');
@@ -101,9 +110,9 @@ class RevisionValidationService
     /**
      * 預載所有需要從 Age 圖數據庫查詢的狀態
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, RevisionAction>  $actions
+     * @param  Collection<int, RevisionAction>  $actions
      */
-    private function preloadAllAgeStates(\Illuminate\Database\Eloquent\Collection $actions): void
+    private function preloadAllAgeStates(Collection $actions): void
     {
         $edgeTargetTypes = [
             RevisionActionType::DeleteEdge,
