@@ -34,7 +34,7 @@
                                 <label class="col-md-2 col-form-label">角色</label>
                                 <div class="col-md-10" style="padding-top: calc(.5rem - 1px * 2);">
                                     @foreach($roles as $role)
-                                        @if($user->id == Auth::user()->id && $role->name == 'Admin')
+                                        @if($user->id == Auth::user()->id && $role->name == 'admin')
                                             <div class="custom-control custom-checkbox mb-1">
                                                 <input type="checkbox" class="custom-control-input"
                                                        name="role[]" value="{{ $role->id }}"

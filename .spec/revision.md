@@ -176,11 +176,11 @@ draft → pending_review → rejected
 |---|---|---|
 | id | bigint PK | |
 | revision_id | FK → revisions | |
-| user_id | FK → users | 執行此動作的使用者 |
-| action | string | `submitted`, `approved`, `rejected` |
+| actor_user_id | FK → users | 執行此動作的操作者（approved/rejected 為審核者） |
+| action | string | `approved`, `rejected` |
 | comment | text nullable | 退回時必填 |
-| actions_snapshot | jsonb nullable | 僅 `submitted` 時填入，儲存當次提交的完整 `revision_actions` 陣列快照，每筆 action 為 jsonb 物件 |
-| created_at | timestamp | 建立時間（紀錄不可變，不需 updated_at） |
+| actions_snapshot | jsonb nullable | 僅 `rejected` 時填入，儲存當次提交的完整 `revision_actions` 陣列快照，每筆 action 為 jsonb 物件 |
+| timestamps | | created_at, updated_at |
 
 **`revision_actions` 資料表**
 
@@ -199,7 +199,7 @@ draft → pending_review → rejected
 | end_vertex_age_id | bigint nullable | `create_edge` 時，end vertex 的 AGE graphid（與 `end_vertex_ref_order` 互斥） |
 | end_vertex_ref_order | integer nullable | `create_edge` 時，end vertex 引用同 Revision 內 `create_vertex` action 的 order（與 `end_vertex_age_id` 互斥） |
 | age_property_name | string nullable | `*_property` 操作時使用，對應 `vertex_properties.age_property_name` 或 `edge_properties.age_property_name` |
-| value | string nullable | `create_*_property` / `update_*_property` 時使用，套用時依 `age_property_type` 轉型 |
+| value | text nullable | `create_*_property` / `update_*_property` 時使用，套用時依 `age_property_type` 轉型 |
 | timestamps | | created_at, updated_at |
 
 ---
@@ -261,7 +261,7 @@ draft → pending_review → rejected
 | 卡片標題列 | 顯示 `title` |
 | 狀態標籤 | 顯示 `draft`、`pending_review`、`rejected`、`approved` 的 badge |
 | 摘要資訊 | 顯示操作數量、最後更新時間 |
-| 次要資訊 | 顯示最近一次提交／審核時間；若尚無 review 紀錄則留空 |
+| 次要資訊 | 顯示最近一次審核時間；若尚無審核紀錄則留空 |
 | 點擊提示 | 顯示此卡片可點擊進入詳情頁 |
 
 **卡片版面建議順序：**
@@ -269,7 +269,7 @@ draft → pending_review → rejected
 1. 第一行：標題 + 狀態 badge
 2. 第二行：`X 個操作`
 3. 第三行：`最後更新時間`
-4. 第四行：`最近一次提交／審核時間`
+4. 第四行：`最近一次審核時間`
 5. 最下方：整張卡片可點擊的提示文字或箭頭圖示
 
 - 手機版所有資訊維持單欄直向排列
@@ -409,7 +409,7 @@ draft → pending_review → rejected
 
 5. 歷程區
   - 顯示 `revision_reviews` 紀錄
-  - 依時間倒序顯示提交、退回、接受紀錄
+  - 依時間倒序顯示退回、接受紀錄
 
 **Action 卡片內容：**
 
@@ -772,7 +772,6 @@ draft → pending_review → rejected
 
 | 紀錄類型 | 顯示內容 |
 |---|---|
-| `submitted` | 提交者、提交時間 |
 | `rejected` | 審核者、退回時間、退回理由 |
 | `approved` | 審核者、接受時間 |
 
@@ -801,7 +800,7 @@ draft → pending_review → rejected
 **空狀態：**
 
 - 若 Action 清單為空，顯示 `目前尚未加入任何操作`
-- 若歷程紀錄為空，顯示 `目前尚無任何提交或審核紀錄`
+- 若歷程紀錄為空，顯示 `目前尚無任何審核紀錄`
 
 **不在此頁處理的內容：**
 
@@ -832,7 +831,7 @@ draft → pending_review → rejected
 |---|---|
 | 卡片標題列 | 顯示 `title` |
 | 狀態標籤 | 顯示 `draft`、`pending_review`、`rejected`、`approved` 的 badge |
-| 提交資訊 | 顯示建立者與最近一次提交／審核時間 |
+| 提交資訊 | 顯示建立者與最近一次審核時間 |
 | 摘要資訊 | 顯示操作數量、最後更新時間 |
 | 點擊提示 | 顯示此卡片可點擊進入審核頁 |
 
@@ -842,7 +841,7 @@ draft → pending_review → rejected
 2. 第二行：建立者
 3. 第三行：`X 個操作`
 4. 第四行：`最後更新時間`
-5. 第五行：`最近一次提交／審核時間`
+5. 第五行：`最近一次審核時間`
 6. 最下方：整張卡片可點擊的提示文字或箭頭圖示
 
 - 手機版所有資訊維持單欄直向排列
@@ -918,7 +917,7 @@ draft → pending_review → rejected
 3. 審核摘要區
   - 顯示建立者
   - 顯示建立時間
-  - 顯示最近一次提交時間
+  - 顯示送審時間（可由 Revision 進入 `pending_review` 的狀態異動時間取得）
   - 顯示目前驗證結果
 
 4. 基本資料區
@@ -935,7 +934,7 @@ draft → pending_review → rejected
 
 7. 歷程區
   - 顯示 `revision_reviews` 紀錄
-  - 依時間倒序顯示提交、退回、接受紀錄
+  - 依時間倒序顯示退回、接受紀錄
 
 **審核操作規則：**
 
@@ -980,7 +979,7 @@ draft → pending_review → rejected
 3. 依 `order` 順序依序執行每個 RevisionAction 對 Apache AGE 的操作，使用資料庫 transaction 確保原子性；過程中維護 `order → 實際 AGE graphid` 的對應表，供後續引用 `target_ref_order` / `*_vertex_ref_order` 的 action 使用
 4. 套用成功後將 Revision 狀態更新為 `approved`，同時寫入一筆 `action=approved` 的 `revision_reviews` 紀錄，釋放 Redis lock
 5. reject 時寫入一筆 `action=rejected` 的 `revision_reviews` 紀錄並更新 Revision 狀態為 `rejected`
-6. submit 時寫入一筆 `action=submitted` 的 `revision_reviews` 紀錄（記錄每次提交時間與提交者），並將當時 `revision_actions` 全部序列化成 jsonb 存入 `actions_snapshot`；`approved` 與 `rejected` 的 review 紀錄不填入 `actions_snapshot`
+6. submit 時僅將 Revision 狀態更新為 `pending_review`，不寫入 `revision_reviews` 紀錄
 
 ---
 
