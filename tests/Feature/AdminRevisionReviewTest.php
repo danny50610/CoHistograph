@@ -139,7 +139,7 @@ class AdminRevisionReviewTest extends TestCase
 
         $response->assertOk()
             ->assertSee('驗證未通過')
-            ->assertSee('驗證錯誤摘要');
+            ->assertSee('無法接受此修訂');
 
         $this->assertStringContainsString('disabled', (string) $response->getContent());
     }

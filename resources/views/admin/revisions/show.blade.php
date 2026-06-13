@@ -5,8 +5,11 @@
 @section('content')
     @php
         /** @var array<int, list<string>> $actionErrorsByOrder */
-        $actionErrorsByOrder = $validationResult->actionMessages();
+        $actionErrorsByOrder = session('revision_action_errors') ?? $validationResult->actionMessages();
         $generalErrors = $validationResult->generalErrors();
+        if ($errors->isNotEmpty() && session()->has('revision_error_summary')) {
+            $generalErrors = $errors->all();
+        }
         $isValidationValid = $validationResult->isValid();
         $submittedAt = $revision->isDraft() ? null : $revision->updated_at;
     @endphp
@@ -101,7 +104,9 @@
         {{-- Validation errors --}}
         @if (! $isValidationValid)
             <div class="alert alert-danger mb-3">
-                <div class="fw-semibold mb-1">驗證錯誤摘要</div>
+                <div class="fw-semibold mb-1">
+                    {{ session('revision_error_summary') ?? '驗證未通過，無法接受此修訂' }}
+                </div>
                 @if ($generalErrors !== [])
                     <ul class="mb-0">
                         @foreach ($generalErrors as $error)
@@ -111,6 +116,18 @@
                 @else
                     <p class="mb-0">部分操作項目有問題，請查看下方標記的操作卡片。</p>
                 @endif
+            </div>
+        @endif
+
+        @if ($errors->has('lock'))
+            <div class="alert alert-warning mb-3">
+                {{ $errors->first('lock') }}
+            </div>
+        @endif
+
+        @if (session('global'))
+            <div class="alert alert-success mb-3">
+                {{ session('global') }}
             </div>
         @endif
 
