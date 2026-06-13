@@ -1,20 +1,15 @@
 @extends('layouts.app')
 
-@section('title', '我的修訂')
+@section('title', '修訂審核')
 
 @section('content')
     <div class="container">
-        <h1>我的修訂</h1>
-        <div class="mb-3">
-            <a href="{{ route('revisions.create') }}" class="btn btn-primary">
-                <i class="fa-solid fa-plus"></i> 新增修訂
-            </a>
-        </div>
+        <h1>修訂審核</h1>
 
         @forelse ($revisions as $revision)
             @include('revisions.partials.list-card', [
                 'revision' => $revision,
-                'mode' => 'user-list',
+                'mode' => 'admin-list',
             ])
         @empty
             <div class="card shadow-sm">

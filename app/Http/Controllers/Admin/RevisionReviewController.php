@@ -3,46 +3,51 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Revision;
+use App\Services\Revision\RevisionValidationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class RevisionReviewController extends Controller
 {
-    public function __construct()
+    public function __construct(private RevisionValidationService $revisionValidationService)
     {
         $this->middleware('permission:revision.review');
     }
 
     public function index(): View
     {
-        return view('revisions.wip', [
-            'pageTitle' => '修訂審核',
-            'pageDescription' => '管理員修訂審核列表頁骨架已建立，後續會補上列表與分頁。',
-            'backRoute' => route('index'),
-            'backLabel' => '返回首頁',
-            'wipActions' => [],
-        ]);
+        $revisions = Revision::query()
+            ->with(['user', 'reviews'])
+            ->withCount('actions')
+            ->orderByDesc('updated_at')
+            ->paginate();
+
+        return view('admin.revisions.index', compact('revisions'));
     }
 
-    public function show(string $revision): View
+    public function show(Revision $revision): View
     {
-        return view('revisions.wip', [
-            'pageTitle' => '修訂審核詳情',
-            'pageDescription' => '管理員修訂審核頁骨架已建立，後續會補上驗證結果、審核操作與歷程。',
-            'backRoute' => route('admin.revisions.index'),
-            'backLabel' => '返回修訂審核',
-            'referenceId' => $revision,
-            'wipActions' => ['approve', 'reject'],
+        $this->authorize('view', $revision);
+
+        $revision->load([
+            'user',
+            'actions' => fn ($query) => $query->orderBy('order'),
+            'reviews.actorUser',
         ]);
+
+        $validationResult = $this->revisionValidationService->validate($revision);
+
+        return view('admin.revisions.show', compact('revision', 'validationResult'));
     }
 
-    public function approve(string $revision): RedirectResponse
+    public function approve(Revision $revision): RedirectResponse
     {
         throw new \Exception('Not impl.');
     }
 
-    public function reject(Request $request, string $revision): RedirectResponse
+    public function reject(Request $request, Revision $revision): RedirectResponse
     {
         throw new \Exception('Not impl.');
     }
