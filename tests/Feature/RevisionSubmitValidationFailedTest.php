@@ -82,6 +82,34 @@ class RevisionSubmitValidationFailedTest extends TestCase
         $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
     }
 
+    /** F3: delete_vertex 目標頂點仍有相關邊未刪除 */
+    public function test_delete_vertex_fails_when_vertex_has_remaining_edges(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $bandId = $this->createAgeVertex($schema['band']->age_label_name);
+        $artistId = $this->createAgeVertexWithProperties($schema['artist']->age_label_name, ['nickname' => 'Luminae']);
+        $track1Id = $this->createAgeVertex($schema['track']->age_label_name);
+        $track2Id = $this->createAgeVertex($schema['track']->age_label_name);
+        $this->createAgeEdge($schema['belongs_to']->age_label_name, $artistId, $bandId);
+        $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artistId, $track1Id, ['track_order' => 1]);
+        $this->createAgeEdgeWithProperties($schema['performs']->age_label_name, $artistId, $track2Id, ['track_order' => 2]);
+
+        $revision = $this->createDraftRevision($user, [
+            ['action' => 'delete_vertex', 'target_age_id' => $artistId],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertSessionHas('revision_action_error_details', function (array $details): bool {
+                $codes = array_column($details[0] ?? [], 'code');
+
+                return in_array('VERTEX_HAS_REMAINING_EDGES', $codes, true);
+            });
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
+    }
+
     /** F4: create_edge 使用不存在的 edge_type_label */
     public function test_create_edge_fails_when_edge_type_label_not_found(): void
     {
@@ -212,6 +240,33 @@ class RevisionSubmitValidationFailedTest extends TestCase
                 $codes = array_column($details[0] ?? [], 'code');
 
                 return in_array('PROPERTY_ALREADY_EXISTS', $codes, true);
+            });
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
+    }
+
+    /** F8: create_vertex_property value 型別與屬性定義不符（INTEGER） */
+    public function test_create_vertex_property_fails_when_integer_value_cannot_be_parsed(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupFullSchema();
+        $trackId = $this->createAgeVertexWithProperties($schema['track']->age_label_name, ['title' => 'Nebula Call']);
+
+        $revision = $this->createDraftRevision($user, [
+            [
+                'action' => 'create_vertex_property',
+                'target_age_id' => $trackId,
+                'age_property_name' => 'release_year',
+                'value' => 'twenty-twenty-three',
+            ],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertSessionHas('revision_action_error_details', function (array $details): bool {
+                $codes = array_column($details[0] ?? [], 'code');
+
+                return in_array('PROPERTY_TYPE_MISMATCH', $codes, true);
             });
 
         $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
@@ -561,6 +616,34 @@ class RevisionSubmitValidationFailedTest extends TestCase
         $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
     }
 
+    /** F20: create_edge 的起點頂點不存在 */
+    public function test_create_edge_fails_when_start_vertex_not_found(): void
+    {
+        $user = User::factory()->createOne();
+        $schema = $this->setupPerformsSchema();
+        $trackId = $this->createAgeVertex($schema['track']->age_label_name);
+
+        $revision = $this->createDraftRevision($user, [
+            [
+                'action' => 'create_edge',
+                'edge_type_label' => $schema['performs']->age_label_name,
+                'start_vertex_age_id' => 9999,
+                'end_vertex_age_id' => $trackId,
+            ],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertSessionHas('revision_action_error_details', function (array $details): bool {
+                $codes = array_column($details[0] ?? [], 'code');
+
+                return in_array('START_VERTEX_NOT_FOUND', $codes, true)
+                    && ! in_array('END_VERTEX_NOT_FOUND', $codes, true);
+            });
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
+    }
+
     /** F21: create_vertex_property 目標頂點不存在 */
     public function test_create_vertex_property_fails_when_target_vertex_not_found(): void
     {
@@ -667,6 +750,50 @@ class RevisionSubmitValidationFailedTest extends TestCase
     // -------------------------------------------------------------------------
     // Schema helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * @return array{band: VertexType, artist: VertexType, track: VertexType, video_clip: VertexType, belongs_to: EdgeType, performs: EdgeType, linked_clip: EdgeType}
+     */
+    private function setupFullSchema(): array
+    {
+        $bandType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $artistType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $trackType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $videoClipType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+
+        VertexProperty::factory()->createOne(['vertex_type_id' => $artistType->id, 'age_property_name' => 'nickname', 'age_property_type' => PropertyType::String]);
+        VertexProperty::factory()->createOne(['vertex_type_id' => $trackType->id, 'age_property_name' => 'title', 'age_property_type' => PropertyType::String]);
+        VertexProperty::factory()->createOne(['vertex_type_id' => $trackType->id, 'age_property_name' => 'release_year', 'age_property_type' => PropertyType::Integer]);
+        VertexProperty::factory()->createOne(['vertex_type_id' => $videoClipType->id, 'age_property_name' => 'clip_code', 'age_property_type' => PropertyType::String]);
+
+        $belongsToType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'start_vertex_id' => $artistType->id,
+            'end_vertex_id' => $bandType->id,
+        ]);
+        $performsType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'start_vertex_id' => $artistType->id,
+            'end_vertex_id' => $trackType->id,
+        ]);
+        EdgeProperty::factory()->createOne(['edge_type_id' => $performsType->id, 'age_property_name' => 'track_order', 'age_property_type' => PropertyType::Integer]);
+        EdgeProperty::factory()->createOne(['edge_type_id' => $performsType->id, 'age_property_name' => 'featuring', 'age_property_type' => PropertyType::String]);
+        $linkedClipType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'start_vertex_id' => $trackType->id,
+            'end_vertex_id' => $videoClipType->id,
+        ]);
+
+        return [
+            'band' => $bandType,
+            'artist' => $artistType,
+            'track' => $trackType,
+            'video_clip' => $videoClipType,
+            'belongs_to' => $belongsToType,
+            'performs' => $performsType,
+            'linked_clip' => $linkedClipType,
+        ];
+    }
 
     /**
      * @return array{artist: VertexType, band: VertexType, belongs_to: EdgeType}
