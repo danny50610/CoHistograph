@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property list<array<string, mixed>>|null $actions_snapshot
+ */
 class RevisionReview extends Model
 {
     use HasFactory;

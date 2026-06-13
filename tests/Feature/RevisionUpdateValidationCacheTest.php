@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\RevisionStatus;
 use App\Models\Revision;
 use App\Models\User;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -70,9 +69,6 @@ class RevisionUpdateValidationCacheTest extends TestCase
 
     private function actAsUser(User $user): static
     {
-        /** @var Authenticatable $authenticatable */
-        $authenticatable = $user;
-
-        return $this->actingAs($authenticatable);
+        return $this->actingAs($user);
     }
 }
