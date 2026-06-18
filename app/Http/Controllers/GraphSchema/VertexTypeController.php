@@ -5,8 +5,9 @@ namespace App\Http\Controllers\GraphSchema;
 use App\Http\Controllers\Controller;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
-use Exception;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class VertexTypeController extends Controller
@@ -50,9 +51,10 @@ class VertexTypeController extends Controller
 
     public function store(Request $request)
     {
+        // The names of labels between vertices and edges cannot overlap.
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('vertex_types'), Rule::unique('edge_types')],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types'), Rule::unique('edge_types')],
+            'name' => ['required', 'string', Rule::unique('vertex_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
         ]);
 
@@ -80,9 +82,10 @@ class VertexTypeController extends Controller
 
     public function update(Request $request, VertexType $vertexType)
     {
+        // The names of labels between vertices and edges cannot overlap.
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
-            'age_label_name' => ['required', 'string', new AgeLabelName(), Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
+            'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType)],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
             'show_property_name' => ['nullable', 'string', Rule::in($vertexType->properties->pluck('age_property_name')->toArray())],
         ]);
@@ -102,7 +105,28 @@ class VertexTypeController extends Controller
 
     public function destroy(VertexType $vertexType)
     {
-        // TODO: Implement the destroy method
-        throw new \Exception('Not impl.');
+        if ($vertexType->startEdgeTypes()->exists() || $vertexType->endEdgeTypes()->exists()) {
+            return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有 Edge 類型關聯");
+        }
+
+        if ($vertexType->properties()->exists()) {
+            return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有屬性");
+        }
+
+        $hasVertices = DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+                return $builder->matchNode('v', $vertexType->age_label_name)
+                    ->return('v')
+                    ->limit(1);
+            })->get()->isNotEmpty();
+
+        if ($hasVertices) {
+            return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有「{$vertexType->name}」類型的 Vertex 資料");
+        }
+
+        $vertexType->delete();
+
+        return redirect()->route('graph-schema.vertex-type.index')
+            ->with('global', "Vertex「{$vertexType->name}」刪除完成");
     }
 }

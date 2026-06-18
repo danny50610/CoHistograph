@@ -17,17 +17,21 @@ class SimulateGraphDataSeeder extends Seeder
     protected VertexType $group;
 
     protected VertexType $vTuber;
+
     protected VertexProperty $vTuberPropertyName;
 
     protected VertexType $song;
+
     protected VertexProperty $songPropertyName;
 
     protected VertexType $youtubeVideo;
+
     protected VertexProperty $youtubeVideoPropertyId;
 
     protected EdgeType $groupMemberEdge;
 
     protected EdgeType $vocalEdge;
+
     protected EdgeProperty $vocalEdgePropertyOrder;
 
     protected EdgeType $groupVocalEdge;
@@ -132,7 +136,7 @@ class SimulateGraphDataSeeder extends Seeder
         $this->groupVocalEdge = new EdgeType([
             'name' => '主唱(團體)',
             'description' => '',
-            'age_label_name' => 'vocal',
+            'age_label_name' => 'group_vocal',
         ]);
         $this->groupVocalEdge->startVertex()->associate($this->group);
         $this->groupVocalEdge->endVertex()->associate($this->song);

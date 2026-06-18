@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgePropertyName;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class VertexPropertyController extends Controller
@@ -31,11 +33,18 @@ class VertexPropertyController extends Controller
     {
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
-                    return $query->where('vertex_type_id', $vertexType->id);
-                })
+                return $query->where('vertex_type_id', $vertexType->id);
+            }),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName()],
+            'age_property_name' => [
+                'required',
+                'string',
+                new AgePropertyName,
+                Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
+                    return $query->where('vertex_type_id', $vertexType->id);
+                }),
+            ],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -65,10 +74,17 @@ class VertexPropertyController extends Controller
                 'string',
                 Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
                     return $query->where('vertex_type_id', $vertexType->id);
-                })->ignore($vertexProperty)
+                })->ignore($vertexProperty),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName()],
+            'age_property_name' => [
+                'required',
+                'string',
+                new AgePropertyName,
+                Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
+                    return $query->where('vertex_type_id', $vertexType->id);
+                })->ignore($vertexProperty),
+            ],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -85,8 +101,25 @@ class VertexPropertyController extends Controller
             ->with('global', "Vertex Property「{$vertexProperty->name}」更新完成");
     }
 
-    public function destroy(VertexProperty $vertexProperty)
+    public function destroy(VertexType $vertexType, VertexProperty $vertexProperty)
     {
-        throw new \Exception('Not impl.');
+        // age_label_name and age_property_name are validated to [a-z0-9_] only,
+        // so embedding them directly in the Cypher query is safe.
+        // Cypher does not support parameterized label/property names.
+        $hasData = DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
+                return $builder->matchRaw('(v:'.$vertexType->age_label_name.') WHERE v.'.$vertexProperty->age_property_name.' IS NOT NULL')
+                    ->return('v')
+                    ->limit(1);
+            })->get()->isNotEmpty();
+
+        if ($hasData) {
+            return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有 Vertex 使用「{$vertexProperty->name}」屬性");
+        }
+
+        $vertexProperty->delete();
+
+        return redirect()->route('graph-schema.vertex-type.show', [$vertexType])
+            ->with('global', "Vertex Property「{$vertexProperty->name}」刪除完成");
     }
 }
