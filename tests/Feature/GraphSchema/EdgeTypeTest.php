@@ -50,7 +50,7 @@ class EdgeTypeTest extends TestCase
         $this->assertEquals($endVertex->id, $edgeType->end_vertex_id);
     }
 
-    public function test_create_fail_when_name_clashes_with_vertex_type()
+    public function test_create_success_when_name_matches_vertex_type_display_name()
     {
         VertexType::factory()->create(['name' => 'Person']);
         $startVertex = VertexType::factory()->create();
@@ -65,7 +65,9 @@ class EdgeTypeTest extends TestCase
                 'end_vertex_id' => $endVertex->id,
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['name']);
+            ->assertSessionHasNoErrors();
+
+        $this->assertNotNull(EdgeType::where('name', 'Person')->first());
     }
 
     public function test_create_fail_when_age_label_name_clashes_with_vertex_type()
@@ -84,6 +86,90 @@ class EdgeTypeTest extends TestCase
             ])
             ->assertStatus(302)
             ->assertSessionHasErrors(['age_label_name']);
+    }
+
+    public function test_create_fail_when_name_clashes_with_edge_type()
+    {
+        EdgeType::factory()->create(['name' => 'participated_in']);
+        $startVertex = VertexType::factory()->create();
+        $endVertex = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'participated_in',
+                'age_label_name' => 'participated_in_edge',
+                'description' => '',
+                'start_vertex_id' => $startVertex->id,
+                'end_vertex_id' => $endVertex->id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['name']);
+    }
+
+    public function test_create_fail_when_age_label_name_clashes_with_edge_type()
+    {
+        EdgeType::factory()->create(['age_label_name' => 'participated_in']);
+        $startVertex = VertexType::factory()->create();
+        $endVertex = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'SomeEdge',
+                'age_label_name' => 'participated_in',
+                'description' => '',
+                'start_vertex_id' => $startVertex->id,
+                'end_vertex_id' => $endVertex->id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_label_name']);
+    }
+
+    public function test_create_fail_when_age_label_name_invalid()
+    {
+        $startVertex = VertexType::factory()->create();
+        $endVertex = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'some_edge',
+                'age_label_name' => 'Invalid-Label',
+                'description' => '',
+                'start_vertex_id' => $startVertex->id,
+                'end_vertex_id' => $endVertex->id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_label_name']);
+    }
+
+    public function test_create_fail_when_start_vertex_id_missing()
+    {
+        $endVertex = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'some_edge',
+                'age_label_name' => 'some_edge',
+                'description' => '',
+                'end_vertex_id' => $endVertex->id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['start_vertex_id']);
+    }
+
+    public function test_create_fail_when_end_vertex_id_invalid()
+    {
+        $startVertex = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'some_edge',
+                'age_label_name' => 'some_edge',
+                'description' => '',
+                'start_vertex_id' => $startVertex->id,
+                'end_vertex_id' => 99999,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['end_vertex_id']);
     }
 
     public function test_update_success()
@@ -112,7 +198,7 @@ class EdgeTypeTest extends TestCase
         $this->assertEquals($newEndVertex->id, $updatedEdgeType->end_vertex_id);
     }
 
-    public function test_update_fail_when_name_clashes_with_vertex_type()
+    public function test_update_success_when_name_matches_vertex_type_display_name()
     {
         $edgeType = EdgeType::factory()->create();
         VertexType::factory()->create(['name' => 'Person']);
@@ -126,7 +212,9 @@ class EdgeTypeTest extends TestCase
                 'end_vertex_id' => $edgeType->end_vertex_id,
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['name']);
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals('Person', $edgeType->fresh()->name);
     }
 
     public function test_update_fail_when_age_label_name_clashes_with_vertex_type()
@@ -144,6 +232,62 @@ class EdgeTypeTest extends TestCase
             ])
             ->assertStatus(302)
             ->assertSessionHasErrors(['age_label_name']);
+    }
+
+    public function test_update_fail_when_name_clashes_with_edge_type()
+    {
+        $edgeType = EdgeType::factory()->create();
+        EdgeType::factory()->create(['name' => 'participated_in']);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}", [
+                'name' => 'participated_in',
+                'age_label_name' => $edgeType->age_label_name,
+                'description' => $edgeType->description,
+                'start_vertex_id' => $edgeType->start_vertex_id,
+                'end_vertex_id' => $edgeType->end_vertex_id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['name']);
+    }
+
+    public function test_update_fail_when_age_label_name_clashes_with_edge_type()
+    {
+        $edgeType = EdgeType::factory()->create();
+        EdgeType::factory()->create(['age_label_name' => 'participated_in']);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}", [
+                'name' => $edgeType->name,
+                'age_label_name' => 'participated_in',
+                'description' => $edgeType->description,
+                'start_vertex_id' => $edgeType->start_vertex_id,
+                'end_vertex_id' => $edgeType->end_vertex_id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_label_name']);
+    }
+
+    public function test_update_success_when_keeping_same_age_label_name()
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}", [
+                'name' => $edgeType->name,
+                'reverse_name' => 'updated reverse',
+                'age_label_name' => $edgeType->age_label_name,
+                'description' => 'Updated description only',
+                'start_vertex_id' => $edgeType->start_vertex_id,
+                'end_vertex_id' => $edgeType->end_vertex_id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $updatedEdgeType = EdgeType::find($edgeType->id);
+        $this->assertNotNull($updatedEdgeType);
+        $this->assertEquals($edgeType->age_label_name, $updatedEdgeType->age_label_name);
+        $this->assertEquals('Updated description only', $updatedEdgeType->description);
     }
 
     public function test_destroy_success()
@@ -173,7 +317,13 @@ class EdgeTypeTest extends TestCase
 
     public function test_destroy_fail_when_has_graph_edges_data()
     {
-        $edgeType = EdgeType::factory()->create();
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'destroy_edge_start_vt']);
+        $endVertex = VertexType::factory()->create(['age_label_name' => 'destroy_edge_end_vt']);
+        $edgeType = EdgeType::factory()->create([
+            'age_label_name' => 'destroy_edge_et',
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ]);
 
         DB::connection(config('cohistograph.app.graph.connection-name'))
             ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {

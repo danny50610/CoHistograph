@@ -25,7 +25,7 @@ class VertexTypeTest extends TestCase
         $this->user->addRole('admin');
     }
 
-    public function test_create()
+    public function test_create_success()
     {
         $this->actingAs($this->user)
             ->post('/graph-schema/vertex-type', [
@@ -72,7 +72,7 @@ class VertexTypeTest extends TestCase
             ->assertSessionHasErrors(['age_label_name' => 'The age label name has already been taken.']);
     }
 
-    public function test_create_fail_when_name_clashes_with_edge_type()
+    public function test_create_success_when_name_matches_edge_type_display_name()
     {
         EdgeType::factory()->create(['name' => 'participated_in']);
 
@@ -83,7 +83,9 @@ class VertexTypeTest extends TestCase
                 'description' => '',
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['name']);
+            ->assertSessionHasNoErrors();
+
+        $this->assertNotNull(VertexType::where('name', 'participated_in')->first());
     }
 
     public function test_create_fail_when_age_label_name_clashes_with_edge_type()
@@ -100,7 +102,7 @@ class VertexTypeTest extends TestCase
             ->assertSessionHasErrors(['age_label_name']);
     }
 
-    public function test_update()
+    public function test_update_success()
     {
         $vertexType = VertexType::create([
             'name' => 'Person',
@@ -157,7 +159,7 @@ class VertexTypeTest extends TestCase
             ->assertSessionHasErrors(['age_label_name' => 'The age label name has already been taken.']);
     }
 
-    public function test_update_fail_when_name_clashes_with_edge_type()
+    public function test_update_success_when_name_matches_edge_type_display_name()
     {
         $vertexType = VertexType::factory()->create();
         EdgeType::factory()->create(['name' => 'participated_in']);
@@ -169,7 +171,9 @@ class VertexTypeTest extends TestCase
                 'description' => $vertexType->description,
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['name']);
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals('participated_in', $vertexType->fresh()->name);
     }
 
     public function test_update_fail_when_age_label_name_clashes_with_edge_type()
@@ -240,7 +244,7 @@ class VertexTypeTest extends TestCase
 
     public function test_destroy_fail_when_has_graph_vertices_data()
     {
-        $vertexType = VertexType::factory()->create();
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'destroy_vertex_vt']);
 
         DB::connection(config('cohistograph.app.graph.connection-name'))
             ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {

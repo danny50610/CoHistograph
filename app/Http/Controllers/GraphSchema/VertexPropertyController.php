@@ -37,7 +37,14 @@ class VertexPropertyController extends Controller
             }),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName],
+            'age_property_name' => [
+                'required',
+                'string',
+                new AgePropertyName,
+                Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
+                    return $query->where('vertex_type_id', $vertexType->id);
+                }),
+            ],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -70,7 +77,14 @@ class VertexPropertyController extends Controller
                 })->ignore($vertexProperty),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName],
+            'age_property_name' => [
+                'required',
+                'string',
+                new AgePropertyName,
+                Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
+                    return $query->where('vertex_type_id', $vertexType->id);
+                })->ignore($vertexProperty),
+            ],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 

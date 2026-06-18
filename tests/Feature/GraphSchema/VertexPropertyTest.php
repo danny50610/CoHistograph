@@ -65,6 +65,54 @@ class VertexPropertyTest extends TestCase
         $this->assertCount(1, VertexProperty::where('vertex_type_id', $vertexType->id)->get());
     }
 
+    public function test_store_fail_when_age_property_name_not_unique_within_vertex_type()
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create(['age_property_name' => 'full_name']);
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Another Name',
+                'description' => '',
+                'age_property_name' => 'full_name',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_name']);
+
+        $this->assertCount(1, VertexProperty::where('vertex_type_id', $vertexType->id)->get());
+    }
+
+    public function test_store_fail_when_age_property_name_invalid()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Full Name',
+                'description' => '',
+                'age_property_name' => 'Invalid-Name',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_name']);
+    }
+
+    public function test_store_fail_when_age_property_type_invalid()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Full Name',
+                'description' => '',
+                'age_property_name' => 'full_name',
+                'age_property_type' => 'not_a_type',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_type']);
+    }
+
     public function test_update_success()
     {
         $vertexType = VertexType::factory()->create();
@@ -86,6 +134,25 @@ class VertexPropertyTest extends TestCase
         $this->assertEquals(PropertyType::Integer, $updatedProperty->age_property_type);
     }
 
+    public function test_update_fail_when_age_property_name_not_unique_within_vertex_type()
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create(['age_property_name' => 'taken_prop']);
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create(['age_property_name' => 'original_prop']);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
+                'name' => $vertexProperty->name,
+                'description' => '',
+                'age_property_name' => 'taken_prop',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_name']);
+
+        $this->assertEquals('original_prop', $vertexProperty->fresh()->age_property_name);
+    }
+
     public function test_update_fail_when_name_not_unique_within_vertex_type()
     {
         $vertexType = VertexType::factory()->create();
@@ -97,7 +164,7 @@ class VertexPropertyTest extends TestCase
                 'name' => 'Taken Name',
                 'description' => '',
                 'age_property_name' => $vertexProperty->age_property_name,
-                'age_property_type' => $vertexProperty->age_property_type->value,
+                'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
             ->assertSessionHasErrors(['name']);
@@ -120,7 +187,7 @@ class VertexPropertyTest extends TestCase
 
     public function test_destroy_fail_when_property_used_in_graph_data()
     {
-        $vertexType = VertexType::factory()->create();
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'destroy_vertex_prop_vt']);
         $vertexProperty = VertexProperty::factory()->for($vertexType)->create();
 
         DB::connection(config('cohistograph.app.graph.connection-name'))

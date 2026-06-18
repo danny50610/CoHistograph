@@ -51,8 +51,9 @@ class VertexTypeController extends Controller
 
     public function store(Request $request)
     {
+        // The names of labels between vertices and edges cannot overlap.
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('vertex_types'), Rule::unique('edge_types')],
+            'name' => ['required', 'string', Rule::unique('vertex_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
         ]);
@@ -81,8 +82,9 @@ class VertexTypeController extends Controller
 
     public function update(Request $request, VertexType $vertexType)
     {
+        // The names of labels between vertices and edges cannot overlap.
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
+            'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType)],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
             'show_property_name' => ['nullable', 'string', Rule::in($vertexType->properties->pluck('age_property_name')->toArray())],

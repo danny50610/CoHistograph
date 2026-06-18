@@ -37,7 +37,14 @@ class EdgePropertyController extends Controller
             }),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName],
+            'age_property_name' => [
+                'required',
+                'string',
+                new AgePropertyName,
+                Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
+                    return $query->where('edge_type_id', $edgeType->id);
+                }),
+            ],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 
@@ -70,7 +77,14 @@ class EdgePropertyController extends Controller
                 })->ignore($edgeProperty),
             ],
             'description' => ['nullable', 'string'],
-            'age_property_name' => ['required', 'string', new AgePropertyName],
+            'age_property_name' => [
+                'required',
+                'string',
+                new AgePropertyName,
+                Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
+                    return $query->where('edge_type_id', $edgeType->id);
+                })->ignore($edgeProperty),
+            ],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
         ]);
 

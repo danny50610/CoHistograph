@@ -61,10 +61,11 @@ class EdgeTypeController extends Controller
 
     public function store(Request $request)
     {
+        // The names of labels between vertices and edges cannot overlap.
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('vertex_types')],
+            'name' => ['required', 'string', Rule::unique('edge_types')],
             'reverse_name' => ['nullable', 'string'],
-            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -80,7 +81,7 @@ class EdgeTypeController extends Controller
         ]);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])
-            ->with('global', "Edge {$edgeType->name}」建立完成");
+            ->with('global', "Edge「{$edgeType->name}」建立完成");
     }
 
     public function edit(EdgeType $edgeType)
@@ -92,10 +93,11 @@ class EdgeTypeController extends Controller
 
     public function update(Request $request, EdgeType $edgeType)
     {
+        // The names of labels between vertices and edges cannot overlap.
         $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('vertex_types')],
+            'name' => ['required', 'string', Rule::unique('edge_types')->ignore($edgeType)],
             'reverse_name' => ['nullable', 'string'],
-            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')],
+            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')->ignore($edgeType)],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -113,7 +115,7 @@ class EdgeTypeController extends Controller
         ]);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])
-            ->with('global', "Edge {$edgeType->name}」更新完成");
+            ->with('global', "Edge「{$edgeType->name}」更新完成");
     }
 
     public function destroy(EdgeType $edgeType)
