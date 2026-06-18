@@ -9,8 +9,9 @@ return [
                 'user.manage',
                 'role.manage',
                 'graph-schema.manage',
+                'revision.review',
             ],
-        ]
+        ],
     ],
     'permissions' => [
         'user.manage' => [
@@ -24,6 +25,10 @@ return [
         'graph-schema.manage' => [
             'display_name' => '管理 Graph Schema',
             'description' => '新增、修改、刪除 Graph Schema',
+        ],
+        'revision.review' => [
+            'display_name' => '審核修訂',
+            'description' => '審核、接受或退回使用者提交的修訂',
         ],
     ],
 ];
