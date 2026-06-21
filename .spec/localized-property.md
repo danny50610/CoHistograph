@@ -24,6 +24,12 @@ v.birth_year = 701
 
 ---
 
+## 範圍外：Vertex 顯示名稱
+
+`VertexType.show_property_name` 如何搭配多語系 property 顯示（列表標題、詳情頁 h1 等）**不在本文件範圍**，另見 [`show-property-name.md`](./show-property-name.md)。建議先完成本文件，再實作顯示名稱解析。
+
+---
+
 ## 最大優勢：Revision 流程零改動
 
 方案 A 對以下層完全**不需修改**：
