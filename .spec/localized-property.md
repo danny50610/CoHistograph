@@ -85,7 +85,7 @@ $table->string('locale')->nullable();
 
 > **`xx_xx` 格式為刻意設計**，不採用 BCP 47（如 `zh-Hant`、`en`）。未來若需擴充格式，須同步修改 migration、regex 與 config key。
 
-> **長度限制**：現有 `AgePropertyName` 規則上限為 64 字元，且套用於拼接後的**完整** `age_property_name`。locale 固定 5 字元（如 `zh_tw`），因此 `base_age_property_name` 最長為 **58 字元**（64 - 1 底線 - 5 locale）。Form Request 驗證 `base_age_property_name` 時應以拼接結果計算。
+> **長度限制**：現有 `AgePropertyName` 規則上限為 64 字元，且套用於拼接後的**完整** `age_property_name`。locale 固定 5 字元（如 `zh_tw`），因此 `base_age_property_name` 最長為 **58 字元**（64 - 1 底線 - 5 locale）。Form Request 驗證 `base_age_property_name` 時須加上 `'max:58'` 規則——單靠 `AgePropertyName` 只能確保名稱格式合法，無法保證拼接後不超過 64 字元。
 
 ---
 
@@ -126,7 +126,7 @@ Controller 在 `store` / `update` 時，若 `locale` 不為 null，則自動將 
 ```php
 // StoreVertexPropertyRequest
 'locale'                 => ['nullable', 'string', 'regex:/^[a-z]{2}_[a-z]{2}$/', Rule::in(array_keys(config('cohistograph.app.graph.locales')))],
-'base_age_property_name' => ['required_with:locale', 'string', new AgePropertyName],
+'base_age_property_name' => ['required_with:locale', 'string', 'max:58', new AgePropertyName],
 'age_property_name'      => ['required_without:locale', 'string', new AgePropertyName],
 ```
 
