@@ -24,6 +24,7 @@ class EdgePropertyFactory extends Factory
             'description' => $this->faker->sentence(),
             'age_property_name' => $this->faker->unique()->word(),
             'age_property_type' => $this->faker->randomElement(PropertyType::class),
+            'locale' => null,
         ];
     }
 }
