@@ -80,6 +80,72 @@ class EdgePropertyTest extends TestCase
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
+            ->assertSessionHasErrors(['resolved_age_property_name']);
+
+        $this->assertCount(1, EdgeProperty::where('edge_type_id', $edgeType->id)->get());
+    }
+
+    public function test_store_success_with_localized_property()
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => '角色說明',
+                'description' => '',
+                'locale' => 'zh_tw',
+                'base_age_property_name' => 'role',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property = EdgeProperty::where('edge_type_id', $edgeType->id)
+            ->where('age_property_name', 'role_zh_tw')
+            ->first();
+        $this->assertNotNull($property);
+        $this->assertEquals('zh_tw', $property->locale);
+        $this->assertEquals('role_zh_tw', $property->age_property_name);
+    }
+
+    public function test_store_fail_when_localized_conflicts_with_existing_non_localized_property()
+    {
+        $edgeType = EdgeType::factory()->create();
+        EdgeProperty::factory()->for($edgeType)->create([
+            'age_property_name' => 'role',
+            'locale' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => '角色說明',
+                'description' => '',
+                'locale' => 'zh_tw',
+                'base_age_property_name' => 'role',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['base_age_property_name']);
+
+        $this->assertCount(1, EdgeProperty::where('edge_type_id', $edgeType->id)->get());
+    }
+
+    public function test_store_fail_when_non_localized_conflicts_with_existing_localized_property()
+    {
+        $edgeType = EdgeType::factory()->create();
+        EdgeProperty::factory()->for($edgeType)->create([
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => 'Role',
+                'description' => '',
+                'age_property_name' => 'role',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
             ->assertSessionHasErrors(['age_property_name']);
 
         $this->assertCount(1, EdgeProperty::where('edge_type_id', $edgeType->id)->get());
@@ -136,23 +202,29 @@ class EdgePropertyTest extends TestCase
         $this->assertEquals(PropertyType::Integer, $updatedProperty->age_property_type);
     }
 
-    public function test_update_fail_when_age_property_name_not_unique_within_edge_type()
+    public function test_update_does_not_change_age_property_name_or_locale()
     {
         $edgeType = EdgeType::factory()->create();
         EdgeProperty::factory()->for($edgeType)->create(['age_property_name' => 'taken_prop']);
-        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create(['age_property_name' => 'original_prop']);
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
 
         $this->actingAs($this->user)
             ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
                 'name' => $edgeProperty->name,
                 'description' => '',
                 'age_property_name' => 'taken_prop',
+                'locale' => 'en_us',
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['age_property_name']);
+            ->assertSessionHasNoErrors();
 
-        $this->assertEquals('original_prop', $edgeProperty->fresh()->age_property_name);
+        $edgeProperty->refresh();
+        $this->assertEquals('role_zh_tw', $edgeProperty->age_property_name);
+        $this->assertEquals('zh_tw', $edgeProperty->locale);
     }
 
     public function test_update_fail_when_name_not_unique_within_edge_type()

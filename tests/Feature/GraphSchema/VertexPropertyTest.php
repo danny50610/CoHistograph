@@ -78,9 +78,113 @@ class VertexPropertyTest extends TestCase
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
+            ->assertSessionHasErrors(['resolved_age_property_name']);
+
+        $this->assertCount(1, VertexProperty::where('vertex_type_id', $vertexType->id)->get());
+    }
+
+    public function test_store_success_with_localized_property()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => '姓名',
+                'description' => '',
+                'locale' => 'zh_tw',
+                'base_age_property_name' => 'name',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property = VertexProperty::where('vertex_type_id', $vertexType->id)
+            ->where('age_property_name', 'name_zh_tw')
+            ->first();
+        $this->assertNotNull($property);
+        $this->assertEquals('zh_tw', $property->locale);
+        $this->assertEquals('name_zh_tw', $property->age_property_name);
+    }
+
+    public function test_store_normalizes_empty_locale_to_null()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Birth Year',
+                'description' => '',
+                'locale' => '',
+                'age_property_name' => 'birth_year',
+                'age_property_type' => PropertyType::Integer->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property = VertexProperty::where('vertex_type_id', $vertexType->id)
+            ->where('age_property_name', 'birth_year')
+            ->first();
+        $this->assertNotNull($property);
+        $this->assertNull($property->locale);
+    }
+
+    public function test_store_fail_when_localized_conflicts_with_existing_non_localized_property()
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => '姓名',
+                'description' => '',
+                'locale' => 'zh_tw',
+                'base_age_property_name' => 'name',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['base_age_property_name']);
+
+        $this->assertCount(1, VertexProperty::where('vertex_type_id', $vertexType->id)->get());
+    }
+
+    public function test_store_fail_when_non_localized_conflicts_with_existing_localized_property()
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Name',
+                'description' => '',
+                'age_property_name' => 'name',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
             ->assertSessionHasErrors(['age_property_name']);
 
         $this->assertCount(1, VertexProperty::where('vertex_type_id', $vertexType->id)->get());
+    }
+
+    public function test_store_fail_when_base_age_property_name_exceeds_max_length()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => '姓名',
+                'description' => '',
+                'locale' => 'zh_tw',
+                'base_age_property_name' => str_repeat('a', 59),
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['base_age_property_name']);
     }
 
     public function test_store_fail_when_age_property_name_invalid()
@@ -134,23 +238,29 @@ class VertexPropertyTest extends TestCase
         $this->assertEquals(PropertyType::Integer, $updatedProperty->age_property_type);
     }
 
-    public function test_update_fail_when_age_property_name_not_unique_within_vertex_type()
+    public function test_update_does_not_change_age_property_name_or_locale()
     {
         $vertexType = VertexType::factory()->create();
         VertexProperty::factory()->for($vertexType)->create(['age_property_name' => 'taken_prop']);
-        $vertexProperty = VertexProperty::factory()->for($vertexType)->create(['age_property_name' => 'original_prop']);
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
 
         $this->actingAs($this->user)
             ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
                 'name' => $vertexProperty->name,
                 'description' => '',
                 'age_property_name' => 'taken_prop',
+                'locale' => 'en_us',
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['age_property_name']);
+            ->assertSessionHasNoErrors();
 
-        $this->assertEquals('original_prop', $vertexProperty->fresh()->age_property_name);
+        $vertexProperty->refresh();
+        $this->assertEquals('name_zh_tw', $vertexProperty->age_property_name);
+        $this->assertEquals('zh_tw', $vertexProperty->locale);
     }
 
     public function test_update_fail_when_name_not_unique_within_vertex_type()
