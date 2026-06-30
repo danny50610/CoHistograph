@@ -314,4 +314,54 @@ class VertexPropertyTest extends TestCase
 
         $this->assertModelExists($vertexProperty);
     }
+
+    public function test_create_form_shows_locale_selector(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/create")
+            ->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('非多語系')
+            ->assertSee('繁體中文（zh_tw）');
+    }
+
+    public function test_edit_form_shows_readonly_locale_and_property_name_for_localized_property(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}/edit");
+
+        $response->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('繁體中文')
+            ->assertSee('(zh_tw)')
+            ->assertSee('name_zh_tw')
+            ->assertDontSee('id="locale"', false)
+            ->assertDontSee('id="base_age_property_name"', false);
+    }
+
+    public function test_show_displays_locale_for_localized_property(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}")
+            ->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('繁體中文')
+            ->assertSee('(zh_tw)')
+            ->assertSee('name_zh_tw');
+    }
 }
