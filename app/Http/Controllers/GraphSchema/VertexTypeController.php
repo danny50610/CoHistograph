@@ -5,6 +5,7 @@ namespace App\Http\Controllers\GraphSchema;
 use App\Http\Controllers\Controller;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
+use App\Support\LocalizedPropertyGrouper;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,9 @@ class VertexTypeController extends Controller
             'endEdgeTypes.startVertex',
         ]);
 
-        return view('graph-schema.vertex-type.show', compact('vertexType'));
+        $propertyGroups = app(LocalizedPropertyGrouper::class)->group($vertexType->properties);
+
+        return view('graph-schema.vertex-type.show', compact('vertexType', 'propertyGroups'));
     }
 
     public function create()

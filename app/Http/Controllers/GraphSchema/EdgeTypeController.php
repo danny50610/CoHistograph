@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EdgeType;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
+use App\Support\LocalizedPropertyGrouper;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
@@ -35,9 +36,11 @@ class EdgeTypeController extends Controller
 
     public function show(EdgeType $edgeType)
     {
-        $edgeType->load('properties');
+        $edgeType->load('properties', 'startVertex', 'endVertex');
 
-        return view('graph-schema.edge-type.show', compact('edgeType'));
+        $propertyGroups = app(LocalizedPropertyGrouper::class)->group($edgeType->properties);
+
+        return view('graph-schema.edge-type.show', compact('edgeType', 'propertyGroups'));
     }
 
     protected function getVertexOptions()

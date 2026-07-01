@@ -260,4 +260,37 @@ class VertexTypeTest extends TestCase
 
         $this->assertModelExists($vertexType);
     }
+
+    public function test_show_groups_localized_properties(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Name',
+            'age_property_name' => 'name_en_us',
+            'locale' => 'en_us',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '出生年份',
+            'age_property_name' => 'birth_year',
+            'locale' => null,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}");
+
+        $response->assertOk();
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $this->assertSame(1, substr_count($content, 'name_zh_tw'));
+        $this->assertSame(1, substr_count($content, 'name_en_us'));
+        $this->assertStringContainsString('繁體中文', $content);
+        $this->assertStringContainsString('English', $content);
+        $this->assertStringContainsString('出生年份', $content);
+        $this->assertStringContainsString('birth_year', $content);
+    }
 }
