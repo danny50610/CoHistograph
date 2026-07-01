@@ -29,6 +29,7 @@ Cypher `MATCH`/`RETURN` but can never mutate the graph.
 | `01_setup_graph.sql` | Create the `age` extension + sample `history` graph. |
 | `02_create_readonly_user.sql` | Create the `readonly` login role (read grants only). |
 | `03_write_attempts.sql` | 11 write attacks that must all be denied. |
+| `04_read_tests.sql` | 5 positive read tests that must all succeed. |
 | `run_all.sh` | One-shot: (re)create container, load data, create role, run all attacks. |
 
 ## How to run
@@ -75,6 +76,16 @@ SELECT * FROM cypher('history', $$ MATCH (n:Person) RETURN n.name $$) AS (name a
 Note: it does **not** need `LOAD 'age'` (which is superuser-only). AGE's C
 functions auto-load their backing library on first call, so plain Cypher
 queries work for the read-only role.
+
+### Positive read tests (all succeed — `04_read_tests.sql`)
+
+| # | Read query (as `readonly`) | Result |
+|---|----------------------------|--------|
+| R1 | Cypher `MATCH … WHERE n.born < 1800 RETURN …` | Napoleon 1769, Wellington 1769 |
+| R2 | Cypher `RETURN count(n)` | `2` |
+| R3 | Cypher edge traversal `(a)-[r:FOUGHT]->(b)` | Napoleon → Waterloo → Wellington |
+| R4 | Cypher `ORDER BY n.name DESC LIMIT 1` | Wellington |
+| R5 | `SELECT … FROM ag_catalog.ag_graph` + `SELECT count(*) FROM history."Person"` | `history`; `2` |
 
 Every write below was **denied**:
 

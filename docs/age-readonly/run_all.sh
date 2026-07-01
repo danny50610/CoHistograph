@@ -38,6 +38,9 @@ echo "==> read-only role CAN read:"
 psql_ro -c "SET search_path = ag_catalog, public;
             SELECT * FROM cypher('history', \$\$ MATCH (n:Person) RETURN n.name \$\$) AS (name agtype);"
 
+echo "==> positive read tests (all MUST succeed):"
+psql_ro -v ON_ERROR_STOP=1 -f - < "$HERE/04_read_tests.sql"
+
 echo "==> read-only role write attempts (every line MUST say 'permission denied'):"
 psql_ro -f - < "$HERE/03_write_attempts.sql"
 
