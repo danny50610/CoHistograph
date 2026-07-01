@@ -6,7 +6,9 @@ use App\Exceptions\CouldNotAcquireRevisionApplyLockException;
 use App\Exceptions\RevisionApprovalValidationException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectRevisionRequest;
+use App\Models\EdgeType;
 use App\Models\Revision;
+use App\Models\VertexType;
 use App\Services\Revision\RevisionReviewService;
 use App\Services\Revision\RevisionValidationService;
 use Illuminate\Contracts\View\View;
@@ -45,7 +47,10 @@ class RevisionReviewController extends Controller
 
         $validationResult = $this->revisionValidationService->validate($revision);
 
-        return view('admin.revisions.show', compact('revision', 'validationResult'));
+        $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
+        $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
+
+        return view('admin.revisions.show', compact('revision', 'validationResult', 'vertexTypes', 'edgeTypes'));
     }
 
     public function approve(Revision $revision): RedirectResponse

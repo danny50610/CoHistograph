@@ -10,6 +10,7 @@ const props = defineProps({
     editingAction: Object, // null = add mode
     vertexTypes: Array,
     edgeTypes: Array,
+    graphLocales: Object,
     createVertexActions: Array,
     createEdgeActions: Array,
 });
@@ -195,6 +196,7 @@ function backToTypeSelect() {
                                 :action-type="selectedType"
                                 :vertex-types="vertexTypes"
                                 :edge-types="edgeTypes"
+                                :graph-locales="graphLocales"
                                 :create-vertex-actions="createVertexActions"
                                 :create-edge-actions="createEdgeActions"
                             />
