@@ -36,11 +36,11 @@ Cypher `MATCH`/`RETURN` but can never mutate the graph.
 
 ```bash
 # Option A: docker compose
-docker compose -f docs/age-readonly/docker-compose.yml up -d
+docker compose -f .spec/age-readonly-user/docker-compose.yml up -d
 # then run the .sql files in order (see run_all.sh for exact commands)
 
 # Option B: one shot (recreates the container each time)
-SUDO=sudo docs/age-readonly/run_all.sh
+SUDO=sudo .spec/age-readonly-user/run_all.sh
 ```
 
 ## The read-only grant set

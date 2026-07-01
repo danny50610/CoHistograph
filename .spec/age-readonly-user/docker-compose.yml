@@ -1,5 +1,5 @@
 # Spins up PostgreSQL + Apache AGE for the read-only user investigation.
-#   docker compose -f docs/age-readonly/docker-compose.yml up -d
+#   docker compose -f .spec/age-readonly-user/docker-compose.yml up -d
 services:
   age:
     image: apache/age:latest
