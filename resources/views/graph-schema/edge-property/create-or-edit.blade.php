@@ -27,7 +27,13 @@
                         'isEditMode' => $isEditMode,
                     ])
 
-                    <x-forms.input id="age_property_type" label="Property Type" :value="$edgeProperty->age_property_type->value ?? ''" required />
+                    <x-forms.select
+                        id="age_property_type"
+                        label="Property Type"
+                        :value="$edgeProperty->age_property_type->value ?? ''"
+                        :options="\App\Enums\PropertyType::selectOptions()"
+                        required
+                    />
 
                     <div class="row mb-2">
                         <div class="col-md-10 ms-auto">

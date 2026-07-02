@@ -324,7 +324,12 @@ class VertexPropertyTest extends TestCase
             ->assertOk()
             ->assertSee('語言版本')
             ->assertSee('非多語系')
-            ->assertSee('繁體中文（zh_tw）');
+            ->assertSee('繁體中文（zh_tw）')
+            ->assertSee('id="age_property_type"', false)
+            ->assertSee('form-select', false)
+            ->assertSee('>INTEGER<', false)
+            ->assertSee('>STRING<', false)
+            ->assertDontSee('type="text" name="age_property_type"', false);
     }
 
     public function test_edit_form_shows_readonly_locale_and_property_name_for_localized_property(): void
