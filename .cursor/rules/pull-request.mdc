@@ -1,0 +1,38 @@
+---
+description: Pull request 分支與合併前驗證規範
+alwaysApply: true
+---
+
+# Pull Request 規則
+
+## 分支策略
+
+- **Base branch**：一律從 `develop` 開分支。
+- **Target branch**：PR 一律合併到 `develop`，不要對 `main` 開 PR。
+- 開始工作前先確認本地 `develop` 已更新：
+
+```bash
+git fetch origin develop
+git checkout develop
+git pull origin develop
+git checkout -b <branch-name>
+```
+
+## 合併前驗證（必須手動執行）
+
+在請求合併到 `develop` 之前，**必須**在本機手動跑完以下檢查且全部通過：
+
+```bash
+composer run test
+composer run phpstan
+```
+
+- 不要跳過測試或 PHPStan。
+- 若只改動局部邏輯，至少跑相關測試；合併前仍須跑完整 `composer run test`。
+- PHP 檔案若有修改，合併前執行 `vendor/bin/pint --dirty`。
+
+## 建立 PR 時
+
+- PR base 設為 `develop`。
+- PR 描述中列出已執行的驗證命令與結果（test、phpstan）。
+- 若驗證尚未完成，建立 draft PR 並註明待跑項目。
