@@ -53,8 +53,8 @@ jobs:
         mkdir .bin
         corepack enable --install-directory .bin
         export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-        .bin/yarn install
-        .bin/yarn run build
+        .bin/pnpm install
+        .bin/pnpm run build
 
     - name: Test
       run: composer run test
