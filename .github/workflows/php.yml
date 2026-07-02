@@ -1,0 +1,76 @@
+name: PHP Test
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        phpVersion: ['8.4']
+
+    container:
+      image: danny60072/gitlab-ci-pipeline-php:${{ matrix.phpVersion }}-node22
+      options: --user 1001
+
+    services:
+      db:
+        image: apache/age:release_PG15_1.5.0
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v4
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ matrix.phpVersion }}
+
+    - name: Prepare Env
+      run: |
+        cp .env.github-actions .env
+        composer install --prefer-dist --no-progress
+        php artisan migrate --force
+        php artisan migrate --database=pgsql-age --path=database/migrations-age --force
+        php artisan app:apply-role-and-permission-command
+        mkdir .bin
+        corepack enable --install-directory .bin
+        export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+        .bin/yarn install
+        .bin/yarn run build
+
+    - name: Test
+      run: composer run test
+
+    - name: Phpstan
+      run: composer run phpstan
+
+    - name: Upload test coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: ./coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() }}
+      uses: codecov/test-results-action@v1
+      with:
+        files: ./junit.xml
+        token: ${{ secrets.CODECOV_TOKEN }}

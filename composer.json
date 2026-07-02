@@ -7,14 +7,26 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "danny50610/laravel-apache-age-driver": "^0.7",
+        "inertiajs/inertia-laravel": "^3.1",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "laravel/ui": "^4.6",
+        "lavary/laravel-menu": "^1.8",
+        "santigarcor/laratrust": "^8.5",
+        "spatie/laravel-html": "^3.12",
+        "yajra/laravel-datatables-buttons": "^12.1",
+        "yajra/laravel-datatables-html": "^12",
+        "yajra/laravel-datatables-oracle": "^12"
     },
     "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.6",
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.8",
+        "laravel/boost": "^2.0",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.13",
-        "laravel/sail": "^1.41",
+        "laravel/telescope": "^5.11",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "phpunit/phpunit": "^11.5.3"
@@ -54,12 +66,22 @@
         ],
         "test": [
             "@php artisan config:clear --ansi",
-            "@php artisan test"
+            "@php artisan test --coverage-clover ./coverage.xml --log-junit ./junit.xml"
+        ],
+        "phpstan": [
+            "@php vendor/bin/phpstan analyse --memory-limit=2G"
+        ],
+        "ide-helper": [
+            "@php artisan ide-helper:generate",
+            "@php artisan ide-helper:meta",
+            "@php artisan ide-helper:models --nowrite --dir app/Models"
         ]
     },
     "extra": {
         "laravel": {
-            "dont-discover": []
+            "dont-discover": [
+                "laravel/telescope"
+            ]
         }
     },
     "config": {

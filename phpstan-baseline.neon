@@ -1,0 +1,19 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property App\\Models\\Role\:\:\$protection\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Parameter \#3 \$fail of method App\\Rules\\GraphSchema\\AgeLabelName\:\:validate\(\) expects Closure\(string, string\|null\=\)\: Illuminate\\Translation\\PotentiallyTranslatedString, Closure\(\)\: void given\.$#'
+			identifier: argument.type
+			count: 12
+			path: tests/Unit/Rules/GraphSchema/AgeLabelNameTest.php
+
+		-
+			message: '#^Parameter \#3 \$fail of method App\\Rules\\GraphSchema\\AgePropertyName\:\:validate\(\) expects Closure\(string, string\|null\=\)\: Illuminate\\Translation\\PotentiallyTranslatedString, Closure\(\)\: void given\.$#'
+			identifier: argument.type
+			count: 12
+			path: tests/Unit/Rules/GraphSchema/AgePropertyNameTest.php
