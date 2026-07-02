@@ -32,7 +32,7 @@ class VertexShowTest extends TestCase
     {
         $vertexType = VertexType::factory()->create([
             'age_label_name' => $this->graphLabel(),
-            'show_property_name' => 'name_zh_tw',
+            'show_property_name' => 'name',
         ]);
         VertexProperty::factory()->for($vertexType)->create([
             'name' => '姓名',
@@ -59,6 +59,7 @@ class VertexShowTest extends TestCase
 
         $this->get(route('graph.vertex.show', ['vertex' => $vertexId]))
             ->assertOk()
+            ->assertSee('Vertex - '.$vertexType->name.' - 李白', false)
             ->assertSee('繁體中文：李白')
             ->assertSee('English：Li Bai')
             ->assertSee('出生年份')

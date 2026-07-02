@@ -293,4 +293,70 @@ class VertexTypeTest extends TestCase
         $this->assertStringContainsString('出生年份', $content);
         $this->assertStringContainsString('birth_year', $content);
     }
+
+    public function test_update_allows_localized_base_name_for_show_property_name(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '出生年份',
+            'age_property_name' => 'birth_year',
+            'locale' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => $vertexType->name,
+                'age_label_name' => $vertexType->age_label_name,
+                'description' => $vertexType->description,
+                'show_property_name' => 'name',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('name', $vertexType->fresh()->show_property_name);
+    }
+
+    public function test_edit_shows_semantic_show_property_name_options(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Name',
+            'age_property_name' => 'name_en_us',
+            'locale' => 'en_us',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/edit")
+            ->assertOk()
+            ->assertSee('(name) — 多語系', false)
+            ->assertDontSee('value="name_zh_tw"', false)
+            ->assertDontSee('value="name_en_us"', false);
+    }
+
+    public function test_show_displays_localized_show_property_name_label(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}")
+            ->assertOk()
+            ->assertSee('name（多語系，顯示語言：zh_tw）', false);
+    }
 }

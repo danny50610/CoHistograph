@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Models\EdgeProperty;
 use App\Models\VertexProperty;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 class LocalizedPropertyGrouper
 {
@@ -92,12 +91,7 @@ class LocalizedPropertyGrouper
             return 'non_localized:'.$property->age_property_name;
         }
 
-        $suffix = '_'.$property->locale;
-        $base = Str::endsWith($property->age_property_name, $suffix)
-            ? Str::beforeLast($property->age_property_name, $suffix)
-            : $property->age_property_name;
-
-        return 'localized:'.$base;
+        return 'localized:'.LocalizedPropertyName::baseName($property);
     }
 
     private function localeLabel(?string $locale): ?string
