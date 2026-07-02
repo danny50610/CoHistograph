@@ -226,7 +226,6 @@ class VertexPropertyTest extends TestCase
             ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
                 'name' => 'Updated Name',
                 'description' => 'Updated description',
-                'age_property_name' => $vertexProperty->age_property_name,
                 'age_property_type' => PropertyType::Integer->value,
             ])
             ->assertStatus(302)
@@ -241,8 +240,36 @@ class VertexPropertyTest extends TestCase
     public function test_update_does_not_change_age_property_name_or_locale()
     {
         $vertexType = VertexType::factory()->create();
-        VertexProperty::factory()->for($vertexType)->create(['age_property_name' => 'taken_prop']);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Other Property',
+            'age_property_name' => 'taken_prop',
+        ]);
         $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Localized Name',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
+                'name' => 'Updated Localized Name',
+                'description' => 'Updated description',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $vertexProperty->refresh();
+        $this->assertEquals('Updated Localized Name', $vertexProperty->name);
+        $this->assertEquals('name_zh_tw', $vertexProperty->age_property_name);
+        $this->assertEquals('zh_tw', $vertexProperty->locale);
+    }
+
+    public function test_update_rejects_age_property_name_and_locale_fields()
+    {
+        $vertexType = VertexType::factory()->create();
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Localized Name',
             'age_property_name' => 'name_zh_tw',
             'locale' => 'zh_tw',
         ]);
@@ -256,7 +283,7 @@ class VertexPropertyTest extends TestCase
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors(['age_property_name', 'locale']);
 
         $vertexProperty->refresh();
         $this->assertEquals('name_zh_tw', $vertexProperty->age_property_name);
@@ -273,7 +300,6 @@ class VertexPropertyTest extends TestCase
             ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
                 'name' => 'Taken Name',
                 'description' => '',
-                'age_property_name' => $vertexProperty->age_property_name,
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
