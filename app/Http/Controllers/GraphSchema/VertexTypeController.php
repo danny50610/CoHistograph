@@ -59,16 +59,17 @@ class VertexTypeController extends Controller
     public function store(Request $request)
     {
         // The names of labels between vertices and edges cannot overlap.
-        $this->validate($request, [
+        $this->validate($request, array_merge([
             'name' => ['required', 'string', Rule::unique('vertex_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
-        ]);
+        ], $this->overviewOrderValidationRules($request)));
 
         $vertexType = VertexType::create([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
+            'overview_order' => $this->resolveOverviewOrder($request),
         ]);
 
         return redirect()->route('graph-schema.vertex-type.show', [$vertexType])
@@ -87,12 +88,12 @@ class VertexTypeController extends Controller
     public function update(Request $request, VertexType $vertexType)
     {
         // The names of labels between vertices and edges cannot overlap.
-        $this->validate($request, [
+        $this->validate($request, array_merge([
             'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType)],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
             'show_property_name' => ['nullable', 'string', ValidShowPropertyName::forVertexType($vertexType)],
-        ]);
+        ], $this->overviewOrderValidationRules($request)));
 
         // TODO: age_label_name cannot change when exists
 
@@ -101,6 +102,7 @@ class VertexTypeController extends Controller
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
             'show_property_name' => $request->input('show_property_name', null),
+            'overview_order' => $this->resolveOverviewOrder($request),
         ]);
 
         return redirect()->route('graph-schema.vertex-type.show', [$vertexType])
@@ -132,5 +134,33 @@ class VertexTypeController extends Controller
 
         return redirect()->route('graph-schema.vertex-type.index')
             ->with('global', "Vertex「{$vertexType->name}」刪除完成");
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private function overviewOrderValidationRules(Request $request): array
+    {
+        return [
+            'show_on_overview' => ['nullable', 'boolean'],
+            'overview_order' => [
+                Rule::requiredIf(fn () => $request->boolean('show_on_overview')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:255',
+            ],
+        ];
+    }
+
+    private function resolveOverviewOrder(Request $request): ?int
+    {
+        if (! $request->boolean('show_on_overview')) {
+            return null;
+        }
+
+        $overviewOrder = $request->input('overview_order');
+
+        return $overviewOrder === null || $overviewOrder === '' ? null : (int) $overviewOrder;
     }
 }

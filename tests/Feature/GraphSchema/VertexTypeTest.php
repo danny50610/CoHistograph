@@ -43,6 +43,38 @@ class VertexTypeTest extends TestCase
         $this->assertNotNull($vertexType);
         $this->assertEquals('person', $vertexType->age_label_name);
         $this->assertEquals('A person vertex type', $vertexType->description);
+        $this->assertNull($vertexType->overview_order);
+    }
+
+    public function test_create_with_overview_order()
+    {
+        $this->actingAs($this->user)
+            ->post('/graph-schema/vertex-type', [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+                'show_on_overview' => '1',
+                'overview_order' => '2',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $vertexType = VertexType::where('name', 'Person')->first();
+        $this->assertNotNull($vertexType);
+        $this->assertEquals(2, $vertexType->overview_order);
+    }
+
+    public function test_create_fail_when_overview_order_missing_while_show_on_overview()
+    {
+        $this->actingAs($this->user)
+            ->post('/graph-schema/vertex-type', [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+                'show_on_overview' => '1',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['overview_order']);
     }
 
     public function test_create_fail_when_name_or_age_label_name_not_unique()
@@ -124,6 +156,50 @@ class VertexTypeTest extends TestCase
         $this->assertEquals('Individual', $updatedVertexType->name);
         $this->assertEquals('individual', $updatedVertexType->age_label_name);
         $this->assertEquals('An individual vertex type', $updatedVertexType->description);
+        $this->assertNull($updatedVertexType->overview_order);
+    }
+
+    public function test_update_with_overview_order()
+    {
+        $vertexType = VertexType::create([
+            'name' => 'Person',
+            'age_label_name' => 'person',
+            'description' => 'A person vertex type',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+                'show_on_overview' => '1',
+                'overview_order' => '3',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals(3, $vertexType->fresh()->overview_order);
+    }
+
+    public function test_update_remove_from_overview()
+    {
+        $vertexType = VertexType::create([
+            'name' => 'Person',
+            'age_label_name' => 'person',
+            'description' => 'A person vertex type',
+            'overview_order' => 1,
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull($vertexType->fresh()->overview_order);
     }
 
     public function test_update_fail_when_name_or_age_label_name_not_unique()
