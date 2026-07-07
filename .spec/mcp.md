@@ -135,15 +135,45 @@ Tools 是 AI 可主動呼叫的可執行功能。每個 Tool 須具備：
 
 #### `search-vertices`
 
-依類型或屬性條件搜尋頂點。
+依類型列出頂點，或以文字搜尋頂點屬性。
 
 | 參數 | 型別 | 必填 | 說明 |
 |------|------|------|------|
 | `vertex_type_label` | string | 是 | AGE label，如 `person`、`event` |
+| `query` | string | 否 | 文字搜尋關鍵字；有值時改為搜尋模式 |
+| `property` | string | 否 | 限定搜尋的 `age_property_name`；省略時搜尋該 VertexType 所有 `STRING` 屬性 |
 | `limit` | integer | 否 | 預設 20，上限 100 |
 | `offset` | integer | 否 | 分頁偏移 |
 
-**委派**：`VertexController::index` 的 Cypher 查詢邏輯，或抽出為 `GraphQueryService`。
+**搜尋行為**（當 `query` 有值時）：
+
+- 比對方式：不分大小寫的子字串比對（Cypher `CONTAINS` 或等效語意）
+- 未指定 `property`：對該 VertexType 在 `vertex_properties` 中定義為 `STRING` 的所有屬性做 OR 條件比對
+- 指定 `property`：僅比對該屬性；若該屬性不存在或非 `STRING` 類型，回傳驗證錯誤
+- `query` 長度 1–100 字元，前後空白 trim
+
+**列出行為**（當 `query` 省略時）：
+
+- 回傳該類型所有頂點（依 `limit` / `offset` 分頁）
+
+**回應**：
+
+```json
+{
+  "vertex_type_label": "event",
+  "query": "辛亥",
+  "total": 3,
+  "vertices": [
+    {
+      "age_id": 42,
+      "label": "event",
+      "properties": { "name": "辛亥革命", "year": 1911 }
+    }
+  ]
+}
+```
+
+**委派**：參考 `VertexController::index` 的 Cypher 模式；有 `query` 時以 `VertexType::with('properties')` 取得可搜尋欄位，組出 `WHERE v.{property} CONTAINS $query` 條件（多欄位 OR）。可抽出為 `GraphQueryService::searchVertices()` 供 Web 與 MCP 共用。
 
 **權限**：登入使用者皆可（讀取公開圖資料）。
 
@@ -502,18 +532,16 @@ php artisan mcp:inspect cohistograph   # Local Server
 | `list-vertex-types` | `VertexType` model |
 | `list-edge-types` | `EdgeType` model |
 | `create-revision` | `RevisionService::create` |
-| `update-revision` | `Revision` 標題/說明更新 + 驗證 |
+| `update-revision` | `Revision` 更新 + `RevisionValidationService::validate` |
 | `list-revision-actions` | `Revision::with('actions')` |
-| `add-revision-action` | `RevisionActionService::add`（待建） |
-| `update-revision-action` | `RevisionActionService::update`（待建） |
-| `delete-revision-action` | `RevisionActionService::delete`（待建） |
-| `move-revision-action` | `RevisionActionService::move`（待建） |
+| `add-revision-action` | `Revision` / `RevisionAction` + `RevisionValidationService`（擴充 `RevisionService` 若已有共用方法） |
+| `update-revision-action` | 同上 |
+| `delete-revision-action` | 同上 |
+| `move-revision-action` | 同上 |
 | `submit-revision` | `RevisionService::submit` |
 | `get-revision` | `Revision::with('actions')` |
-| 變更後驗證 | `RevisionValidationService::validate` |
+| 變更後驗證 | `RevisionValidationService::validate`（參考 `RevisionService::update` 寫回驗證欄位） |
 | Schema 狀態查詢 | `AgeGraphStateManager` |
-
-**原則**：Tool 的 `handle()` 應委派至上述 Service，不在 MCP 層重複業務邏輯。Action 單筆操作與 `order` 重排邏輯集中於 `RevisionActionService`，避免與 Web 端 `RevisionService::update` 整批覆寫行為混用。若 Controller 邏輯過於耦合 View，應先抽出 `GraphQueryService`。
 
 ---
 
