@@ -43,8 +43,8 @@ app/Mcp/
 │   │   ├── GetVertexDetailTool.php
 │   │   └── ListVertexNeighborsTool.php
 │   ├── Schema/
-│   │   ├── ListVertexTypesTool.php
-│   │   └── ListEdgeTypesTool.php
+│   │   ├── SearchVertexTypesTool.php
+│   │   └── SearchEdgeTypesTool.php
 │   └── Revision/
 │       ├── CreateRevisionTool.php
 │       ├── UpdateRevisionTool.php
@@ -508,7 +508,7 @@ $response->assertOk();
 
 | 測試類型 | 重點 |
 |----------|------|
-| Tool 輸入驗證 | 缺少必填參數、無效 label |
+| Tool 輸入驗證 | 缺少必填參數、無效 label、`query` 長度、`property` 非 STRING |
 | 權限 | 未登入呼叫寫入 Tool、非本人更新修訂 |
 | 業務邏輯 | 驗證失敗時 submit 被拒、Schema 查詢結果正確 |
 | Action CRUD | 新增/更新/刪除/移動後 `order` 重排正確、回應含驗證結果 |
@@ -526,7 +526,7 @@ php artisan mcp:inspect cohistograph   # Local Server
 
 | MCP 元素 | 現有程式碼 |
 |----------|-----------|
-| `search-vertices` | `VertexController::index` |
+| `search-vertices` | `VertexController::index` / `GraphQueryService::searchVertices`（待抽出） |
 | `get-vertex-detail` | `VertexController::show` |
 | `list-vertex-neighbors` | `VertexController::getVertexEdgeInfo` |
 | `list-vertex-types` | `VertexType` model |
