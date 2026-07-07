@@ -92,6 +92,17 @@ tests/Feature/Mcp/                    # MCP 整合測試
 - 修訂詳情 → `get-revision`
 - 領域說明 → Server `#[Instructions]` 屬性
 
+### Schema 使用指南欄位
+
+為了讓人工使用者與 AI agent 知道某個 VertexType / EdgeType 應如何正確使用，Schema 類型需新增「使用指南」欄位：
+
+| 資料表 | 欄位 | 型別 | 說明 |
+|--------|------|------|------|
+| `vertex_types` | `usage_guidelines` | `text nullable` | 說明此 VertexType 的適用情境、命名規則、常見誤用與資料填寫原則 |
+| `edge_types` | `usage_guidelines` | `text nullable` | 說明此 EdgeType 的語意、方向、適用條件、何時不應使用與屬性填寫原則 |
+
+中文 UI 顯示名稱為「使用指南」。此欄位不同於 `description`：`description` 說明「這是什麼」，`usage_guidelines` 說明「應該怎麼使用」。
+
 ### 註冊方式
 
 ```php
@@ -279,7 +290,7 @@ Tools 是 AI 可主動呼叫的可執行功能。每個 Tool 須具備：
 
 | 參數 | 型別 | 必填 | 說明 |
 |------|------|------|------|
-| `query` | string | 否 | 搜尋關鍵字；比對 `name`、`description`、`age_label_name`（不分大小寫子字串） |
+| `query` | string | 否 | 搜尋關鍵字；比對 `name`、`description`、`usage_guidelines`、`age_label_name`（不分大小寫子字串） |
 | `include_properties` | boolean | 否 | 是否附帶 `properties` 陣列，預設 `false`（僅回傳 `properties_count`） |
 | `limit` | integer | 否 | 預設 20，上限 50 |
 | `offset` | integer | 否 | 分頁偏移 |
@@ -301,6 +312,7 @@ Tools 是 AI 可主動呼叫的可執行功能。每個 Tool 須具備：
       "name": "歷史事件",
       "age_label_name": "event",
       "description": "...",
+      "usage_guidelines": "用於可明確界定時間範圍的歷史事件...",
       "properties_count": 5
     }
   ]
@@ -315,7 +327,7 @@ Tools 是 AI 可主動呼叫的可執行功能。每個 Tool 須具備：
 
 | 參數 | 型別 | 必填 | 說明 |
 |------|------|------|------|
-| `query` | string | 否 | 搜尋關鍵字；比對 `name`、`reverse_name`、`description`、`age_label_name` |
+| `query` | string | 否 | 搜尋關鍵字；比對 `name`、`reverse_name`、`description`、`usage_guidelines`、`age_label_name` |
 | `start_vertex_type_label` | string | 否 | 篩選起點 VertexType 的 `age_label_name` |
 | `end_vertex_type_label` | string | 否 | 篩選終點 VertexType 的 `age_label_name` |
 | `include_properties` | boolean | 否 | 是否附帶 `properties`，預設 `false` |
@@ -341,6 +353,7 @@ Tools 是 AI 可主動呼叫的可執行功能。每個 Tool 須具備：
       "name": "參與",
       "reverse_name": "由...參與",
       "age_label_name": "participated_in",
+      "usage_guidelines": "用於表示人物實際參與某事件，不用於單純受影響...",
       "start_vertex": { "name": "人物", "age_label_name": "person" },
       "end_vertex": { "name": "歷史事件", "age_label_name": "event" },
       "properties_count": 2
@@ -673,9 +686,10 @@ RateLimiter::for('mcp', function (Request $request) {
 1. `composer require laravel/mcp laravel/passport`、發布 `routes/ai.php` 與 `mcp-views`
 2. 設定 Passport（`install:api`、`Mcp::oauthRoutes()`、`mcp.authorize` 授權畫面）
 3. 建立 `CoHistographServer`，註冊所有 Tools
-4. 實作 Graph / Schema Tools 與 Revision Tools（含 edge 查詢、revision 搜尋、action CRUD、排序、重新驗證、退回重開、刪除草稿）
-5. Web / Local 皆套用 `auth:api`，以 Local 模式 + Bearer token 驗證；再測 Web OAuth 流程
-6. Feature 測試：`tests/Feature/Mcp/GraphToolsTest.php`、`tests/Feature/Mcp/RevisionToolsTest.php`（含未認證 401）
+4. 新增 `vertex_types.usage_guidelines`、`edge_types.usage_guidelines` 欄位，並更新 Graph Schema 管理表單
+5. 實作 Graph / Schema Tools 與 Revision Tools（含 edge 查詢、revision 搜尋、action CRUD、排序、重新驗證、退回重開、刪除草稿）
+6. Web / Local 皆套用 `auth:api`，以 Local 模式 + Bearer token 驗證；再測 Web OAuth 流程
+7. Feature 測試：`tests/Feature/Mcp/GraphToolsTest.php`、`tests/Feature/Mcp/RevisionToolsTest.php`（含未認證 401）
 
 ---
 
@@ -692,6 +706,7 @@ RateLimiter::for('mcp', function (Request $request) {
 | `RevisionPolicy` | 權限檢查 |
 | Laravel Passport | 所有 MCP 連線 OAuth 2.1 認證（`Mcp::oauthRoutes`、`auth:api`） |
 | `VertexController`、相關 Service | Graph 查詢 |
+| `VertexType` / `EdgeType` | Schema 搜尋與 `usage_guidelines` 回傳 |
 | `AgeGraphStateManager` | Schema 狀態查詢 |
 
 僅在現有 Service 無法合理表達單筆 action 操作（如 `order` 重排）時，才擴充 `RevisionService` 或抽出小範圍共用方法；**不為 MCP 另建一套平行流程**。
@@ -729,6 +744,7 @@ $response->assertOk();
 | Tool 輸入驗證 | 缺少必填參數、無效 label、`query` 長度、`property` 非 STRING |
 | 權限 | 未帶有效 OAuth token 呼叫任一 Tool 回 401；非本人更新修訂回 403 |
 | 業務邏輯 | 驗證失敗時 submit 被拒、Schema / Revision 搜尋分頁與 `total` 正確 |
+| Schema 使用指南 | VertexType / EdgeType 可搜尋並回傳 `usage_guidelines` |
 | Graph 查詢 | `search-vertices` / `search-edges` 可找到後續 action 需要的 `target_age_id` |
 | Action CRUD | 新增/更新/刪除/移動後 `order` 重排正確、回應含驗證結果 |
 | `*_ref_order` | 重排後引用失效時驗證錯誤訊息正確 |
