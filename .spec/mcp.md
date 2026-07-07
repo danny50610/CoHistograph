@@ -432,9 +432,28 @@ RateLimiter::for('mcp', function (Request $request) {
 1. `composer require laravel/mcp`、發布 `routes/ai.php`
 2. 建立 `CoHistographServer`，註冊所有 Tools
 3. 實作 Graph / Schema Tools 與 Revision Tools（含 action CRUD、排序）
-4. 新增 `RevisionActionService`（或擴充 `RevisionService`）處理單筆 action 操作與 `order` 重排，並封裝「變更後驗證」回應
-5. 以 Local 模式註冊，用 MCP Inspector 驗證；視需求擴充 Web 模式與 Sanctum 認證
-6. Feature 測試：`tests/Feature/Mcp/GraphToolsTest.php`、`tests/Feature/Mcp/RevisionToolsTest.php`
+4. 以 Local 模式註冊，用 MCP Inspector 驗證；視需求擴充 Web 模式與 Sanctum 認證
+5. Feature 測試：`tests/Feature/Mcp/GraphToolsTest.php`、`tests/Feature/Mcp/RevisionToolsTest.php`
+
+---
+
+## 實作備註
+
+**盡可能重新利用現有 code**，避免在 MCP 層或平行路徑重複業務邏輯。優先委派對象：
+
+| 現有程式碼 | 可複用於 |
+|-----------|---------|
+| `RevisionService` | 建立/提交修訂、變更後寫回 `last_validation_*` |
+| `RevisionValidationService` | 每次 action 變更後的驗證 |
+| `RevisionService::validateDraftData` | 組裝暫存 actions 後驗證（若尚未持久化） |
+| `Revision` / `RevisionAction` model | 單筆 CRUD 與 `order` 重排 |
+| `RevisionPolicy` | 權限檢查 |
+| `VertexController`、相關 Service | Graph 查詢 |
+| `AgeGraphStateManager` | Schema 狀態查詢 |
+
+僅在現有 Service 無法合理表達單筆 action 操作（如 `order` 重排）時，才擴充 `RevisionService` 或抽出小範圍共用方法；**不為 MCP 另建一套平行流程**。
+
+Tool 的 `handle()` 只負責參數解析、授權、呼叫既有 Service/Model、格式化回應。若 Controller 邏輯過於耦合 View，應先抽出可共用的查詢方法，而非在 Tool 內重寫 Cypher。
 
 ---
 
