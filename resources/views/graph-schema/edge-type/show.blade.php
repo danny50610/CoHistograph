@@ -44,21 +44,11 @@
         @endpermission
         <div class="card mb-2">
             <div class="card-body">
-                <dl class="row">
-                    @forelse ($edgeType->properties as $properties)
-                        <dt class="col-md-2">
-                            {{ $properties->name }}
-                            <span class=text-body-secondary>({{ $properties->age_property_name }})</span>
-                            <a href="{{ route('graph-schema.edge-property.show', [$edgeType, $properties]) }}"><i class="fa-solid fa-receipt"></i></a>
-                        </dt>
-                        <dd class="col-md-10">
-                            <span class="badge text-bg-info">{{ $properties->age_property_type }}</span>
-                            {{ $properties->description }}
-                        </dd>
-                    @empty
-                        <span>目前沒有任何 Property</span>
-                    @endforelse
-                </dl>
+                @include('graph-schema.partials.property-schema-groups', [
+                    'groups' => $propertyGroups,
+                    'typeModel' => $edgeType,
+                    'propertyShowRoute' => 'graph-schema.edge-property.show',
+                ])
             </div>
         </div>
 
