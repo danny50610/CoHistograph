@@ -493,7 +493,7 @@ class RevisionActionValidator
     {
         return match ($propertyType) {
             PropertyType::Integer => preg_match('/^-?\\d+$/', $value) === 1,
-            PropertyType::Float, PropertyType::Numeric => preg_match('/^-?(?:\\d+|\\d*\\.\\d+)$/', $value) === 1,
+            PropertyType::Float => preg_match('/^-?(?:\\d+|\\d*\\.\\d+)$/', $value) === 1,
             PropertyType::Boolean => in_array(strtolower($value), ['true', 'false'], true),
             PropertyType::String => true,
         };
