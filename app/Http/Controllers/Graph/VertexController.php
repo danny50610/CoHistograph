@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Graph;
 use App\Http\Controllers\Controller;
 use App\Models\EdgeType;
 use App\Models\VertexType;
+use App\Support\LocalizedPropertyGrouper;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class VertexController extends Controller
             /** @var VertexType $vertexType */
             foreach ($vertexTypeList as $vertexType) {
                 // TODO: 只取前幾個就好
-                $vertexList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vertexType) {
+                $vertexList = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vertexType) {
                     return $builder->matchNode('v', $vertexType->age_label_name)
                         ->return('v');
                 })->get();
@@ -47,7 +48,7 @@ class VertexController extends Controller
             }
 
             // TODO: paginate order by id
-            $vertexList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($type) {
+            $vertexList = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($type) {
                 return $builder->matchNode('v', $type)
                     ->return('v');
             })->get();
@@ -58,7 +59,7 @@ class VertexController extends Controller
 
     public function show(int $id)
     {
-        $vertex = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id) {
+        $vertex = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id) {
             return $builder->matchNode('v')
                 ->where('id(v)', '=', $id)
                 ->return('v');
@@ -71,11 +72,16 @@ class VertexController extends Controller
         $vertex = $vertex->v;
 
         /** @var VertexType $vertexType */
-        $vertexType = VertexType::where('age_label_name', $vertex->label)->firstOrFail();
+        $vertexType = VertexType::where('age_label_name', $vertex->label)->with('properties')->firstOrFail();
+
+        $propertyGroups = app(LocalizedPropertyGrouper::class)->group(
+            $vertexType->properties,
+            $this->normalizeAgeProperties($vertex->properties ?? []),
+        );
 
         $edgeInfoList = $this->getVertexEdgeInfo($vertexType, $id);
 
-        return view('graph.vertex.show', compact('vertex', 'vertexType', 'edgeInfoList'));
+        return view('graph.vertex.show', compact('vertex', 'vertexType', 'edgeInfoList', 'propertyGroups'));
     }
 
     protected function getVertexEdgeInfo(VertexType $vertexType, $id)
@@ -83,9 +89,9 @@ class VertexController extends Controller
         $edgeInfoList = [];
 
         $vertexType->load([
-            'startEdgeTypes',
+            'startEdgeTypes.properties',
             'startEdgeTypes.endVertex',
-            'endEdgeTypes',
+            'endEdgeTypes.properties',
             'endEdgeTypes.startVertex',
         ]);
 
@@ -95,18 +101,18 @@ class VertexController extends Controller
         return $edgeInfoList;
     }
 
-    protected function mergeInfo(array &$edgeInfoList, VertexType $vertexType, $id, Collection $edgeTypeList, string $targetVertexName ,Direction $direction)
+    protected function mergeInfo(array &$edgeInfoList, VertexType $vertexType, $id, Collection $edgeTypeList, string $targetVertexName, Direction $direction)
     {
         /** @var EdgeType $edgeType */
         foreach ($edgeTypeList as $edgeType) {
             $edgeInfoList[$edgeType->id] = [
                 'type' => $edgeType,
                 'vertex_type' => $edgeType->{$targetVertexName},
-                'vertexes' => [],
+                'edges' => [],
             ];
         }
 
-        $edgeList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType, $direction) {
+        $edgeList = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType, $direction) {
             return $builder->matchNode('v', $vertexType->age_label_name)
                 ->withMatchEdge($direction, 'e')
                 ->withMatchNode('m')
@@ -121,10 +127,34 @@ class VertexController extends Controller
             foreach ($edgeInfoList as $edgeTypeId => $info) {
                 if ($edge->label === $info['type']->age_label_name && $vertex->label === $info['vertex_type']->age_label_name) {
                     // TODO: 未來需要支援排序，例如歌曲的主唱順序
-                    $edgeInfoList[$edgeTypeId]['vertexes'][] = $vertex;
+                    $edgeInfoList[$edgeTypeId]['edges'][] = [
+                        'edge' => $edge,
+                        'vertex' => $vertex,
+                    ];
                     break;
                 }
             }
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function normalizeAgeProperties(mixed $properties): array
+    {
+        if (is_array($properties)) {
+            return $properties;
+        }
+
+        if (is_object($properties)) {
+            return (array) $properties;
+        }
+
+        return [];
+    }
+
+    protected function graphConnection()
+    {
+        return DB::connection(config('cohistograph.app.graph.connection-name'));
     }
 }
