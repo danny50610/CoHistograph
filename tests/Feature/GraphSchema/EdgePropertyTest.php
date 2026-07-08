@@ -190,7 +190,6 @@ class EdgePropertyTest extends TestCase
             ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
                 'name' => 'Updated Name',
                 'description' => 'Updated description',
-                'age_property_name' => $edgeProperty->age_property_name,
                 'age_property_type' => PropertyType::Integer->value,
             ])
             ->assertStatus(302)
@@ -205,8 +204,36 @@ class EdgePropertyTest extends TestCase
     public function test_update_does_not_change_age_property_name_or_locale()
     {
         $edgeType = EdgeType::factory()->create();
-        EdgeProperty::factory()->for($edgeType)->create(['age_property_name' => 'taken_prop']);
+        EdgeProperty::factory()->for($edgeType)->create([
+            'name' => 'Other Property',
+            'age_property_name' => 'taken_prop',
+        ]);
         $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'name' => 'Localized Role',
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
+                'name' => 'Updated Localized Role',
+                'description' => 'Updated description',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $edgeProperty->refresh();
+        $this->assertEquals('Updated Localized Role', $edgeProperty->name);
+        $this->assertEquals('role_zh_tw', $edgeProperty->age_property_name);
+        $this->assertEquals('zh_tw', $edgeProperty->locale);
+    }
+
+    public function test_update_rejects_age_property_name_and_locale_fields()
+    {
+        $edgeType = EdgeType::factory()->create();
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'name' => 'Localized Role',
             'age_property_name' => 'role_zh_tw',
             'locale' => 'zh_tw',
         ]);
@@ -220,7 +247,7 @@ class EdgePropertyTest extends TestCase
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors(['age_property_name', 'locale']);
 
         $edgeProperty->refresh();
         $this->assertEquals('role_zh_tw', $edgeProperty->age_property_name);
@@ -237,7 +264,6 @@ class EdgePropertyTest extends TestCase
             ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
                 'name' => 'Taken Name',
                 'description' => '',
-                'age_property_name' => $edgeProperty->age_property_name,
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
