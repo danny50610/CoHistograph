@@ -79,7 +79,11 @@ class LocalizedPropertyLabelResolver
         if ($vertexTypeLabel !== null) {
             $vertexType = $vertexTypes->firstWhere('age_label_name', $vertexTypeLabel);
 
-            return $vertexType?->properties ?? collect();
+            if ($vertexType === null) {
+                return collect();
+            }
+
+            return $vertexType->properties;
         }
 
         return $vertexTypes->flatMap(fn ($vertexType) => $vertexType->properties);
@@ -100,7 +104,11 @@ class LocalizedPropertyLabelResolver
         if ($edgeTypeLabel !== null) {
             $edgeType = $edgeTypes->firstWhere('age_label_name', $edgeTypeLabel);
 
-            return $edgeType?->properties ?? collect();
+            if ($edgeType === null) {
+                return collect();
+            }
+
+            return $edgeType->properties;
         }
 
         return $edgeTypes->flatMap(fn ($edgeType) => $edgeType->properties);
