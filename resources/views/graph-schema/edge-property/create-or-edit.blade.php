@@ -21,7 +21,12 @@
 
                     <x-forms.input id="name" label="名稱" :value="$edgeProperty->name ?? ''" required />
                     <x-forms.input id="description" label="描述" :value="$edgeProperty->description ?? ''" />
-                    <x-forms.input id="age_property_name" label="Property 名稱" :value="$edgeProperty->age_property_name ?? ''" required />
+
+                    @include('graph-schema.partials.property-locale-fields', [
+                        'property' => $edgeProperty ?? null,
+                        'isEditMode' => $isEditMode,
+                    ])
+
                     <x-forms.input id="age_property_type" label="Property Type" :value="$edgeProperty->age_property_type->value ?? ''" required />
 
                     <div class="row mb-2">

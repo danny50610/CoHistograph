@@ -287,4 +287,52 @@ class EdgePropertyTest extends TestCase
 
         $this->assertModelExists($edgeProperty);
     }
+
+    public function test_create_form_shows_locale_selector(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/edge-type/{$edgeType->id}/edge-property/create")
+            ->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('非多語系')
+            ->assertSee('繁體中文（zh_tw）');
+    }
+
+    public function test_edit_form_shows_readonly_locale_and_property_name_for_localized_property(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}/edit")
+            ->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('繁體中文')
+            ->assertSee('(zh_tw)')
+            ->assertSee('role_zh_tw')
+            ->assertDontSee('id="locale"', false);
+    }
+
+    public function test_show_displays_locale_for_localized_property(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'name' => '角色說明',
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}")
+            ->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('繁體中文')
+            ->assertSee('(zh_tw)')
+            ->assertSee('role_zh_tw');
+    }
 }

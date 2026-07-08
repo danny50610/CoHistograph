@@ -27,6 +27,16 @@
                     <dt class="col-md-2">Property 名稱</dt>
                     <dd class="col-md-10">{{ $vertexProperty->age_property_name }}</dd>
 
+                    <dt class="col-md-2">語言版本</dt>
+                    <dd class="col-md-10">
+                        @if ($vertexProperty->locale)
+                            {{ config('cohistograph.app.graph.locales')[$vertexProperty->locale] ?? $vertexProperty->locale }}
+                            <span class="text-body-secondary">({{ $vertexProperty->locale }})</span>
+                        @else
+                            非多語系
+                        @endif
+                    </dd>
+
                     <dt class="col-md-2">Property Type</dt>
                     <dd class="col-md-10">{{ $vertexProperty->age_property_type }}</dd>
                 </dl>
