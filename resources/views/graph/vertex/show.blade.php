@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', $vertex->properties[$vertexType->show_property_name] . ' - ' . $vertexType->name . ' - Vertex')
+@section('title', $displayName . ' - ' . $vertexType->name . ' - Vertex')
 
 @section('content')
     <div class="container">
         <a href="{{ route('graph.vertex.index', ['type' => $vertexType->age_label_name]) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> 返回</a>
 
-        <h1>Vertex - {{ $vertexType->name }} - {{ $vertex->properties[$vertexType->show_property_name] }}</h1>
+        <h1>Vertex - {{ $vertexType->name }} - {{ $displayName }}</h1>
 
         <a href="{{ route('graph-schema.vertex-type.show', $vertexType) }}" class="btn btn-primary mb-2">
             <i class="fa-solid fa-circle-info"></i> Schema
@@ -29,7 +29,6 @@
                         $edgeInfo['type']->properties,
                         (array) ($edgeItem['edge']->properties ?? []),
                     );
-                    $relatedVertexDisplayProperty = $edgeInfo['vertex_type']->show_property_name ?? 'name';
                 @endphp
                 <div class="card mb-2">
                     <div class="card-body">
@@ -38,7 +37,7 @@
                             <a href="{{ route('graph-schema.edge-type.show', [$edgeInfo['type']]) }}"><i class="fa-solid fa-circle-info"></i></a>
                             →
                             <a href="{{ route('graph.vertex.show', ['vertex' => $edgeItem['vertex']->id]) }}">
-                                {{ $edgeItem['vertex']->properties[$relatedVertexDisplayProperty] ?? '' }}
+                                {{ $edgeItem['displayName'] }}
                             </a>
                         </p>
 

@@ -11,5 +11,7 @@ return [
             'ja_jp' => '日本語',
             'en_us' => 'English',
         ],
+        'display_locale' => env('COHISTOGRAPH_DISPLAY_LOCALE', 'zh_tw'),
+        'display_locale_fallback' => ['zh_tw', 'en_us', 'ja_jp'],
     ],
 ];

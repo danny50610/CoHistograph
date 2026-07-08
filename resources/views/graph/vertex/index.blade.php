@@ -15,7 +15,7 @@
         @forelse ($vertexList as $vertex)
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">{{ $vertex->v->properties[$vertexType->show_property_name] }}
+                    <h5 class="card-title">{{ $vertex->displayName }}
                         <a href="{{ route('graph.vertex.show', ['vertex' => $vertex->v->id]) }}"><i class="fa-solid fa-receipt"></i></a>
                     </h5>
                 </div>

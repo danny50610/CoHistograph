@@ -5,7 +5,9 @@ namespace App\Http\Controllers\GraphSchema;
 use App\Http\Controllers\Controller;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
+use App\Rules\GraphSchema\ValidShowPropertyName;
 use App\Support\LocalizedPropertyGrouper;
+use App\Support\ShowPropertyNamePresenter;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +46,9 @@ class VertexTypeController extends Controller
 
         $propertyGroups = app(LocalizedPropertyGrouper::class)->group($vertexType->properties);
 
-        return view('graph-schema.vertex-type.show', compact('vertexType', 'propertyGroups'));
+        $showPropertyNameLabel = app(ShowPropertyNamePresenter::class)->displayLabel($vertexType);
+
+        return view('graph-schema.vertex-type.show', compact('vertexType', 'propertyGroups', 'showPropertyNameLabel'));
     }
 
     public function create()
@@ -73,12 +77,9 @@ class VertexTypeController extends Controller
 
     public function edit(VertexType $vertexType)
     {
-        $propertyOptions = $vertexType->properties
-            ->map(fn ($item) => [
-                'value' => $item->age_property_name,
-                'label' => $item->name,
-            ])
-            ->toArray();
+        $vertexType->load('properties');
+
+        $propertyOptions = app(ShowPropertyNamePresenter::class)->options($vertexType->properties);
 
         return view('graph-schema.vertex-type.create-or-edit', compact('vertexType', 'propertyOptions'));
     }
@@ -90,7 +91,7 @@ class VertexTypeController extends Controller
             'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType)],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
-            'show_property_name' => ['nullable', 'string', Rule::in($vertexType->properties->pluck('age_property_name')->toArray())],
+            'show_property_name' => ['nullable', 'string', ValidShowPropertyName::forVertexType($vertexType)],
         ]);
 
         // TODO: age_label_name cannot change when exists
