@@ -366,3 +366,5 @@ _ide_helper_models.php
 auth.json
 _tinker*.php
 .claude/settings.local.json
+
+.pnpm-store
