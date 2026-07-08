@@ -6,5 +6,10 @@ return [
     'graph' => [
         'connection-name' => env('COHISTOGRAPH_GRAPH_CONNECTION_NAME', 'pgsql-age'),
         'name' => env('COHISTOGRAPH_GRAPH_NAME', 'default_graph'),
+        'locales' => [
+            'zh_tw' => '繁體中文',
+            'ja_jp' => '日本語',
+            'en_us' => 'English',
+        ],
     ],
 ];
