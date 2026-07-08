@@ -60,7 +60,10 @@ class RevisionController extends Controller
             'reviews.actorUser',
         ]);
 
-        return view('revisions.show', compact('revision'));
+        $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
+        $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
+
+        return view('revisions.show', compact('revision', 'vertexTypes', 'edgeTypes'));
     }
 
     public function edit(Revision $revision): InertiaResponse
@@ -80,6 +83,7 @@ class RevisionController extends Controller
             'revision' => $revision,
             'vertexTypes' => $vertexTypes,
             'edgeTypes' => $edgeTypes,
+            'graphLocales' => config('cohistograph.app.graph.locales'),
             'routeShow' => route('revisions.show', $revision),
             'routeUpdate' => route('revisions.update', $revision),
             'routeValidate' => route('revisions.validate', $revision),

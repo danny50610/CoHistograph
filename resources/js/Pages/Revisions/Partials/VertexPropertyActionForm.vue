@@ -14,6 +14,7 @@ const props = defineProps({
     modelValue: Object,
     actionType: String,
     vertexTypes: Array,
+    graphLocales: Object,
     createVertexActions: Array,
 });
 
@@ -51,6 +52,16 @@ const filteredProperties = computed(() => {
 
 const isCreate = computed(() => props.actionType === 'create_vertex_property');
 const isUpdate = computed(() => props.actionType === 'update_vertex_property');
+
+function propertyOptionLabel(prop) {
+    if (!prop.locale) {
+        return `${prop.vertexName} / ${prop.name} (${prop.age_property_name})`;
+    }
+
+    const localeLabel = props.graphLocales?.[prop.locale] ?? prop.locale;
+
+    return `${prop.vertexName} / ${prop.name}（${localeLabel}） [${prop.locale}] (${prop.age_property_name})`;
+}
 </script>
 
 <template>
@@ -103,7 +114,7 @@ const isUpdate = computed(() => props.actionType === 'update_vertex_property');
                 :key="prop.id"
                 :value="prop.age_property_name"
             >
-                {{ prop.vertexName }} / {{ prop.name }} ({{ prop.age_property_name }})
+                {{ propertyOptionLabel(prop) }}
             </option>
         </select>
     </div>

@@ -7,6 +7,7 @@ const props = defineProps({
     revision: Object,
     vertexTypes: Array,
     edgeTypes: Array,
+    graphLocales: Object,
     routeShow: String,
     routeUpdate: String,
     routeValidate: String,
@@ -490,6 +491,7 @@ const createEdgeActions = computed(() =>
         :editing-action="editingAction"
         :vertex-types="vertexTypes"
         :edge-types="edgeTypes"
+        :graph-locales="graphLocales"
         :create-vertex-actions="createVertexActions"
         :create-edge-actions="createEdgeActions"
         @confirm="onModalConfirm"
