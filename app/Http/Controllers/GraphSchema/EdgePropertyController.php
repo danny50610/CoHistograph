@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers\GraphSchema;
 
-use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\GraphSchema\StoreEdgePropertyRequest;
+use App\Http\Requests\GraphSchema\UpdateEdgePropertyRequest;
 use App\Models\EdgeProperty;
 use App\Models\EdgeType;
-use App\Rules\GraphSchema\AgePropertyName;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class EdgePropertyController extends Controller
 {
@@ -29,30 +27,16 @@ class EdgePropertyController extends Controller
         return view('graph-schema.edge-property.create-or-edit', compact('edgeType'));
     }
 
-    public function store(Request $request, EdgeType $edgeType)
+    public function store(StoreEdgePropertyRequest $request, EdgeType $edgeType)
     {
-        $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
-                return $query->where('edge_type_id', $edgeType->id);
-            }),
-            ],
-            'description' => ['nullable', 'string'],
-            'age_property_name' => [
-                'required',
-                'string',
-                new AgePropertyName,
-                Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
-                    return $query->where('edge_type_id', $edgeType->id);
-                }),
-            ],
-            'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
-        ]);
+        $validated = $request->validated();
 
         $edgeProperty = new EdgeProperty([
-            'name' => $request->input('name'),
-            'description' => $request->input('description', ''),
-            'age_property_name' => $request->input('age_property_name'),
-            'age_property_type' => $request->input('age_property_type'),
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? '',
+            'age_property_name' => $validated['resolved_age_property_name'],
+            'age_property_type' => $validated['age_property_type'],
+            'locale' => $validated['locale'],
         ]);
         $edgeProperty->edgeType()->associate($edgeType);
         $edgeProperty->save();
@@ -66,35 +50,14 @@ class EdgePropertyController extends Controller
         return view('graph-schema.edge-property.create-or-edit', compact('edgeType', 'edgeProperty'));
     }
 
-    public function update(Request $request, EdgeType $edgeType, EdgeProperty $edgeProperty)
+    public function update(UpdateEdgePropertyRequest $request, EdgeType $edgeType, EdgeProperty $edgeProperty)
     {
-        $this->validate($request, [
-            'name' => [
-                'required',
-                'string',
-                Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
-                    return $query->where('edge_type_id', $edgeType->id);
-                })->ignore($edgeProperty),
-            ],
-            'description' => ['nullable', 'string'],
-            'age_property_name' => [
-                'required',
-                'string',
-                new AgePropertyName,
-                Rule::unique('edge_properties')->where(function ($query) use ($edgeType) {
-                    return $query->where('edge_type_id', $edgeType->id);
-                })->ignore($edgeProperty),
-            ],
-            'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
-        ]);
-
-        // TODO: age_property_name cannot change when exists
+        $validated = $request->validated();
 
         $edgeProperty->update([
-            'name' => $request->input('name'),
-            'description' => $request->input('description', ''),
-            'age_property_name' => $request->input('age_property_name'),
-            'age_property_type' => $request->input('age_property_type'),
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? '',
+            'age_property_type' => $validated['age_property_type'],
         ]);
 
         return redirect()->route('graph-schema.edge-property.show', [$edgeType, $edgeProperty])
