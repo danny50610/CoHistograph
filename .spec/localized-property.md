@@ -130,7 +130,20 @@ Controller 在 `store` / `update` 時，若 `locale` 不為 null，則自動將 
 'age_property_name'      => ['required_without:locale', 'string', new AgePropertyName],
 ```
 
-> **`locale` 空值語意**：「非多語系」統一以 `null` 或省略欄位表示。前端不得送空字串 `""`（`nullable` 規則不會將其轉為 `null`，會導致 `Rule::in` 驗證失敗）。
+> **`locale` 空值語意**：「非多語系」統一以 `null` 表示。Laravel 中「省略欄位（missing）」與 `"locale": null` 是不同輸入，為消除歧義，Form Request 須實作 `prepareForValidation()`，將以下兩種情況統一 normalize 為 `null`：
+> - 前端省略 `locale` 欄位（missing）
+> - 前端送出空字串 `""`（`nullable` 規則不會自動轉換，會導致 `Rule::in` 驗證失敗）
+>
+> ```php
+> protected function prepareForValidation(): void
+> {
+>     if (! $this->has('locale') || $this->input('locale') === '') {
+>         $this->merge(['locale' => null]);
+>     }
+> }
+> ```
+>
+> Normalize 後，Controller 中 `$validated['locale']` 必定存在（值為 `null` 或合法 locale 字串），無需額外判斷 key 是否存在。
 
 > **`UpdateVertexPropertyRequest` / `UpdateEdgePropertyRequest` 限制**：`locale` 與 `age_property_name`（含 base name）建立後**皆不允許變更**。若允許改動，AGE 中已有舊 property key 的資料無法自動遷移，會造成資料不一致。Update 時兩者皆應為唯讀，表單不顯示（或 disabled）。
 
