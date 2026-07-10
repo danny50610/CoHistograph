@@ -101,29 +101,23 @@ class LocaleMutualExclusionTest extends TestCase
     {
         $vertexType = VertexType::factory()->create();
 
-        $failed = false;
-        (new LocaleMutualExclusion(VertexProperty::class, 'vertex_type_id', $vertexType->id, null))
-            ->validate('attribute', '', function () use (&$failed) {
-                $failed = true;
-            });
-
-        $this->assertFalse($failed);
+        $this->assertValidationPasses(
+            new LocaleMutualExclusion(VertexProperty::class, 'vertex_type_id', $vertexType->id, null),
+            '',
+        );
     }
 
     public function test_unique_resolved_age_property_name_skips_non_string_values(): void
     {
         $vertexType = VertexType::factory()->create();
 
-        $failed = false;
-        (new UniqueResolvedAgePropertyName(VertexProperty::class, 'vertex_type_id', $vertexType->id))
-            ->validate('attribute', null, function () use (&$failed) {
-                $failed = true;
-            });
-
-        $this->assertFalse($failed);
+        $this->assertValidationPasses(
+            new UniqueResolvedAgePropertyName(VertexProperty::class, 'vertex_type_id', $vertexType->id),
+            null,
+        );
     }
 
-    private function assertValidationPasses(object $rule, string $value): void
+    private function assertValidationPasses(object $rule, mixed $value): void
     {
         $failed = false;
         $rule->validate('attribute', $value, function () use (&$failed) {
@@ -133,7 +127,7 @@ class LocaleMutualExclusionTest extends TestCase
         $this->assertFalse($failed);
     }
 
-    private function assertValidationFails(object $rule, string $value, string $expectedMessage): void
+    private function assertValidationFails(object $rule, mixed $value, string $expectedMessage): void
     {
         $message = null;
         $rule->validate('attribute', $value, function (string $msg) use (&$message) {
