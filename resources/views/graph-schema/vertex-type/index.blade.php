@@ -19,6 +19,9 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ $vertexType->name }}
                         <span class=text-body-secondary>({{ $vertexType->age_label_name }})</span>
+                        @if ($vertexType->overview_order !== null)
+                            <span class="badge text-bg-secondary">Overview #{{ $vertexType->overview_order }}</span>
+                        @endif
                         <a href="{{ route('graph-schema.vertex-type.show', $vertexType) }}"><i class="fa-solid fa-receipt"></i></a>
                     </h5>
                     <p class="card-text">{{ $vertexType->description }}</p>

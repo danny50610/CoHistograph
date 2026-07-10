@@ -37,6 +37,15 @@
 
                     <dt class="col-md-2">顯示用 Property</dt>
                     <dd class="col-md-10">{{ $showPropertyNameLabel }}</dd>
+
+                    <dt class="col-md-2">Overview 顯示</dt>
+                    <dd class="col-md-10">
+                        @if ($vertexType->overview_order !== null)
+                            顯示（順序：{{ $vertexType->overview_order }}）
+                        @else
+                            不顯示
+                        @endif
+                    </dd>
                 </dl>
             </div>
         </div>
