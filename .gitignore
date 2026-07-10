@@ -368,3 +368,7 @@ _tinker*.php
 .claude/settings.local.json
 
 .pnpm-store
+
+# phpunit test coverage
+coverage.xml
+junit.xml

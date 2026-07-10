@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EdgeType;
 use App\Models\VertexType;
 use App\Support\LocalizedPropertyGrouper;
+use App\Support\VertexDisplayNameResolver;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Http\Request;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class VertexController extends Controller
 {
+    public function __construct(
+        private VertexDisplayNameResolver $displayNameResolver,
+    ) {}
+
     public function index(Request $request)
     {
         $this->validate($request, [
@@ -29,6 +34,8 @@ class VertexController extends Controller
             /** @var VertexType $vertexType */
             foreach ($vertexTypeList as $vertexType) {
                 // TODO: 只取前幾個就好
+                $vertexType->load('properties');
+
                 $vertexList = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vertexType) {
                     return $builder->matchNode('v', $vertexType->age_label_name)
                         ->return('v');
@@ -36,13 +43,13 @@ class VertexController extends Controller
 
                 $vertexInfoList[] = [
                     'type' => $vertexType,
-                    'vertexList' => $vertexList,
+                    'vertexList' => $this->attachDisplayNames($vertexList, $vertexType),
                 ];
             }
 
             return view('graph.vertex.all-type', compact('vertexTypeList', 'vertexInfoList'));
         } else {
-            $vertexType = VertexType::where('age_label_name', $type)->first();
+            $vertexType = VertexType::where('age_label_name', $type)->with('properties')->first();
             if (is_null($vertexType)) {
                 abort(404);
             }
@@ -52,6 +59,8 @@ class VertexController extends Controller
                 return $builder->matchNode('v', $type)
                     ->return('v');
             })->get();
+
+            $vertexList = $this->attachDisplayNames($vertexList, $vertexType);
 
             return view('graph.vertex.index', compact('vertexType', 'vertexList'));
         }
@@ -74,14 +83,22 @@ class VertexController extends Controller
         /** @var VertexType $vertexType */
         $vertexType = VertexType::where('age_label_name', $vertex->label)->with('properties')->firstOrFail();
 
+        $vertexProperties = $this->normalizeAgeProperties($vertex->properties ?? []);
+
+        $displayName = $this->displayNameResolver->resolve(
+            $vertexType->show_property_name,
+            $vertexProperties,
+            $vertexType->properties,
+        );
+
         $propertyGroups = app(LocalizedPropertyGrouper::class)->group(
             $vertexType->properties,
-            $this->normalizeAgeProperties($vertex->properties ?? []),
+            $vertexProperties,
         );
 
         $edgeInfoList = $this->getVertexEdgeInfo($vertexType, $id);
 
-        return view('graph.vertex.show', compact('vertex', 'vertexType', 'edgeInfoList', 'propertyGroups'));
+        return view('graph.vertex.show', compact('vertex', 'vertexType', 'edgeInfoList', 'propertyGroups', 'displayName'));
     }
 
     protected function getVertexEdgeInfo(VertexType $vertexType, $id)
@@ -90,13 +107,25 @@ class VertexController extends Controller
 
         $vertexType->load([
             'startEdgeTypes.properties',
-            'startEdgeTypes.endVertex',
+            'startEdgeTypes.endVertex.properties',
             'endEdgeTypes.properties',
-            'endEdgeTypes.startVertex',
+            'endEdgeTypes.startVertex.properties',
         ]);
 
         $this->mergeInfo($edgeInfoList, $vertexType, $id, $vertexType->startEdgeTypes, 'endVertex', Direction::RIGHT);
         $this->mergeInfo($edgeInfoList, $vertexType, $id, $vertexType->endEdgeTypes, 'startVertex', Direction::LEFT);
+
+        foreach ($edgeInfoList as $edgeTypeId => $edgeInfo) {
+            $relatedVertexType = $edgeInfo['vertex_type'];
+
+            foreach ($edgeInfo['edges'] as $index => $edgeItem) {
+                $edgeInfoList[$edgeTypeId]['edges'][$index]['displayName'] = $this->displayNameResolver->resolve(
+                    $relatedVertexType->show_property_name,
+                    $this->normalizeAgeProperties($edgeItem['vertex']->properties ?? []),
+                    $relatedVertexType->properties,
+                );
+            }
+        }
 
         return $edgeInfoList;
     }
@@ -151,6 +180,23 @@ class VertexController extends Controller
         }
 
         return [];
+    }
+
+    /**
+     * @param  Collection<int, object>  $vertexList
+     * @return Collection<int, object>
+     */
+    protected function attachDisplayNames(Collection $vertexList, VertexType $vertexType): Collection
+    {
+        return $vertexList->map(function (object $item) use ($vertexType) {
+            $item->displayName = $this->displayNameResolver->resolve(
+                $vertexType->show_property_name,
+                $this->normalizeAgeProperties($item->v->properties ?? []),
+                $vertexType->properties,
+            );
+
+            return $item;
+        });
     }
 
     protected function graphConnection()

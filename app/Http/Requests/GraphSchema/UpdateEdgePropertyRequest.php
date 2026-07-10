@@ -35,6 +35,10 @@ class UpdateEdgePropertyRequest extends FormRequest
             ],
             'description' => ['nullable', 'string'],
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
+            'locale' => ['prohibited'],
+            'age_property_name' => ['prohibited'],
+            'base_age_property_name' => ['prohibited'],
+            'resolved_age_property_name' => ['prohibited'],
         ];
     }
 }
