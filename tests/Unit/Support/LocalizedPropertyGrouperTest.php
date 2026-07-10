@@ -149,4 +149,40 @@ class LocalizedPropertyGrouperTest extends TestCase
             collect($groups[0]['members'])->map(fn (array $member) => $member['property']->age_property_name)->all(),
         );
     }
+
+    public function test_localized_property_without_locale_suffix_still_groups_by_full_name(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'display_name',
+            'locale' => 'zh_tw',
+        ]);
+
+        $groups = $this->grouper->group($vertexType->properties);
+
+        $this->assertCount(1, $groups);
+        $this->assertTrue($groups[0]['is_localized']);
+        $this->assertSame('display_name', $groups[0]['members'][0]['property']->age_property_name);
+        $this->assertSame('繁體中文', $groups[0]['members'][0]['locale_label']);
+    }
+
+    public function test_unknown_locale_falls_back_to_raw_code_and_sorts_last(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Name',
+            'age_property_name' => 'name_fr_fr',
+            'locale' => 'fr_fr',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $groups = $this->grouper->group($vertexType->properties()->orderBy('id')->get());
+
+        $this->assertSame(['繁體中文', 'fr_fr'], array_column($groups[0]['members'], 'locale_label'));
+    }
 }

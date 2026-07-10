@@ -97,6 +97,32 @@ class LocaleMutualExclusionTest extends TestCase
         );
     }
 
+    public function test_locale_mutual_exclusion_skips_non_string_values(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $failed = false;
+        (new LocaleMutualExclusion(VertexProperty::class, 'vertex_type_id', $vertexType->id, null))
+            ->validate('attribute', '', function () use (&$failed) {
+                $failed = true;
+            });
+
+        $this->assertFalse($failed);
+    }
+
+    public function test_unique_resolved_age_property_name_skips_non_string_values(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $failed = false;
+        (new UniqueResolvedAgePropertyName(VertexProperty::class, 'vertex_type_id', $vertexType->id))
+            ->validate('attribute', null, function () use (&$failed) {
+                $failed = true;
+            });
+
+        $this->assertFalse($failed);
+    }
+
     private function assertValidationPasses(object $rule, string $value): void
     {
         $failed = false;

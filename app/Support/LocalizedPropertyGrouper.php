@@ -114,10 +114,6 @@ class LocalizedPropertyGrouper
      */
     private function localeSortIndex(?string $locale, array $localeOrder): int
     {
-        if ($locale === null) {
-            return PHP_INT_MAX;
-        }
-
         $index = array_search($locale, $localeOrder, true);
 
         return $index === false ? PHP_INT_MAX : $index;

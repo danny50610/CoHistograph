@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class RevisionShowLocalizedPropertyTest extends TestCase
@@ -48,5 +49,24 @@ class RevisionShowLocalizedPropertyTest extends TestCase
             ->assertOk()
             ->assertSee('name_zh_tw（繁體中文）')
             ->assertSee('李白');
+    }
+
+    public function test_edit_includes_graph_locales_for_property_forms(): void
+    {
+        $user = User::factory()->create();
+        $revision = Revision::query()->create([
+            'title' => 'Draft revision',
+            'description' => '',
+            'status' => RevisionStatus::Draft,
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('revisions.edit', $revision))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Revisions/Edit')
+                ->where('graphLocales', config('cohistograph.app.graph.locales'))
+            );
     }
 }
