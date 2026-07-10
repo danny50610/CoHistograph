@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $vertex_type_id
  * @property string $age_property_name
  * @property \App\Enums\PropertyType $age_property_type
+ * @property string|null $locale
  */
 class VertexProperty extends Model
 {
@@ -23,6 +24,7 @@ class VertexProperty extends Model
         'description',
         'age_property_name',
         'age_property_type',
+        'locale',
     ];
 
     protected function casts(): array

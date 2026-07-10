@@ -340,4 +340,30 @@ class EdgeTypeTest extends TestCase
 
         $this->assertModelExists($edgeType);
     }
+
+    public function test_show_groups_localized_properties(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+        EdgeProperty::factory()->for($edgeType)->create([
+            'name' => '角色說明',
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        EdgeProperty::factory()->for($edgeType)->create([
+            'name' => 'Role',
+            'age_property_name' => 'role_en_us',
+            'locale' => 'en_us',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get("/graph-schema/edge-type/{$edgeType->id}");
+
+        $response->assertOk();
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $this->assertSame(1, substr_count($content, 'role_zh_tw'));
+        $this->assertSame(1, substr_count($content, 'role_en_us'));
+        $this->assertStringContainsString('繁體中文', $content);
+        $this->assertStringContainsString('English', $content);
+    }
 }

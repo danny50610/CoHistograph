@@ -142,6 +142,9 @@
                         'isEditable'   => false,
                         'hasError'     => isset($actionErrorsByOrder[$action->order]),
                         'actionErrors' => $actionErrorsByOrder[$action->order] ?? [],
+                        'revisionActions' => $revision->actions,
+                        'vertexTypes' => $vertexTypes,
+                        'edgeTypes' => $edgeTypes,
                     ])
                 @empty
                     <div class="text-secondary text-center py-4">

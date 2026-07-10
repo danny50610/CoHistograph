@@ -43,6 +43,38 @@ class VertexTypeTest extends TestCase
         $this->assertNotNull($vertexType);
         $this->assertEquals('person', $vertexType->age_label_name);
         $this->assertEquals('A person vertex type', $vertexType->description);
+        $this->assertNull($vertexType->overview_order);
+    }
+
+    public function test_create_with_overview_order()
+    {
+        $this->actingAs($this->user)
+            ->post('/graph-schema/vertex-type', [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+                'show_on_overview' => '1',
+                'overview_order' => '2',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $vertexType = VertexType::where('name', 'Person')->first();
+        $this->assertNotNull($vertexType);
+        $this->assertEquals(2, $vertexType->overview_order);
+    }
+
+    public function test_create_fail_when_overview_order_missing_while_show_on_overview()
+    {
+        $this->actingAs($this->user)
+            ->post('/graph-schema/vertex-type', [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+                'show_on_overview' => '1',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['overview_order']);
     }
 
     public function test_create_fail_when_name_or_age_label_name_not_unique()
@@ -124,6 +156,50 @@ class VertexTypeTest extends TestCase
         $this->assertEquals('Individual', $updatedVertexType->name);
         $this->assertEquals('individual', $updatedVertexType->age_label_name);
         $this->assertEquals('An individual vertex type', $updatedVertexType->description);
+        $this->assertNull($updatedVertexType->overview_order);
+    }
+
+    public function test_update_with_overview_order()
+    {
+        $vertexType = VertexType::create([
+            'name' => 'Person',
+            'age_label_name' => 'person',
+            'description' => 'A person vertex type',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+                'show_on_overview' => '1',
+                'overview_order' => '3',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals(3, $vertexType->fresh()->overview_order);
+    }
+
+    public function test_update_remove_from_overview()
+    {
+        $vertexType = VertexType::create([
+            'name' => 'Person',
+            'age_label_name' => 'person',
+            'description' => 'A person vertex type',
+            'overview_order' => 1,
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'Person',
+                'age_label_name' => 'person',
+                'description' => 'A person vertex type',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull($vertexType->fresh()->overview_order);
     }
 
     public function test_update_fail_when_name_or_age_label_name_not_unique()
@@ -259,5 +335,116 @@ class VertexTypeTest extends TestCase
             ->assertSessionHas('warning');
 
         $this->assertModelExists($vertexType);
+    }
+
+    public function test_show_groups_localized_properties(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Name',
+            'age_property_name' => 'name_en_us',
+            'locale' => 'en_us',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '出生年份',
+            'age_property_name' => 'birth_year',
+            'locale' => null,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}");
+
+        $response->assertOk();
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $this->assertSame(1, substr_count($content, 'name_zh_tw'));
+        $this->assertSame(1, substr_count($content, 'name_en_us'));
+        $this->assertStringContainsString('繁體中文', $content);
+        $this->assertStringContainsString('English', $content);
+        $this->assertStringContainsString('出生年份', $content);
+        $this->assertStringContainsString('birth_year', $content);
+    }
+
+    public function test_update_allows_localized_base_name_for_show_property_name(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '出生年份',
+            'age_property_name' => 'birth_year',
+            'locale' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => $vertexType->name,
+                'age_label_name' => $vertexType->age_label_name,
+                'description' => $vertexType->description,
+                'show_property_name' => 'name',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('name', $vertexType->fresh()->show_property_name);
+    }
+
+    public function test_edit_page_loads_when_overview_order_is_null(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'overview_order' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/edit")
+            ->assertOk()
+            ->assertSee('name="overview_order"', false);
+    }
+
+    public function test_edit_shows_semantic_show_property_name_options(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Name',
+            'age_property_name' => 'name_en_us',
+            'locale' => 'en_us',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/edit")
+            ->assertOk()
+            ->assertSee('(name) — 多語系', false)
+            ->assertDontSee('value="name_zh_tw"', false)
+            ->assertDontSee('value="name_en_us"', false);
+    }
+
+    public function test_show_displays_localized_show_property_name_label(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}")
+            ->assertOk()
+            ->assertSee('name（多語系，顯示語言：zh_tw）', false);
     }
 }

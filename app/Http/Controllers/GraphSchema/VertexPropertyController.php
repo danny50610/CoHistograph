@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers\GraphSchema;
 
-use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\GraphSchema\StoreVertexPropertyRequest;
+use App\Http\Requests\GraphSchema\UpdateVertexPropertyRequest;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
-use App\Rules\GraphSchema\AgePropertyName;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class VertexPropertyController extends Controller
 {
@@ -29,30 +27,16 @@ class VertexPropertyController extends Controller
         return view('graph-schema.vertex-property.create-or-edit', compact('vertexType'));
     }
 
-    public function store(Request $request, VertexType $vertexType)
+    public function store(StoreVertexPropertyRequest $request, VertexType $vertexType)
     {
-        $this->validate($request, [
-            'name' => ['required', 'string', Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
-                return $query->where('vertex_type_id', $vertexType->id);
-            }),
-            ],
-            'description' => ['nullable', 'string'],
-            'age_property_name' => [
-                'required',
-                'string',
-                new AgePropertyName,
-                Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
-                    return $query->where('vertex_type_id', $vertexType->id);
-                }),
-            ],
-            'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
-        ]);
+        $validated = $request->validated();
 
         $vertexProperty = new VertexProperty([
-            'name' => $request->input('name'),
-            'description' => $request->input('description', ''),
-            'age_property_name' => $request->input('age_property_name'),
-            'age_property_type' => $request->input('age_property_type'),
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? '',
+            'age_property_name' => $validated['resolved_age_property_name'],
+            'age_property_type' => $validated['age_property_type'],
+            'locale' => $validated['locale'],
         ]);
         $vertexProperty->vertexType()->associate($vertexType);
         $vertexProperty->save();
@@ -66,35 +50,14 @@ class VertexPropertyController extends Controller
         return view('graph-schema.vertex-property.create-or-edit', compact('vertexType', 'vertexProperty'));
     }
 
-    public function update(Request $request, VertexType $vertexType, VertexProperty $vertexProperty)
+    public function update(UpdateVertexPropertyRequest $request, VertexType $vertexType, VertexProperty $vertexProperty)
     {
-        $this->validate($request, [
-            'name' => [
-                'required',
-                'string',
-                Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
-                    return $query->where('vertex_type_id', $vertexType->id);
-                })->ignore($vertexProperty),
-            ],
-            'description' => ['nullable', 'string'],
-            'age_property_name' => [
-                'required',
-                'string',
-                new AgePropertyName,
-                Rule::unique('vertex_properties')->where(function ($query) use ($vertexType) {
-                    return $query->where('vertex_type_id', $vertexType->id);
-                })->ignore($vertexProperty),
-            ],
-            'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
-        ]);
-
-        // TODO: age_property_name cannot change when exists
+        $validated = $request->validated();
 
         $vertexProperty->update([
-            'name' => $request->input('name'),
-            'description' => $request->input('description', ''),
-            'age_property_name' => $request->input('age_property_name'),
-            'age_property_type' => $request->input('age_property_type'),
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? '',
+            'age_property_type' => $validated['age_property_type'],
         ]);
 
         return redirect()->route('graph-schema.vertex-property.show', [$vertexType, $vertexProperty])

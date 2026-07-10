@@ -27,6 +27,16 @@
                     <dt class="col-md-2">Property 名稱</dt>
                     <dd class="col-md-10">{{ $edgeProperty->age_property_name }}</dd>
 
+                    <dt class="col-md-2">語言版本</dt>
+                    <dd class="col-md-10">
+                        @if ($edgeProperty->locale)
+                            {{ config('cohistograph.app.graph.locales')[$edgeProperty->locale] ?? $edgeProperty->locale }}
+                            <span class="text-body-secondary">({{ $edgeProperty->locale }})</span>
+                        @else
+                            非多語系
+                        @endif
+                    </dd>
+
                     <dt class="col-md-2">Property Type</dt>
                     <dd class="col-md-10">{{ $edgeProperty->age_property_type }}</dd>
                 </dl>

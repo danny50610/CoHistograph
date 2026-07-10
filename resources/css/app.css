@@ -18,7 +18,9 @@
     color: #ddd;
 }
 
-.footer > div.container > .breadcrumb a {
+.footer > div.container > .breadcrumb a,
+.footer > div.container > .powered-by,
+.footer > div.container > .powered-by a {
     color: #ddd;
 }
 
