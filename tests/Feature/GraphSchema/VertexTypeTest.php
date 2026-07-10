@@ -397,6 +397,18 @@ class VertexTypeTest extends TestCase
         $this->assertSame('name', $vertexType->fresh()->show_property_name);
     }
 
+    public function test_edit_page_loads_when_overview_order_is_null(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'overview_order' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/edit")
+            ->assertOk()
+            ->assertSee('name="overview_order"', false);
+    }
+
     public function test_edit_shows_semantic_show_property_name_options(): void
     {
         $vertexType = VertexType::factory()->create();

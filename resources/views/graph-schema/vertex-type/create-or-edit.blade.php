@@ -4,7 +4,7 @@
     $isEditMode = isset($vertexType);
     $methodText = $isEditMode ? '編輯' : '新增';
     $showOnOverview = (bool) old('show_on_overview', $isEditMode && $vertexType->overview_order !== null);
-    $overviewOrder = old('overview_order', $isEditMode ? $vertexType->overview_order : '');
+    $overviewOrder = old('overview_order', $isEditMode ? $vertexType->overview_order : '') ?? '';
 @endphp
 
 @section('title', $methodText . ' Vertex')
