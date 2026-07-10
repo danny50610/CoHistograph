@@ -1,13 +1,6 @@
 name: Frontend Build
 
-on:
-  push:
-    paths:
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'vite.config.js'
-      - 'resources/**'
-      - '.github/workflows/frontend.yml'
+on: push
 
 permissions:
   contents: read
