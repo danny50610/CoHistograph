@@ -306,7 +306,7 @@ class RevisionApplyService
     {
         return match ($propertyType) {
             PropertyType::Integer => (int) $value,
-            PropertyType::Float, PropertyType::Numeric => (float) $value,
+            PropertyType::Float => (float) $value,
             PropertyType::Boolean => strtolower($value) === 'true',
             PropertyType::String => $value,
         };

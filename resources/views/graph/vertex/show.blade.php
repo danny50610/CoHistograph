@@ -15,43 +15,42 @@
         <h2>Properties</h2>
         <div class="card mb-2">
             <div class="card-body">
-                <dl class="row mb-0">
-                    @forelse ($vertexType->properties as $properties)
-                        <dt class="col-md-2">
-                            {{ $properties->name }}
-                            <span class=text-body-secondary>({{ $properties->age_property_name }})</span>
-                        </dt>
-                        <dd class="col-md-10 mb-0">
-                            {{ $vertex->properties[$properties->age_property_name] ?? '' }}
-                        </dd>
-                    @empty
-                        <span>目前沒有任何 Property</span>
-                    @endforelse
-                </dl>
+                <x-localized-property-groups :groups="$propertyGroups" />
             </div>
         </div>
 
         <h2>Edge</h2>
-        @forelse ($edgeInfoList as $edgeInfo)
-            <div class="card mb-2">
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-md-2">
+        @php $hasEdges = false; @endphp
+        @foreach ($edgeInfoList as $edgeInfo)
+            @foreach ($edgeInfo['edges'] as $edgeItem)
+                @php
+                    $hasEdges = true;
+                    $edgePropertyGroups = app(\App\Support\LocalizedPropertyGrouper::class)->group(
+                        $edgeInfo['type']->properties,
+                        (array) ($edgeItem['edge']->properties ?? []),
+                    );
+                    $relatedVertexDisplayProperty = $edgeInfo['vertex_type']->show_property_name ?? 'name';
+                @endphp
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <p class="mb-2">
                             {{ $edgeInfo['type']->name }}
                             <a href="{{ route('graph-schema.edge-type.show', [$edgeInfo['type']]) }}"><i class="fa-solid fa-circle-info"></i></a>
-                        </dt>
-                        <dd class="col-md-10  mb-0">
-                            @foreach ($edgeInfo['vertexes'] as $vertex)
-                                <a class="d-block" href="{{ route('graph.vertex.show', ['vertex' => $vertex->id]) }}">
-                                    {{ $vertex->properties[$edgeInfo['vertex_type']->show_property_name ?? 'name']}}
-                                </a>
-                            @endforeach
-                        </dd>
-                    </dl>
+                            →
+                            <a href="{{ route('graph.vertex.show', ['vertex' => $edgeItem['vertex']->id]) }}">
+                                {{ $edgeItem['vertex']->properties[$relatedVertexDisplayProperty] ?? '' }}
+                            </a>
+                        </p>
+
+                        @if ($edgePropertyGroups !== [])
+                            <x-localized-property-groups :groups="$edgePropertyGroups" />
+                        @endif
+                    </div>
                 </div>
-            </div>
-        @empty
+            @endforeach
+        @endforeach
+        @if (! $hasEdges)
             <span>目前沒有任何 Edge</span>
-        @endforelse
+        @endif
     </div>
 @endsection

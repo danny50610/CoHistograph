@@ -1,5 +1,6 @@
 @php
     use App\Enums\RevisionActionType;
+    use App\Support\LocalizedPropertyLabelResolver;
 
     $actionLabels = [
         RevisionActionType::CreateVertex->value          => '新增 Vertex',
@@ -38,17 +39,30 @@
         $endLabel = 'ID:' . $action->end_vertex_age_id;
     }
 
+    $propertyName = $action->age_property_name ?? '—';
+    if (
+        $action->age_property_name
+        && isset($revisionActions, $vertexTypes, $edgeTypes)
+    ) {
+        $propertyName = app(LocalizedPropertyLabelResolver::class)->formatForAction(
+            $action,
+            $revisionActions,
+            $vertexTypes,
+            $edgeTypes,
+        );
+    }
+
     $summary = match ($action->action) {
         RevisionActionType::CreateVertex         => '新增 Vertex：' . ($action->vertex_type_label ?? '—'),
         RevisionActionType::DeleteVertex         => '刪除 Vertex：' . ($targetLabel ?? '—'),
         RevisionActionType::CreateEdge           => '新增 Edge：' . ($startLabel ?? '—') . ' - ' . ($action->edge_type_label ?? '—') . ' - ' . ($endLabel ?? '—'),
         RevisionActionType::DeleteEdge           => '刪除 Edge：' . ($targetLabel ?? '—'),
-        RevisionActionType::CreateVertexProperty => '新增 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . ($action->age_property_name ?? '—') . ' = ' . ($action->value ?? '—'),
-        RevisionActionType::UpdateVertexProperty => '修改 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . ($action->age_property_name ?? '—') . ' = ' . ($action->value ?? '—'),
-        RevisionActionType::DeleteVertexProperty => '刪除 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . ($action->age_property_name ?? '—'),
-        RevisionActionType::CreateEdgeProperty   => '新增 Edge 屬性：' . ($targetLabel ?? '—') . '.' . ($action->age_property_name ?? '—') . ' = ' . ($action->value ?? '—'),
-        RevisionActionType::UpdateEdgeProperty   => '修改 Edge 屬性：' . ($targetLabel ?? '—') . '.' . ($action->age_property_name ?? '—') . ' = ' . ($action->value ?? '—'),
-        RevisionActionType::DeleteEdgeProperty   => '刪除 Edge 屬性：' . ($targetLabel ?? '—') . '.' . ($action->age_property_name ?? '—'),
+        RevisionActionType::CreateVertexProperty => '新增 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
+        RevisionActionType::UpdateVertexProperty => '修改 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
+        RevisionActionType::DeleteVertexProperty => '刪除 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName,
+        RevisionActionType::CreateEdgeProperty   => '新增 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
+        RevisionActionType::UpdateEdgeProperty   => '修改 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
+        RevisionActionType::DeleteEdgeProperty   => '刪除 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName,
     };
 @endphp
 
