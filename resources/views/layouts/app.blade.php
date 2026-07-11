@@ -77,7 +77,9 @@
 <div style="min-height: calc(100vh - 56px - 54px - 2rem);" class="mt-3 mb-3">
     @include('components.page-alert')
     @yield('content')
-    <x-inertia::app />
+    @if (isset($page['component']))
+        <x-inertia::app />
+    @endif
 </div>
 
 @include('components.footer')

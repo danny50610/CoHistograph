@@ -340,4 +340,125 @@ class EdgeTypeTest extends TestCase
 
         $this->assertModelExists($edgeType);
     }
+
+    public function test_update_fail_when_age_label_name_changes_and_graph_data_exists(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'lock_edge_start_vt']);
+        $endVertex = VertexType::factory()->create(['age_label_name' => 'lock_edge_end_vt']);
+        $edgeType = EdgeType::factory()->create([
+            'age_label_name' => 'lock_edge_et',
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
+                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}", [
+                'name' => $edgeType->name,
+                'age_label_name' => 'renamed_edge_et',
+                'description' => $edgeType->description,
+                'start_vertex_id' => $edgeType->start_vertex_id,
+                'end_vertex_id' => $edgeType->end_vertex_id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors([
+                'age_label_name' => '圖資料庫中已有此類型的資料，無法變更 Label 名稱',
+            ]);
+
+        $this->assertSame('lock_edge_et', $edgeType->fresh()->age_label_name);
+    }
+
+    public function test_update_success_when_keeping_same_age_label_name_with_graph_data(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'keep_edge_start_vt']);
+        $endVertex = VertexType::factory()->create(['age_label_name' => 'keep_edge_end_vt']);
+        $edgeType = EdgeType::factory()->create([
+            'age_label_name' => 'keep_edge_et',
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
+                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}", [
+                'name' => 'Updated Edge',
+                'reverse_name' => 'Updated Reverse',
+                'age_label_name' => 'keep_edge_et',
+                'description' => 'Updated description',
+                'start_vertex_id' => $edgeType->start_vertex_id,
+                'end_vertex_id' => $edgeType->end_vertex_id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $updated = $edgeType->fresh();
+        $this->assertSame('Updated Edge', $updated->name);
+        $this->assertSame('keep_edge_et', $updated->age_label_name);
+        $this->assertSame('Updated description', $updated->description);
+    }
+
+    public function test_edit_shows_readonly_age_label_name_when_graph_data_exists(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'readonly_edge_start_vt']);
+        $endVertex = VertexType::factory()->create(['age_label_name' => 'readonly_edge_end_vt']);
+        $edgeType = EdgeType::factory()->create([
+            'age_label_name' => 'readonly_edge_et',
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
+                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/edge-type/{$edgeType->id}/edit")
+            ->assertOk()
+            ->assertSee('readonly', false)
+            ->assertSee('圖資料庫中已有此類型的資料，無法變更 Label 名稱');
+    }
+
+    public function test_show_groups_localized_properties(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+        EdgeProperty::factory()->for($edgeType)->create([
+            'name' => '角色說明',
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+        EdgeProperty::factory()->for($edgeType)->create([
+            'name' => 'Role',
+            'age_property_name' => 'role_en_us',
+            'locale' => 'en_us',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get("/graph-schema/edge-type/{$edgeType->id}");
+
+        $response->assertOk();
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $this->assertSame(1, substr_count($content, 'role_zh_tw'));
+        $this->assertSame(1, substr_count($content, 'role_en_us'));
+        $this->assertStringContainsString('繁體中文', $content);
+        $this->assertStringContainsString('English', $content);
+    }
 }

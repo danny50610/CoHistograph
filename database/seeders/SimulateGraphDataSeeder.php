@@ -34,6 +34,12 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected EdgeProperty $vocalEdgePropertyOrder;
 
+    protected EdgeProperty $vocalEdgePropertyRoleZhTw;
+
+    protected EdgeProperty $vocalEdgePropertyRoleJaJp;
+
+    protected EdgeProperty $vocalEdgePropertyRoleEnUs;
+
     protected EdgeType $groupVocalEdge;
 
     protected EdgeType $hasYoutubeVideoEdge;
@@ -133,6 +139,36 @@ class SimulateGraphDataSeeder extends Seeder
         $this->vocalEdgePropertyOrder->edgeType()->associate($this->vocalEdge);
         $this->vocalEdgePropertyOrder->save();
 
+        $this->vocalEdgePropertyRoleZhTw = new EdgeProperty([
+            'name' => '角色說明',
+            'description' => '',
+            'age_property_name' => 'role_zh_tw',
+            'age_property_type' => PropertyType::String,
+            'locale' => 'zh_tw',
+        ]);
+        $this->vocalEdgePropertyRoleZhTw->edgeType()->associate($this->vocalEdge);
+        $this->vocalEdgePropertyRoleZhTw->save();
+
+        $this->vocalEdgePropertyRoleJaJp = new EdgeProperty([
+            'name' => '役割',
+            'description' => '',
+            'age_property_name' => 'role_ja_jp',
+            'age_property_type' => PropertyType::String,
+            'locale' => 'ja_jp',
+        ]);
+        $this->vocalEdgePropertyRoleJaJp->edgeType()->associate($this->vocalEdge);
+        $this->vocalEdgePropertyRoleJaJp->save();
+
+        $this->vocalEdgePropertyRoleEnUs = new EdgeProperty([
+            'name' => 'Role',
+            'description' => '',
+            'age_property_name' => 'role_en_us',
+            'age_property_type' => PropertyType::String,
+            'locale' => 'en_us',
+        ]);
+        $this->vocalEdgePropertyRoleEnUs->edgeType()->associate($this->vocalEdge);
+        $this->vocalEdgePropertyRoleEnUs->save();
+
         $this->groupVocalEdge = new EdgeType([
             'name' => '主唱(團體)',
             'description' => '',
@@ -220,6 +256,9 @@ class SimulateGraphDataSeeder extends Seeder
                 ->createNode('a')
                 ->withCreateEdge(Direction::RIGHT, null, $this->vocalEdge->age_label_name, [
                     $this->vocalEdgePropertyOrder->age_property_name => $order,
+                    $this->vocalEdgePropertyRoleZhTw->age_property_name => '主唱',
+                    $this->vocalEdgePropertyRoleJaJp->age_property_name => 'リードボーカル',
+                    $this->vocalEdgePropertyRoleEnUs->age_property_name => 'Lead vocalist',
                 ])
                 ->withCreateNode('b')
                 ->setAs(['v']);

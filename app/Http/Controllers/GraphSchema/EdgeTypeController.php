@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\EdgeType;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
+use App\Rules\GraphSchema\ImmutableAgeLabelNameWhenGraphDataExists;
+use App\Support\LocalizedPropertyGrouper;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Http\Request;
@@ -35,9 +37,11 @@ class EdgeTypeController extends Controller
 
     public function show(EdgeType $edgeType)
     {
-        $edgeType->load('properties');
+        $edgeType->load('properties', 'startVertex', 'endVertex');
 
-        return view('graph-schema.edge-type.show', compact('edgeType'));
+        $propertyGroups = app(LocalizedPropertyGrouper::class)->group($edgeType->properties);
+
+        return view('graph-schema.edge-type.show', compact('edgeType', 'propertyGroups'));
     }
 
     protected function getVertexOptions()
@@ -87,8 +91,9 @@ class EdgeTypeController extends Controller
     public function edit(EdgeType $edgeType)
     {
         $vertexOptions = $this->getVertexOptions();
+        $ageLabelNameLocked = $this->hasAgeGraphData($edgeType);
 
-        return view('graph-schema.edge-type.create-or-edit', compact('edgeType', 'vertexOptions'));
+        return view('graph-schema.edge-type.create-or-edit', compact('edgeType', 'vertexOptions', 'ageLabelNameLocked'));
     }
 
     public function update(Request $request, EdgeType $edgeType)
@@ -97,13 +102,21 @@ class EdgeTypeController extends Controller
         $this->validate($request, [
             'name' => ['required', 'string', Rule::unique('edge_types')->ignore($edgeType)],
             'reverse_name' => ['nullable', 'string'],
-            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')->ignore($edgeType)],
+            'age_label_name' => [
+                'required',
+                'string',
+                new AgeLabelName,
+                new ImmutableAgeLabelNameWhenGraphDataExists(
+                    $edgeType->age_label_name,
+                    fn (): bool => $this->hasAgeGraphData($edgeType),
+                ),
+                Rule::unique('vertex_types'),
+                Rule::unique('edge_types')->ignore($edgeType),
+            ],
             'description' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
         ]);
-
-        // TODO: age_label_name cannot change when exists
 
         $edgeType->update([
             'name' => $request->input('name'),
@@ -124,16 +137,7 @@ class EdgeTypeController extends Controller
             return redirect()->back()->with('warning', "無法刪除，因為 Edge「{$edgeType->name}」還有屬性");
         }
 
-        $hasEdges = DB::connection(config('cohistograph.app.graph.connection-name'))
-            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
-                return $builder->matchNode()
-                    ->withMatchEdge(Direction::BOTH, 'e', $edgeType->age_label_name)
-                    ->withMatchNode()
-                    ->return('e')
-                    ->limit(1);
-            })->get()->isNotEmpty();
-
-        if ($hasEdges) {
+        if ($this->hasAgeGraphData($edgeType)) {
             return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有「{$edgeType->name}」類型的 Edge 資料");
         }
 
@@ -141,5 +145,17 @@ class EdgeTypeController extends Controller
 
         return redirect()->route('graph-schema.edge-type.index')
             ->with('global', "Edge「{$edgeType->name}」刪除完成");
+    }
+
+    private function hasAgeGraphData(EdgeType $edgeType): bool
+    {
+        return DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType) {
+                return $builder->matchNode()
+                    ->withMatchEdge(Direction::BOTH, 'e', $edgeType->age_label_name)
+                    ->withMatchNode()
+                    ->return('e')
+                    ->limit(1);
+            })->get()->isNotEmpty();
     }
 }
