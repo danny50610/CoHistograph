@@ -15,6 +15,7 @@ class LocaleMutualExclusion implements ValidationRule
         private string $foreignKey,
         private int $parentId,
         private ?string $locale,
+        private ?int $ignoreId = null,
     ) {}
 
     /**
@@ -26,7 +27,9 @@ class LocaleMutualExclusion implements ValidationRule
             return;
         }
 
-        $query = $this->model::query()->where($this->foreignKey, $this->parentId);
+        $query = $this->model::query()
+            ->where($this->foreignKey, $this->parentId)
+            ->when($this->ignoreId !== null, fn ($builder) => $builder->whereKeyNot($this->ignoreId));
 
         if ($this->locale === null) {
             foreach (array_keys(config('cohistograph.app.graph.locales', [])) as $locale) {

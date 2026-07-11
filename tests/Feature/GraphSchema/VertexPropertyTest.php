@@ -254,6 +254,7 @@ class VertexPropertyTest extends TestCase
             ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
                 'name' => 'Updated Localized Name',
                 'description' => 'Updated description',
+                'base_age_property_name' => 'name',
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
@@ -265,7 +266,56 @@ class VertexPropertyTest extends TestCase
         $this->assertEquals('zh_tw', $vertexProperty->locale);
     }
 
-    public function test_update_rejects_age_property_name_and_locale_fields()
+    public function test_update_can_rename_age_property_name_when_no_graph_data(): void
+    {
+        $vertexType = VertexType::factory()->create();
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Full Name',
+            'age_property_name' => 'full_name',
+            'locale' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
+                'name' => 'Full Name',
+                'description' => '',
+                'age_property_name' => 'display_name',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('display_name', $vertexProperty->fresh()->age_property_name);
+    }
+
+    public function test_update_can_rename_localized_base_age_property_name_when_no_graph_data(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'show_property_name' => 'name',
+        ]);
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'name' => '姓名',
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
+                'name' => '姓名',
+                'description' => '',
+                'base_age_property_name' => 'title',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $vertexProperty->refresh();
+        $this->assertSame('title_zh_tw', $vertexProperty->age_property_name);
+        $this->assertSame('zh_tw', $vertexProperty->locale);
+        $this->assertSame('title', $vertexType->fresh()->show_property_name);
+    }
+
+    public function test_update_rejects_locale_field(): void
     {
         $vertexType = VertexType::factory()->create();
         $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
@@ -278,16 +328,43 @@ class VertexPropertyTest extends TestCase
             ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
                 'name' => $vertexProperty->name,
                 'description' => '',
-                'age_property_name' => 'taken_prop',
+                'base_age_property_name' => 'name',
                 'locale' => 'en_us',
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['age_property_name', 'locale']);
+            ->assertSessionHasErrors(['locale']);
 
-        $vertexProperty->refresh();
-        $this->assertEquals('name_zh_tw', $vertexProperty->age_property_name);
-        $this->assertEquals('zh_tw', $vertexProperty->locale);
+        $this->assertSame('zh_tw', $vertexProperty->fresh()->locale);
+    }
+
+    public function test_update_rejects_age_property_name_when_graph_data_exists(): void
+    {
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'lock_prop_vt']);
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'name' => 'Full Name',
+            'age_property_name' => 'full_name',
+            'locale' => null,
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
+                return $builder->createNode(null, $vertexType->age_label_name, [
+                    $vertexProperty->age_property_name => 'in_use',
+                ])->setAs(['v']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}", [
+                'name' => $vertexProperty->name,
+                'description' => '',
+                'age_property_name' => 'renamed_name',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_name']);
+
+        $this->assertSame('full_name', $vertexProperty->fresh()->age_property_name);
     }
 
     public function test_update_fail_when_name_not_unique_within_vertex_type()
@@ -358,7 +435,7 @@ class VertexPropertyTest extends TestCase
             ->assertDontSee('type="text" name="age_property_type"', false);
     }
 
-    public function test_edit_form_shows_readonly_locale_and_property_name_for_localized_property(): void
+    public function test_edit_form_allows_editing_property_name_when_no_graph_data(): void
     {
         $vertexType = VertexType::factory()->create();
         $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
@@ -373,7 +450,34 @@ class VertexPropertyTest extends TestCase
             ->assertSee('語言版本')
             ->assertSee('繁體中文')
             ->assertSee('(zh_tw)')
+            ->assertSee('id="base_age_property_name"', false)
+            ->assertDontSee('id="locale"', false)
+            ->assertDontSee('圖資料庫中已有此屬性的資料，無法變更 Property 名稱');
+    }
+
+    public function test_edit_form_shows_readonly_property_name_when_graph_data_exists(): void
+    {
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'readonly_prop_vt']);
+        $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'name_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
+                return $builder->createNode(null, $vertexType->age_label_name, [
+                    $vertexProperty->age_property_name => 'in_use',
+                ])->setAs(['v']);
+            })->get();
+
+        $response = $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$vertexProperty->id}/edit");
+
+        $response->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('繁體中文')
             ->assertSee('name_zh_tw')
+            ->assertSee('圖資料庫中已有此屬性的資料，無法變更 Property 名稱')
             ->assertDontSee('id="locale"', false)
             ->assertDontSee('id="base_age_property_name"', false);
     }

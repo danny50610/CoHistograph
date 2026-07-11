@@ -14,6 +14,7 @@ class UniqueResolvedAgePropertyName implements ValidationRule
         private string $model,
         private string $foreignKey,
         private int $parentId,
+        private ?int $ignoreId = null,
     ) {}
 
     /**
@@ -28,6 +29,7 @@ class UniqueResolvedAgePropertyName implements ValidationRule
         $exists = $this->model::query()
             ->where($this->foreignKey, $this->parentId)
             ->where('age_property_name', $value)
+            ->when($this->ignoreId !== null, fn ($query) => $query->whereKeyNot($this->ignoreId))
             ->exists();
 
         if ($exists) {

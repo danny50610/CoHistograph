@@ -7,13 +7,14 @@ use App\Http\Requests\GraphSchema\StoreVertexPropertyRequest;
 use App\Http\Requests\GraphSchema\UpdateVertexPropertyRequest;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
-use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
-use Illuminate\Support\Facades\DB;
+use App\Support\AgePropertyDataChecker;
+use App\Support\LocalizedPropertyName;
 
 class VertexPropertyController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private AgePropertyDataChecker $agePropertyDataChecker,
+    ) {
         $this->middleware('permission:graph-schema.manage');
     }
 
@@ -47,18 +48,31 @@ class VertexPropertyController extends Controller
 
     public function edit(VertexType $vertexType, VertexProperty $vertexProperty)
     {
-        return view('graph-schema.vertex-property.create-or-edit', compact('vertexType', 'vertexProperty'));
+        $agePropertyNameLocked = $this->agePropertyDataChecker->vertexPropertyHasData($vertexType, $vertexProperty);
+
+        return view('graph-schema.vertex-property.create-or-edit', compact('vertexType', 'vertexProperty', 'agePropertyNameLocked'));
     }
 
     public function update(UpdateVertexPropertyRequest $request, VertexType $vertexType, VertexProperty $vertexProperty)
     {
         $validated = $request->validated();
 
-        $vertexProperty->update([
+        $attributes = [
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
             'age_property_type' => $validated['age_property_type'],
-        ]);
+        ];
+
+        if (! $request->agePropertyNameLocked()) {
+            $oldAgePropertyName = $vertexProperty->age_property_name;
+            $oldBaseName = LocalizedPropertyName::baseName($vertexProperty);
+
+            $attributes['age_property_name'] = $validated['resolved_age_property_name'];
+            $vertexProperty->update($attributes);
+            $this->syncShowPropertyName($vertexType, $vertexProperty, $oldAgePropertyName, $oldBaseName);
+        } else {
+            $vertexProperty->update($attributes);
+        }
 
         return redirect()->route('graph-schema.vertex-property.show', [$vertexType, $vertexProperty])
             ->with('global', "Vertex Property「{$vertexProperty->name}」更新完成");
@@ -66,17 +80,7 @@ class VertexPropertyController extends Controller
 
     public function destroy(VertexType $vertexType, VertexProperty $vertexProperty)
     {
-        // age_label_name and age_property_name are validated to [a-z0-9_] only,
-        // so embedding them directly in the Cypher query is safe.
-        // Cypher does not support parameterized label/property names.
-        $hasData = DB::connection(config('cohistograph.app.graph.connection-name'))
-            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
-                return $builder->matchRaw('(v:'.$vertexType->age_label_name.') WHERE v.'.$vertexProperty->age_property_name.' IS NOT NULL')
-                    ->return('v')
-                    ->limit(1);
-            })->get()->isNotEmpty();
-
-        if ($hasData) {
+        if ($this->agePropertyDataChecker->vertexPropertyHasData($vertexType, $vertexProperty)) {
             return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有 Vertex 使用「{$vertexProperty->name}」屬性");
         }
 
@@ -84,5 +88,28 @@ class VertexPropertyController extends Controller
 
         return redirect()->route('graph-schema.vertex-type.show', [$vertexType])
             ->with('global', "Vertex Property「{$vertexProperty->name}」刪除完成");
+    }
+
+    private function syncShowPropertyName(
+        VertexType $vertexType,
+        VertexProperty $vertexProperty,
+        string $oldAgePropertyName,
+        string $oldBaseName,
+    ): void {
+        $showPropertyName = $vertexType->show_property_name;
+
+        if ($showPropertyName === null || $showPropertyName === '') {
+            return;
+        }
+
+        if ($showPropertyName === $oldAgePropertyName) {
+            $vertexType->update(['show_property_name' => $vertexProperty->age_property_name]);
+
+            return;
+        }
+
+        if ($showPropertyName === $oldBaseName) {
+            $vertexType->update(['show_property_name' => LocalizedPropertyName::baseName($vertexProperty)]);
+        }
     }
 }
