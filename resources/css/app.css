@@ -8,6 +8,12 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+/* Bootstrap 5.3 only greys disabled; keep readonly visually consistent. */
+.form-control[readonly] {
+    background-color: var(--bs-secondary-bg);
+    opacity: 1;
+}
+
 .footer > div.container {
     padding: 15px 10px;
 }
