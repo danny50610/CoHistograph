@@ -5,6 +5,7 @@ namespace App\Http\Controllers\GraphSchema;
 use App\Http\Controllers\Controller;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgeLabelName;
+use App\Rules\GraphSchema\ImmutableAgeLabelNameWhenGraphDataExists;
 use App\Rules\GraphSchema\ValidShowPropertyName;
 use App\Support\LocalizedPropertyGrouper;
 use App\Support\ShowPropertyNamePresenter;
@@ -81,8 +82,9 @@ class VertexTypeController extends Controller
         $vertexType->load('properties');
 
         $propertyOptions = app(ShowPropertyNamePresenter::class)->options($vertexType->properties);
+        $ageLabelNameLocked = $this->hasAgeGraphData($vertexType);
 
-        return view('graph-schema.vertex-type.create-or-edit', compact('vertexType', 'propertyOptions'));
+        return view('graph-schema.vertex-type.create-or-edit', compact('vertexType', 'propertyOptions', 'ageLabelNameLocked'));
     }
 
     public function update(Request $request, VertexType $vertexType)
@@ -90,12 +92,20 @@ class VertexTypeController extends Controller
         // The names of labels between vertices and edges cannot overlap.
         $this->validate($request, array_merge([
             'name' => ['required', 'string', Rule::unique('vertex_types')->ignore($vertexType)],
-            'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types')->ignore($vertexType), Rule::unique('edge_types')],
+            'age_label_name' => [
+                'required',
+                'string',
+                new AgeLabelName,
+                new ImmutableAgeLabelNameWhenGraphDataExists(
+                    $vertexType->age_label_name,
+                    fn (): bool => $this->hasAgeGraphData($vertexType),
+                ),
+                Rule::unique('vertex_types')->ignore($vertexType),
+                Rule::unique('edge_types'),
+            ],
             'description' => ['nullable', 'string'],
             'show_property_name' => ['nullable', 'string', ValidShowPropertyName::forVertexType($vertexType)],
         ], $this->overviewOrderValidationRules($request)));
-
-        // TODO: age_label_name cannot change when exists
 
         $vertexType->update([
             'name' => $request->input('name'),
@@ -119,14 +129,7 @@ class VertexTypeController extends Controller
             return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有屬性");
         }
 
-        $hasVertices = DB::connection(config('cohistograph.app.graph.connection-name'))
-            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
-                return $builder->matchNode('v', $vertexType->age_label_name)
-                    ->return('v')
-                    ->limit(1);
-            })->get()->isNotEmpty();
-
-        if ($hasVertices) {
+        if ($this->hasAgeGraphData($vertexType)) {
             return redirect()->back()->with('warning', "無法刪除，因為圖資料庫中還有「{$vertexType->name}」類型的 Vertex 資料");
         }
 
@@ -134,6 +137,16 @@ class VertexTypeController extends Controller
 
         return redirect()->route('graph-schema.vertex-type.index')
             ->with('global', "Vertex「{$vertexType->name}」刪除完成");
+    }
+
+    private function hasAgeGraphData(VertexType $vertexType): bool
+    {
+        return DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+                return $builder->matchNode('v', $vertexType->age_label_name)
+                    ->return('v')
+                    ->limit(1);
+            })->get()->isNotEmpty();
     }
 
     /**

@@ -48,8 +48,7 @@ jobs:
         cp .env.github-actions .env
         composer install --prefer-dist --no-progress
         php artisan migrate --force
-        php artisan migrate --database=pgsql-age --path=database/migrations-age --force
-        php artisan app:apply-role-and-permission-command
+        php artisan before-phpunit-setup
 
     - name: Test
       run: composer run test

@@ -25,6 +25,7 @@
                     @include('graph-schema.partials.property-locale-fields', [
                         'property' => $edgeProperty ?? null,
                         'isEditMode' => $isEditMode,
+                        'agePropertyNameLocked' => $agePropertyNameLocked ?? false,
                     ])
 
                     <x-forms.select

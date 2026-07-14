@@ -337,6 +337,75 @@ class VertexTypeTest extends TestCase
         $this->assertModelExists($vertexType);
     }
 
+    public function test_update_fail_when_age_label_name_changes_and_graph_data_exists(): void
+    {
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'lock_vertex_vt']);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+                return $builder->createNode(null, $vertexType->age_label_name, [
+                    'name' => 'locked_vertex',
+                ])->setAs(['v']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => $vertexType->name,
+                'age_label_name' => 'renamed_vertex_vt',
+                'description' => $vertexType->description,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors([
+                'age_label_name' => '圖資料庫中已有此類型的資料，無法變更 Label 名稱',
+            ]);
+
+        $this->assertSame('lock_vertex_vt', $vertexType->fresh()->age_label_name);
+    }
+
+    public function test_update_success_when_keeping_same_age_label_name_with_graph_data(): void
+    {
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'keep_vertex_vt']);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+                return $builder->createNode(null, $vertexType->age_label_name, [
+                    'name' => 'keep_vertex',
+                ])->setAs(['v']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}", [
+                'name' => 'Updated Name',
+                'age_label_name' => 'keep_vertex_vt',
+                'description' => 'Updated description',
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $updated = $vertexType->fresh();
+        $this->assertSame('Updated Name', $updated->name);
+        $this->assertSame('keep_vertex_vt', $updated->age_label_name);
+        $this->assertSame('Updated description', $updated->description);
+    }
+
+    public function test_edit_shows_readonly_age_label_name_when_graph_data_exists(): void
+    {
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'readonly_vertex_vt']);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType) {
+                return $builder->createNode(null, $vertexType->age_label_name, [
+                    'name' => 'readonly_vertex',
+                ])->setAs(['v']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/vertex-type/{$vertexType->id}/edit")
+            ->assertOk()
+            ->assertSee('readonly', false)
+            ->assertSee('圖資料庫中已有此類型的資料，無法變更 Label 名稱');
+    }
+
     public function test_show_groups_localized_properties(): void
     {
         $vertexType = VertexType::factory()->create();

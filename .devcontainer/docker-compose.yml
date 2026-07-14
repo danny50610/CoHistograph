@@ -8,8 +8,9 @@ services:
 
   nginx:
     image: nginx:latest
+    # Host ports come from .devcontainer/.env (see .env.example). Override per machine to avoid clashes.
     ports:
-      - 8080:80
+      - "127.0.0.1:${NGINX_HOST_PORT:-8080}:80"
     volumes:
       - ..:/workspace:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -27,7 +28,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
     ports:
-      - 54324:5432
+      - "127.0.0.1:${DB_HOST_PORT:-54324}:5432"
 
   redis:
     image: redis:latest

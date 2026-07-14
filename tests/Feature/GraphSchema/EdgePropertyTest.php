@@ -218,6 +218,7 @@ class EdgePropertyTest extends TestCase
             ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
                 'name' => 'Updated Localized Role',
                 'description' => 'Updated description',
+                'base_age_property_name' => 'role',
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
@@ -229,7 +230,29 @@ class EdgePropertyTest extends TestCase
         $this->assertEquals('zh_tw', $edgeProperty->locale);
     }
 
-    public function test_update_rejects_age_property_name_and_locale_fields()
+    public function test_update_can_rename_age_property_name_when_no_graph_data(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'name' => 'Start Date',
+            'age_property_name' => 'start_date',
+            'locale' => null,
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
+                'name' => 'Start Date',
+                'description' => '',
+                'age_property_name' => 'began_at',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('began_at', $edgeProperty->fresh()->age_property_name);
+    }
+
+    public function test_update_rejects_locale_field(): void
     {
         $edgeType = EdgeType::factory()->create();
         $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
@@ -242,16 +265,52 @@ class EdgePropertyTest extends TestCase
             ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
                 'name' => $edgeProperty->name,
                 'description' => '',
-                'age_property_name' => 'taken_prop',
+                'base_age_property_name' => 'role',
                 'locale' => 'en_us',
                 'age_property_type' => PropertyType::String->value,
             ])
             ->assertStatus(302)
-            ->assertSessionHasErrors(['age_property_name', 'locale']);
+            ->assertSessionHasErrors(['locale']);
 
-        $edgeProperty->refresh();
-        $this->assertEquals('role_zh_tw', $edgeProperty->age_property_name);
-        $this->assertEquals('zh_tw', $edgeProperty->locale);
+        $this->assertSame('zh_tw', $edgeProperty->fresh()->locale);
+    }
+
+    public function test_update_rejects_age_property_name_when_graph_data_exists(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'lock_edge_prop_start']);
+        $endVertex = VertexType::factory()->create(['age_label_name' => 'lock_edge_prop_end']);
+        $edgeType = EdgeType::factory()->create([
+            'age_label_name' => 'lock_edge_prop_et',
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ]);
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'name' => 'Start Date',
+            'age_property_name' => 'start_date',
+            'locale' => null,
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
+                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name, [
+                        $edgeProperty->age_property_name => 'in_use',
+                    ])
+                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
+                'name' => $edgeProperty->name,
+                'description' => '',
+                'age_property_name' => 'began_at',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_name']);
+
+        $this->assertSame('start_date', $edgeProperty->fresh()->age_property_name);
     }
 
     public function test_update_fail_when_name_not_unique_within_edge_type()
@@ -331,7 +390,7 @@ class EdgePropertyTest extends TestCase
             ->assertDontSee('type="text" name="age_property_type"', false);
     }
 
-    public function test_edit_form_shows_readonly_locale_and_property_name_for_localized_property(): void
+    public function test_edit_form_allows_editing_property_name_when_no_graph_data(): void
     {
         $edgeType = EdgeType::factory()->create();
         $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
@@ -345,8 +404,44 @@ class EdgePropertyTest extends TestCase
             ->assertSee('語言版本')
             ->assertSee('繁體中文')
             ->assertSee('(zh_tw)')
+            ->assertSee('id="base_age_property_name"', false)
+            ->assertDontSee('id="locale"', false)
+            ->assertDontSee('圖資料庫中已有此屬性的資料，無法變更 Property 名稱');
+    }
+
+    public function test_edit_form_shows_readonly_property_name_when_graph_data_exists(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'readonly_edge_prop_start']);
+        $endVertex = VertexType::factory()->create(['age_label_name' => 'readonly_edge_prop_end']);
+        $edgeType = EdgeType::factory()->create([
+            'age_label_name' => 'readonly_edge_prop_et',
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ]);
+        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
+            'age_property_name' => 'role_zh_tw',
+            'locale' => 'zh_tw',
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
+                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name, [
+                        $edgeProperty->age_property_name => 'in_use',
+                    ])
+                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->get("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}/edit")
+            ->assertOk()
+            ->assertSee('語言版本')
+            ->assertSee('繁體中文')
             ->assertSee('role_zh_tw')
-            ->assertDontSee('id="locale"', false);
+            ->assertSee('圖資料庫中已有此屬性的資料，無法變更 Property 名稱')
+            ->assertDontSee('id="locale"', false)
+            ->assertDontSee('id="base_age_property_name"', false);
     }
 
     public function test_show_displays_locale_for_localized_property(): void
