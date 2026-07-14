@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\View;
+use Illuminate\View\FileViewFinder;
 use Tests\TestCase;
 
 class CustomContentSlotsTest extends TestCase
@@ -11,7 +12,9 @@ class CustomContentSlotsTest extends TestCase
     {
         parent::setUp();
 
-        View::getFinder()->prependLocation(base_path('tests/fixtures/views'));
+        $finder = View::getFinder();
+        $this->assertInstanceOf(FileViewFinder::class, $finder);
+        $finder->prependLocation(base_path('tests/fixtures/views'));
     }
 
     public function test_custom_content_slots_render_above_and_below_main_content(): void
