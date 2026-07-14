@@ -64,12 +64,14 @@ class VertexTypeController extends Controller
             'name' => ['required', 'string', Rule::unique('vertex_types')],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
+            'usage_guidelines' => ['nullable', 'string'],
         ], $this->overviewOrderValidationRules($request)));
 
         $vertexType = VertexType::create([
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
+            'usage_guidelines' => $request->input('usage_guidelines'),
             'overview_order' => $this->resolveOverviewOrder($request),
         ]);
 
@@ -104,6 +106,7 @@ class VertexTypeController extends Controller
                 Rule::unique('edge_types'),
             ],
             'description' => ['nullable', 'string'],
+            'usage_guidelines' => ['nullable', 'string'],
             'show_property_name' => ['nullable', 'string', ValidShowPropertyName::forVertexType($vertexType)],
         ], $this->overviewOrderValidationRules($request)));
 
@@ -111,6 +114,7 @@ class VertexTypeController extends Controller
             'name' => $request->input('name'),
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
+            'usage_guidelines' => $request->input('usage_guidelines'),
             'show_property_name' => $request->input('show_property_name', null),
             'overview_order' => $this->resolveOverviewOrder($request),
         ]);

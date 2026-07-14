@@ -15,6 +15,7 @@ class EdgeType extends Model
         'name',
         'reverse_name',
         'description',
+        'usage_guidelines',
         'age_label_name',
         'start_vertex_id',
         'end_vertex_id',

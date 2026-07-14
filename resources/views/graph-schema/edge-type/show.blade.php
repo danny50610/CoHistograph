@@ -34,6 +34,9 @@
 
                     <dt class="col-md-2">描述</dt>
                     <dd class="col-md-10">{{ $edgeType->description }}</dd>
+
+                    <dt class="col-md-2">使用指南</dt>
+                    <dd class="col-md-10" style="white-space: pre-wrap;">{{ $edgeType->usage_guidelines }}</dd>
                 </dl>
             </div>
         </div>

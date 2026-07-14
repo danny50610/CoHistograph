@@ -71,6 +71,7 @@ class EdgeTypeController extends Controller
             'reverse_name' => ['nullable', 'string'],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
+            'usage_guidelines' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
         ]);
@@ -80,6 +81,7 @@ class EdgeTypeController extends Controller
             'reverse_name' => $request->input('reverse_name') ?? '',
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
+            'usage_guidelines' => $request->input('usage_guidelines'),
             'start_vertex_id' => $request->input('start_vertex_id'),
             'end_vertex_id' => $request->input('end_vertex_id'),
         ]);
@@ -114,6 +116,7 @@ class EdgeTypeController extends Controller
                 Rule::unique('edge_types')->ignore($edgeType),
             ],
             'description' => ['nullable', 'string'],
+            'usage_guidelines' => ['nullable', 'string'],
             'start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'end_vertex_id' => ['required', 'exists:vertex_types,id'],
         ]);
@@ -123,6 +126,7 @@ class EdgeTypeController extends Controller
             'reverse_name' => $request->input('reverse_name') ?? '',
             'age_label_name' => $request->input('age_label_name'),
             'description' => $request->input('description') ?? '',
+            'usage_guidelines' => $request->input('usage_guidelines'),
             'start_vertex_id' => $request->input('start_vertex_id'),
             'end_vertex_id' => $request->input('end_vertex_id'),
         ]);
