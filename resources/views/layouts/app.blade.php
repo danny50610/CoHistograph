@@ -74,6 +74,8 @@
 <body>
 @include('components.navbar.navbar')
 
+@include('custom.content-before')
+
 <div style="min-height: calc(100vh - 56px - 54px - 2rem);" class="mt-3 mb-3">
     @include('components.page-alert')
     @yield('content')
@@ -81,6 +83,8 @@
         <x-inertia::app />
     @endif
 </div>
+
+@include('custom.content-after')
 
 @include('components.footer')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
