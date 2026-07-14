@@ -74,7 +74,8 @@
 <body>
 @include('components.navbar.navbar')
 
-@include('custom.content-before')
+{{-- Fork 可新增 resources/views/custom/content-top.blade.php（上游不提供此檔，避免同步衝突） --}}
+@includeIf('custom.content-top')
 
 <div style="min-height: calc(100vh - 56px - 54px - 2rem);" class="mt-3 mb-3">
     @include('components.page-alert')
@@ -84,7 +85,8 @@
     @endif
 </div>
 
-@include('custom.content-after')
+{{-- Fork 可新增 resources/views/custom/content-bottom.blade.php（上游不提供此檔，避免同步衝突） --}}
+@includeIf('custom.content-bottom')
 
 @include('components.footer')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
