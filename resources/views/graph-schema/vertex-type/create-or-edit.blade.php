@@ -32,6 +32,7 @@
                         required
                     />
                     <x-forms.input id="description" label="描述" :value="$vertexType->description ?? ''" />
+                    <x-forms.textarea id="usage_guidelines" label="使用指南" :value="$vertexType->usage_guidelines ?? ''" :rows="4" helpText="說明適用情境、命名規則、常見誤用與資料填寫原則" />
                     @if($isEditMode)
                         <x-forms.select id="show_property_name" label="顯示 property" :value="$vertexType->show_property_name ?? ''" :options="$propertyOptions" />
                     @endif

@@ -31,6 +31,7 @@
                         required
                     />
                     <x-forms.input id="description" label="描述" :value="$edgeType->description ?? ''" />
+                    <x-forms.textarea id="usage_guidelines" label="使用指南" :value="$edgeType->usage_guidelines ?? ''" :rows="4" helpText="說明語意、方向、適用條件、何時不應使用與屬性填寫原則" />
                     <x-forms.select id="start_vertex_id" label="起始節點" :value="$edgeType->start_vertex_id ?? ''" :options="$vertexOptions" required />
                     <x-forms.select id="end_vertex_id" label="結束節點" :value="$edgeType->end_vertex_id ?? ''" :options="$vertexOptions" required />
 
