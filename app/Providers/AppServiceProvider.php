@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passport\Passport;
 use Yajra\DataTables\Html\Builder;
 
 class AppServiceProvider extends ServiceProvider
@@ -35,6 +39,14 @@ class AppServiceProvider extends ServiceProvider
                 ->line('請點擊下方按鈕驗證您的信箱。')
                 ->action('驗證信箱', $url)
                 ->line('若您沒有註冊帳號，請忽略此信。');
+        });
+
+        Passport::authorizationView(function (array $parameters) {
+            return response()->view('mcp.authorize', $parameters);
+        });
+
+        RateLimiter::for('mcp', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
     }
 }

@@ -35,6 +35,9 @@
                     <dt class="col-md-2">描述</dt>
                     <dd class="col-md-10">{{ $vertexType->description }}</dd>
 
+                    <dt class="col-md-2">使用指南</dt>
+                    <dd class="col-md-10" style="white-space: pre-wrap;">{{ $vertexType->usage_guidelines }}</dd>
+
                     <dt class="col-md-2">顯示用 Property</dt>
                     <dd class="col-md-10">{{ $showPropertyNameLabel }}</dd>
 
