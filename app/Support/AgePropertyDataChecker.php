@@ -13,9 +13,12 @@ class AgePropertyDataChecker
 {
     public function vertexPropertyHasData(VertexType $vertexType, VertexProperty $vertexProperty): bool
     {
+        $label = CypherIdentifier::quote($vertexType->age_label_name);
+        $property = CypherIdentifier::quote($vertexProperty->age_property_name);
+
         return DB::connection(config('cohistograph.app.graph.connection-name'))
-            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($vertexType, $vertexProperty) {
-                return $builder->matchRaw('(v:'.$vertexType->age_label_name.') WHERE v.'.$vertexProperty->age_property_name.' IS NOT NULL')
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($label, $property) {
+                return $builder->matchRaw('(v:'.$label.') WHERE v.'.$property.' IS NOT NULL')
                     ->return('v')
                     ->limit(1);
             })->get()->isNotEmpty();
@@ -23,9 +26,12 @@ class AgePropertyDataChecker
 
     public function edgePropertyHasData(EdgeType $edgeType, EdgeProperty $edgeProperty): bool
     {
+        $label = CypherIdentifier::quote($edgeType->age_label_name);
+        $property = CypherIdentifier::quote($edgeProperty->age_property_name);
+
         return DB::connection(config('cohistograph.app.graph.connection-name'))
-            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
-                return $builder->matchRaw('()-[e:'.$edgeType->age_label_name.']-() WHERE e.'.$edgeProperty->age_property_name.' IS NOT NULL')
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($label, $property) {
+                return $builder->matchRaw('()-[e:'.$label.']-() WHERE e.'.$property.' IS NOT NULL')
                     ->return('e')
                     ->limit(1);
             })->get()->isNotEmpty();
