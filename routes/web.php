@@ -29,7 +29,7 @@ Route::prefix('graph')->name('graph.')->group(function () {
         ->only(['index', 'show']);
 });
 
-Route::auth();
+Route::auth(['verify' => true]);
 
 Route::group(['middleware' => ['auth']], function () {
     Route::get('revisions', [RevisionController::class, 'index'])->name('revisions.index');
