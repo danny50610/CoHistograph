@@ -2,7 +2,7 @@
 # https://github.com/devcontainers/images/blob/main/src/php/.devcontainer/Dockerfile
 
 # change to fpm variant to use with nginx
-ARG VARIANT=8.4-fpm-trixie
+ARG VARIANT=8.5-fpm-trixie
 FROM php:${VARIANT}
 
 # Install xdebug(3.5.0)

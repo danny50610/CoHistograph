@@ -3,7 +3,7 @@
     "search.exclude": {
         "**/.git": true,
     },
-    "intelephense.environment.phpVersion": "8.4.0",
+    "intelephense.environment.phpVersion": "8.5.0",
     "[php]": {
         "editor.wordSeparators": "`~!@#%^&*()-=+[{]}\\|;:'\",.<>/?",
     },
