@@ -20,7 +20,7 @@
                                 type="email"
                                 :value="$email ?? ''"
                                 required
-                                autofocus
+                                readonly
                             />
 
                             <x-forms.input
@@ -31,6 +31,7 @@
                                 helpText="密碼長度至少需要在 8 個字以上"
                                 minlength="8"
                                 required
+                                autofocus
                             />
 
                             <x-forms.input

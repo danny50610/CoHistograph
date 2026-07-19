@@ -37,6 +37,7 @@ class PasswordResetViewTest extends TestCase
             ->assertSee($token, false)
             ->assertSee('name="email"', false)
             ->assertSee($email, false)
+            ->assertSee('readonly', false)
             ->assertSee('name="password"', false)
             ->assertSee('name="password_confirmation"', false)
             ->assertSee(route('password.update'), false)
