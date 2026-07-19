@@ -160,4 +160,16 @@ class AgeLabelNameTest extends TestCase
 
         $this->assertTrue($failCalled);
     }
+
+    public function test_fails_with_cypher_reserved_word(): void
+    {
+        $failCalled = false;
+        $fail = function () use (&$failCalled) {
+            $failCalled = true;
+        };
+
+        $this->rule->validate('label_name', 'match', $fail);
+
+        $this->assertTrue($failCalled);
+    }
 }
