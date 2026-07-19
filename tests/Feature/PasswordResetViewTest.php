@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class PasswordResetViewTest extends TestCase
@@ -43,5 +46,36 @@ class PasswordResetViewTest extends TestCase
         $this->get(route('login'))
             ->assertOk()
             ->assertSee(route('password.request'), false);
+    }
+
+    public function test_send_reset_link_response_uses_global_flash(): void
+    {
+        $controller = new class extends ForgotPasswordController
+        {
+            public function callSendResetLinkResponse(Request $request, string $response)
+            {
+                return $this->sendResetLinkResponse($request, $response);
+            }
+        };
+
+        $request = Request::create(route('password.email'), 'POST');
+        $request->setLaravelSession($this->app['session.store']);
+
+        $response = $controller->callSendResetLinkResponse($request, Password::RESET_LINK_SENT);
+
+        $this->assertTrue($response->isRedirect());
+        $this->assertEquals(trans(Password::RESET_LINK_SENT), session('global'));
+        $this->assertNull(session('status'));
+    }
+
+    public function test_forgot_password_page_shows_global_flash_via_page_alert(): void
+    {
+        $message = trans(Password::RESET_LINK_SENT);
+
+        $this->withSession(['global' => $message])
+            ->get(route('password.request'))
+            ->assertOk()
+            ->assertSee($message, false)
+            ->assertSee('fa-info-circle', false);
     }
 }
