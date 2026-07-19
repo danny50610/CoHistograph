@@ -201,6 +201,21 @@ class EdgePropertyTest extends TestCase
         $this->assertEquals(PropertyType::Integer, $updatedProperty->age_property_type);
     }
 
+    public function test_store_fail_when_age_property_name_is_cypher_reserved_word(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => 'Reserved',
+                'description' => '',
+                'age_property_name' => 'in',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_name']);
+    }
+
     public function test_update_does_not_change_age_property_name_or_locale()
     {
         $edgeType = EdgeType::factory()->create();

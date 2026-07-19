@@ -20,7 +20,8 @@ class EdgeTypeFactory extends Factory
         return [
             'name' => $this->faker->unique()->words(2, true),
             'description' => $this->faker->sentence(),
-            'age_label_name' => $this->faker->unique()->word(),
+            // Prefix avoids Cypher reserved words (e.g. "in") from faker->word().
+            'age_label_name' => 'l_'.$this->faker->unique()->lexify('????????'),
             'start_vertex_id' => VertexType::factory(),
             'end_vertex_id' => VertexType::factory(),
         ];

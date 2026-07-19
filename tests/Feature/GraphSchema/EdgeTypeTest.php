@@ -70,6 +70,61 @@ class EdgeTypeTest extends TestCase
         $this->assertNotNull(EdgeType::where('name', 'Person')->first());
     }
 
+    public function test_create_success_when_start_and_end_vertex_are_same()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'knows',
+                'reverse_name' => 'known_by',
+                'age_label_name' => 'knows',
+                'description' => 'Self-referencing edge',
+                'start_vertex_id' => $vertexType->id,
+                'end_vertex_id' => $vertexType->id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $edgeType = EdgeType::where('name', 'knows')->first();
+        $this->assertNotNull($edgeType);
+        $this->assertEquals($vertexType->id, $edgeType->start_vertex_id);
+        $this->assertEquals($vertexType->id, $edgeType->end_vertex_id);
+    }
+
+    public function test_create_success_when_multiple_edge_types_share_same_start_and_end_vertices()
+    {
+        $startVertex = VertexType::factory()->create();
+        $endVertex = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'participated_in',
+                'age_label_name' => 'participated_in',
+                'description' => '',
+                'start_vertex_id' => $startVertex->id,
+                'end_vertex_id' => $endVertex->id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->user)
+            ->post('/graph-schema/edge-type', [
+                'name' => 'organized',
+                'age_label_name' => 'organized',
+                'description' => '',
+                'start_vertex_id' => $startVertex->id,
+                'end_vertex_id' => $endVertex->id,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals(2, EdgeType::where([
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ])->count());
+    }
+
     public function test_create_fail_when_age_label_name_clashes_with_vertex_type()
     {
         VertexType::factory()->create(['age_label_name' => 'person']);
