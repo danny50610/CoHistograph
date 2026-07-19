@@ -54,15 +54,17 @@ class EmailVerificationTest extends TestCase
     {
         Notification::fake();
 
+        $email = fake()->unique()->userName().'@gmail.com';
+
         $this->post(route('register'), [
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'email' => $email,
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ])
             ->assertRedirect(route('verification.notice'));
 
-        $user = User::where('email', 'test@example.com')->first();
+        $user = User::where('email', $email)->first();
 
         $this->assertNotNull($user);
         $this->assertNull($user->email_verified_at);
