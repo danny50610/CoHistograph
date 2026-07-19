@@ -31,7 +31,7 @@ Route::prefix('graph')->name('graph.')->group(function () {
 
 Route::auth(['verify' => true]);
 
-Route::group(['middleware' => ['auth']], function () {
+Route::group(['middleware' => ['auth', 'verified']], function () {
     Route::get('revisions', [RevisionController::class, 'index'])->name('revisions.index');
     Route::get('revisions/create', [RevisionController::class, 'create'])->name('revisions.create');
     Route::post('revisions', [RevisionController::class, 'store'])->name('revisions.store');

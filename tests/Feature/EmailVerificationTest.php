@@ -40,6 +40,15 @@ class EmailVerificationTest extends TestCase
             ->assertSee(route('verification.notice'), false);
     }
 
+    public function test_unverified_user_cannot_access_auth_required_pages(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get(route('revisions.index'))
+            ->assertRedirect(route('verification.notice'));
+    }
+
     public function test_verified_user_does_not_see_navbar_reminder(): void
     {
         $user = User::factory()->create();
