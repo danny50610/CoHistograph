@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\ApplyRoleAndPermissionCommand;
 use Illuminate\Support\Facades\Artisan;
 
 Artisan::command('before-phpunit-setup', function () {
@@ -9,5 +10,5 @@ Artisan::command('before-phpunit-setup', function () {
         '--force' => true,
     ]);
 
-    $this->call('app:apply-role-and-permission-command');
+    $this->call(ApplyRoleAndPermissionCommand::class);
 })->purpose('Prepare AGE graph and roles/permissions before PHPUnit');
