@@ -30,6 +30,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      COMPOSER_HOME: /tmp/composer
+      COMPOSER_CACHE_DIR: /tmp/composer/cache
+
     steps:
     - uses: actions/checkout@v4
 
@@ -40,8 +44,10 @@ jobs:
       id: composer-cache
       uses: actions/cache@v4
       with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ matrix.phpVersion }}
+        path: /tmp/composer/cache
+        key: ${{ runner.os }}-php-${{ matrix.phpVersion }}-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-${{ matrix.phpVersion }}-
 
     - name: Prepare Env
       run: |
