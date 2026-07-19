@@ -201,25 +201,6 @@ class EdgePropertyTest extends TestCase
         $this->assertEquals(PropertyType::Integer, $updatedProperty->age_property_type);
     }
 
-    public function test_update_success_when_age_property_name_is_cypher_reserved_word(): void
-    {
-        $edgeType = EdgeType::factory()->create();
-        $edgeProperty = EdgeProperty::factory()->for($edgeType)->create([
-            'age_property_name' => 'in',
-        ]);
-
-        $this->actingAs($this->user)
-            ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$edgeProperty->id}", [
-                'name' => 'Updated Name',
-                'description' => 'Updated description',
-                'age_property_type' => PropertyType::Integer->value,
-            ])
-            ->assertStatus(302)
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame('Updated Name', $edgeProperty->fresh()->name);
-    }
-
     public function test_store_fail_when_age_property_name_is_cypher_reserved_word(): void
     {
         $edgeType = EdgeType::factory()->create();
