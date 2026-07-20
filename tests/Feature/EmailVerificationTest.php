@@ -37,6 +37,7 @@ class EmailVerificationTest extends TestCase
             ->get(route('overview'))
             ->assertOk()
             ->assertSee('信箱尚未驗證', false)
+            ->assertSee('text-danger', false)
             ->assertSee(route('verification.notice'), false);
     }
 
