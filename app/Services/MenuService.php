@@ -21,7 +21,9 @@ class MenuService
                 $user = Auth::user();
 
                 if (! $user->hasVerifiedEmail()) {
-                    $menu->add('信箱尚未驗證', ['route' => 'verification.notice'])->active('email/verify*');
+                    $menu->add('信箱尚未驗證', ['route' => 'verification.notice'])
+                        ->active('email/verify*')
+                        ->data(['text-danger' => true]);
                 }
 
                 $adminMenu = null;
