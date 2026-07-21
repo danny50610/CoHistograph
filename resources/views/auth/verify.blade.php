@@ -16,7 +16,7 @@
                             @csrf
 
                             <div class="mb-3 row">
-                                <div class="col-md-10 ms-auto">
+                                <div class="col-md-12">
                                     <button type="submit" class="btn btn-primary">
                                         重新寄送驗證信
                                     </button>
