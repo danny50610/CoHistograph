@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\HomeController;
 use App\Models\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class RegisterController extends Controller
@@ -31,5 +32,10 @@ class RegisterController extends Controller
             'email'    => $data['email'],
             'password' => bcrypt($data['password']),
         ]);
+    }
+
+    protected function registered(Request $request, mixed $user)
+    {
+        return redirect()->route('verification.notice');
     }
 }
