@@ -20,6 +20,12 @@ class MenuService
             if (Auth::check()) {
                 $user = Auth::user();
 
+                if (! $user->hasVerifiedEmail()) {
+                    $menu->add('信箱尚未驗證', ['route' => 'verification.notice'])
+                        ->active('email/verify*')
+                        ->data(['text-danger' => true]);
+                }
+
                 $adminMenu = null;
                 $adminPermissions = [
                     'user.manage' => function (\Lavary\Menu\Item $adminMenu) {
