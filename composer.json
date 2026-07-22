@@ -15,6 +15,7 @@
         "lavary/laravel-menu": "^1.8",
         "santigarcor/laratrust": "^8.5",
         "spatie/laravel-html": "^3.12",
+        "symfony/http-client": "^8.1",
         "symfony/mailgun-mailer": "^8.1",
         "yajra/laravel-datatables-buttons": "^12.1",
         "yajra/laravel-datatables-html": "^12",
