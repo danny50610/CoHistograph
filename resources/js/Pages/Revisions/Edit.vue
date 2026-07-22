@@ -11,6 +11,8 @@ const props = defineProps({
     routeShow: String,
     routeUpdate: String,
     routeValidate: String,
+    routeSearchVertices: String,
+    routeSearchEdges: String,
 });
 
 const form = useForm({
@@ -494,6 +496,8 @@ const createEdgeActions = computed(() =>
         :graph-locales="graphLocales"
         :create-vertex-actions="createVertexActions"
         :create-edge-actions="createEdgeActions"
+        :route-search-vertices="routeSearchVertices"
+        :route-search-edges="routeSearchEdges"
         @confirm="onModalConfirm"
         @close="closeModal"
     />

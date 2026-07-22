@@ -7,8 +7,10 @@
  *   actionType        — 'create_edge_property' | 'update_edge_property' | 'delete_edge_property'
  *   edgeTypes         — Array of EdgeType (with properties loaded)
  *   createEdgeActions — Array of actions with action === 'create_edge'
+ *   routeSearchEdges  — Edge search endpoint URL
  */
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
+import AgeEntitySearch from './AgeEntitySearch.vue';
 
 const props = defineProps({
     modelValue: Object,
@@ -16,18 +18,29 @@ const props = defineProps({
     edgeTypes: Array,
     graphLocales: Object,
     createEdgeActions: Array,
+    routeSearchEdges: String,
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const selectedTypeLabel = ref(null);
 
 function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
 }
 
+watch(
+    () => props.modelValue.target_ref_order,
+    (refOrder) => {
+        if (refOrder !== null && refOrder !== undefined) {
+            selectedTypeLabel.value = null;
+        }
+    },
+);
+
 /**
  * Determine the edge label for the currently selected target.
- * If a ref_order is selected, find the matching create_edge action's edge_type_label.
- * Otherwise fall back to null (show all properties).
+ * Prefer same-revision create_edge ref, otherwise the searched edge type.
  */
 const resolvedEdgeLabel = computed(() => {
     if (props.modelValue.target_ref_order !== null && props.modelValue.target_ref_order !== undefined) {
@@ -36,7 +49,8 @@ const resolvedEdgeLabel = computed(() => {
         );
         return refAction?.edge_type_label ?? null;
     }
-    return null;
+
+    return selectedTypeLabel.value;
 });
 
 /** Properties filtered to the selected edge type, or all if no type resolved */
@@ -61,6 +75,32 @@ function propertyOptionLabel(prop) {
     const localeLabel = props.graphLocales?.[prop.locale] ?? prop.locale;
 
     return `${prop.edgeName} / ${prop.name}（${localeLabel}） [${prop.locale}] (${prop.age_property_name})`;
+}
+
+function onExistingEdgeIdUpdate(value) {
+    const next = { ...props.modelValue, target_age_id: value };
+    if (value !== null && value !== undefined) {
+        next.target_ref_order = null;
+    } else {
+        selectedTypeLabel.value = null;
+    }
+    emit('update:modelValue', next);
+}
+
+function onExistingEdgeSelected(item) {
+    selectedTypeLabel.value = item?.type_label ?? null;
+
+    if (
+        props.modelValue.age_property_name &&
+        !filteredProperties.value.some((p) => p.age_property_name === props.modelValue.age_property_name)
+    ) {
+        emit('update:modelValue', {
+            ...props.modelValue,
+            target_age_id: item.id,
+            target_ref_order: null,
+            age_property_name: null,
+        });
+    }
 }
 </script>
 
@@ -89,13 +129,15 @@ function propertyOptionLabel(prop) {
             </div>
         </template>
 
-        <div class="form-text mb-1">或直接輸入既有 Edge AGE ID：</div>
-        <input
-            type="number"
-            class="form-control"
-            :value="modelValue.target_age_id"
-            placeholder="AGE edge ID"
-            @input="update('target_age_id', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+        <div class="form-text mb-1">或搜尋既有 Edge：</div>
+        <AgeEntitySearch
+            :model-value="modelValue.target_age_id"
+            :search-url="routeSearchEdges"
+            entity-kind="edge"
+            placeholder="搜尋 Edge（起點／終點名稱或 ID）…"
+            @update:model-value="onExistingEdgeIdUpdate"
+            @select="onExistingEdgeSelected"
+            @clear="selectedTypeLabel = null"
         />
     </div>
 

@@ -25,6 +25,11 @@ Route::prefix('graph-schema')->name('graph-schema.')->scopeBindings()->group(fun
 });
 
 Route::prefix('graph')->name('graph.')->group(function () {
+    Route::get('search/vertices', [\App\Http\Controllers\Graph\GraphSearchController::class, 'vertices'])
+        ->name('search.vertices');
+    Route::get('search/edges', [\App\Http\Controllers\Graph\GraphSearchController::class, 'edges'])
+        ->name('search.edges');
+
     Route::resource('vertex', \App\Http\Controllers\Graph\VertexController::class)
         ->only(['index', 'show']);
 });
