@@ -87,6 +87,8 @@ class RevisionController extends Controller
             'routeShow' => route('revisions.show', $revision),
             'routeUpdate' => route('revisions.update', $revision),
             'routeValidate' => route('revisions.validate', $revision),
+            'routeSearchVertices' => route('graph.search.vertices'),
+            'routeSearchEdges' => route('graph.search.edges'),
         ]);
     }
 

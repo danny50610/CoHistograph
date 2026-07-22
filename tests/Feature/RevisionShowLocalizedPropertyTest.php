@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RevisionStatus;
+use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\User;
 use App\Models\VertexProperty;
@@ -68,5 +69,41 @@ class RevisionShowLocalizedPropertyTest extends TestCase
                 ->component('Revisions/Edit')
                 ->where('graphLocales', config('cohistograph.app.graph.locales'))
             );
+    }
+
+    public function test_edit_includes_edge_types_with_snake_case_vertex_relations(): void
+    {
+        $user = User::factory()->create();
+        $startVertex = VertexType::factory()->create(['name' => 'Artist']);
+        $endVertex = VertexType::factory()->create(['name' => 'Track']);
+        $edgeType = EdgeType::factory()->create([
+            'name' => 'performs',
+            'start_vertex_id' => $startVertex->id,
+            'end_vertex_id' => $endVertex->id,
+        ]);
+
+        $revision = Revision::query()->create([
+            'title' => 'Draft with edge types',
+            'description' => '',
+            'status' => RevisionStatus::Draft,
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('revisions.edit', $revision))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Revisions/Edit')
+                ->has('edgeTypes')
+            );
+
+        $matched = collect($response->inertiaProps('edgeTypes'))
+            ->firstWhere('id', $edgeType->id);
+
+        $this->assertNotNull($matched);
+        $this->assertSame('Artist', $matched['start_vertex']['name'] ?? null);
+        $this->assertSame('Track', $matched['end_vertex']['name'] ?? null);
+        $this->assertArrayNotHasKey('startVertex', $matched);
+        $this->assertArrayNotHasKey('endVertex', $matched);
     }
 }

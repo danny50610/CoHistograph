@@ -7,18 +7,49 @@
  *   actionType         — 'create_vertex' | 'delete_vertex'
  *   vertexTypes        — Array of VertexType
  *   createVertexActions — Array of actions with action === 'create_vertex'
+ *   routeSearchVertices — Vertex search endpoint URL
  */
+import { computed } from 'vue';
+import AgeEntitySearch from './AgeEntitySearch.vue';
+
 const props = defineProps({
     modelValue: Object,
     actionType: String,
     vertexTypes: Array,
     createVertexActions: Array,
+    routeSearchVertices: String,
 });
 
 const emit = defineEmits(['update:modelValue']);
 
+const vertexTypeOptions = computed(() =>
+    (props.vertexTypes ?? []).map((vt) => ({
+        value: vt.age_label_name,
+        label: `${vt.name} (${vt.age_label_name})`,
+    })),
+);
+
 function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
+}
+
+function onExistingVertexIdUpdate(value) {
+    const next = { ...props.modelValue, target_age_id: value };
+    if (value !== null && value !== undefined) {
+        next.target_ref_order = null;
+    }
+    emit('update:modelValue', next);
+}
+
+function onTargetRefOrderChange(value) {
+    const next = {
+        ...props.modelValue,
+        target_ref_order: value !== '' ? parseInt(value, 10) : null,
+    };
+    if (value !== '') {
+        next.target_age_id = null;
+    }
+    emit('update:modelValue', next);
 }
 </script>
 
@@ -46,7 +77,7 @@ function update(field, value) {
         </div>
     </template>
 
-    <!-- delete_vertex: ref order or direct age id -->
+    <!-- delete_vertex: ref order or search existing -->
     <template v-if="actionType === 'delete_vertex'">
         <div class="mb-3">
             <label class="col-form-label fw-semibold">目標 Vertex</label>
@@ -57,7 +88,7 @@ function update(field, value) {
                     <select
                         class="form-select"
                         :value="modelValue.target_ref_order !== null && modelValue.target_ref_order !== undefined ? String(modelValue.target_ref_order) : ''"
-                        @change="update('target_ref_order', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+                        @change="onTargetRefOrderChange($event.target.value)"
                     >
                         <option value="">— 不選擇 —</option>
                         <option
@@ -71,13 +102,16 @@ function update(field, value) {
                 </div>
             </template>
 
-            <div class="form-text mb-1">或直接輸入既有 Vertex AGE ID：</div>
-            <input
-                type="number"
-                class="form-control"
-                :value="modelValue.target_age_id"
-                placeholder="AGE vertex ID"
-                @input="update('target_age_id', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+            <div class="form-text mb-1">或搜尋既有 Vertex（先選類型）：</div>
+            <AgeEntitySearch
+                :model-value="modelValue.target_age_id"
+                :search-url="routeSearchVertices"
+                entity-kind="vertex"
+                :type-options="vertexTypeOptions"
+                require-type
+                type-placeholder="— 請先選擇 Vertex 類型 —"
+                placeholder="搜尋 Vertex 名稱或 ID…"
+                @update:model-value="onExistingVertexIdUpdate"
             />
         </div>
     </template>

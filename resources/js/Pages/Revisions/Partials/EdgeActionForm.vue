@@ -5,20 +5,115 @@
  * Props:
  *   modelValue          — local form object (v-model)
  *   actionType          — 'create_edge' | 'delete_edge'
- *   edgeTypes           — Array of EdgeType (with startVertex, endVertex)
+ *   edgeTypes           — Array of EdgeType (with start_vertex, end_vertex)
  *   createVertexActions — Array of actions with action === 'create_vertex'
+ *   routeSearchVertices — Vertex search endpoint URL
+ *   routeSearchEdges    — Edge search endpoint URL
  */
+import { computed } from 'vue';
+import AgeEntitySearch from './AgeEntitySearch.vue';
+
 const props = defineProps({
     modelValue: Object,
     actionType: String,
     edgeTypes: Array,
     createVertexActions: Array,
+    routeSearchVertices: String,
+    routeSearchEdges: String,
 });
 
 const emit = defineEmits(['update:modelValue']);
 
 function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
+}
+
+const selectedEdgeType = computed(() =>
+    props.edgeTypes.find((et) => et.age_label_name === props.modelValue.edge_type_label) ?? null,
+);
+
+const startVertexTypeLabels = computed(() => {
+    const label = selectedEdgeType.value?.start_vertex?.age_label_name ?? null;
+
+    return label ? [label] : null;
+});
+
+const endVertexTypeLabels = computed(() => {
+    const label = selectedEdgeType.value?.end_vertex?.age_label_name ?? null;
+
+    return label ? [label] : null;
+});
+
+const startVertexTypeDisplay = computed(() => {
+    const vertex = selectedEdgeType.value?.start_vertex;
+    if (! vertex) {
+        return null;
+    }
+
+    return `${vertex.name} (${vertex.age_label_name})`;
+});
+
+const endVertexTypeDisplay = computed(() => {
+    const vertex = selectedEdgeType.value?.end_vertex;
+    if (! vertex) {
+        return null;
+    }
+
+    return `${vertex.name} (${vertex.age_label_name})`;
+});
+
+const edgeTypeOptions = computed(() =>
+    (props.edgeTypes ?? []).map((et) => ({
+        value: et.age_label_name,
+        label: `${et.name} (${et.start_vertex?.name ?? '?'} → ${et.end_vertex?.name ?? '?'})`,
+    })),
+);
+
+function onEdgeTypeChange(value) {
+    emit('update:modelValue', {
+        ...props.modelValue,
+        edge_type_label: value || null,
+        start_vertex_age_id: null,
+        end_vertex_age_id: null,
+    });
+}
+
+function onStartVertexIdUpdate(value) {
+    const next = { ...props.modelValue, start_vertex_age_id: value };
+    if (value !== null && value !== undefined) {
+        next.start_vertex_ref_order = null;
+    }
+    emit('update:modelValue', next);
+}
+
+function onEndVertexIdUpdate(value) {
+    const next = { ...props.modelValue, end_vertex_age_id: value };
+    if (value !== null && value !== undefined) {
+        next.end_vertex_ref_order = null;
+    }
+    emit('update:modelValue', next);
+}
+
+function onStartRefOrderChange(value) {
+    const next = {
+        ...props.modelValue,
+        start_vertex_ref_order: value !== '' ? parseInt(value, 10) : null,
+    };
+    if (value !== '') {
+        next.start_vertex_age_id = null;
+    }
+    emit('update:modelValue', next);
+}
+
+function onEndRefOrderChange(value) {
+    const next = {
+        ...props.modelValue,
+        end_vertex_ref_order: value !== '' ? parseInt(value, 10) : null,
+    };
+    if (value !== '') {
+        next.end_vertex_age_id = null;
+    }
+    emit('update:modelValue', next);
 }
 </script>
 
@@ -32,7 +127,7 @@ function update(field, value) {
                 class="form-select"
                 :value="modelValue.edge_type_label"
                 required
-                @change="update('edge_type_label', $event.target.value || null)"
+                @change="onEdgeTypeChange($event.target.value)"
             >
                 <option value="">— 請選擇 —</option>
                 <option
@@ -40,9 +135,10 @@ function update(field, value) {
                     :key="et.id"
                     :value="et.age_label_name"
                 >
-                    {{ et.name }} ({{ et.startVertex.name }} → {{ et.endVertex.name }})
+                    {{ et.name }} ({{ et.start_vertex?.name }} → {{ et.end_vertex?.name }})
                 </option>
             </select>
+            <div class="form-text text-secondary">請先選擇 Edge 類型，再搜尋起迄 Vertex</div>
         </div>
 
         <!-- Start vertex -->
@@ -54,7 +150,7 @@ function update(field, value) {
                     <select
                         class="form-select"
                         :value="modelValue.start_vertex_ref_order !== null && modelValue.start_vertex_ref_order !== undefined ? String(modelValue.start_vertex_ref_order) : ''"
-                        @change="update('start_vertex_ref_order', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+                        @change="onStartRefOrderChange($event.target.value)"
                     >
                         <option value="">— 不選擇 —</option>
                         <option
@@ -67,13 +163,20 @@ function update(field, value) {
                     </select>
                 </div>
             </template>
-            <div class="form-text mb-1">或直接輸入既有 Vertex AGE ID：</div>
-            <input
-                type="number"
-                class="form-control"
-                :value="modelValue.start_vertex_age_id"
-                placeholder="起始 Vertex AGE ID"
-                @input="update('start_vertex_age_id', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+            <div class="form-text mb-1">或搜尋既有 Vertex：</div>
+            <AgeEntitySearch
+                :model-value="modelValue.start_vertex_age_id"
+                :search-url="routeSearchVertices"
+                entity-kind="vertex"
+                :type-labels="startVertexTypeLabels"
+                :locked-type-display="startVertexTypeDisplay"
+                show-locked-type
+                require-type
+                locked-type-placeholder="— 請先選擇 Edge 類型 —"
+                locked-type-pending-hint="請先選擇 Edge 類型，起始 Vertex 類型才會確定"
+                locked-type-hint="搜尋僅限此 Vertex 類型"
+                placeholder="搜尋起始 Vertex 名稱或 ID…"
+                @update:model-value="onStartVertexIdUpdate"
             />
         </div>
 
@@ -86,7 +189,7 @@ function update(field, value) {
                     <select
                         class="form-select"
                         :value="modelValue.end_vertex_ref_order !== null && modelValue.end_vertex_ref_order !== undefined ? String(modelValue.end_vertex_ref_order) : ''"
-                        @change="update('end_vertex_ref_order', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+                        @change="onEndRefOrderChange($event.target.value)"
                     >
                         <option value="">— 不選擇 —</option>
                         <option
@@ -99,13 +202,20 @@ function update(field, value) {
                     </select>
                 </div>
             </template>
-            <div class="form-text mb-1">或直接輸入既有 Vertex AGE ID：</div>
-            <input
-                type="number"
-                class="form-control"
-                :value="modelValue.end_vertex_age_id"
-                placeholder="終止 Vertex AGE ID"
-                @input="update('end_vertex_age_id', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+            <div class="form-text mb-1">或搜尋既有 Vertex：</div>
+            <AgeEntitySearch
+                :model-value="modelValue.end_vertex_age_id"
+                :search-url="routeSearchVertices"
+                entity-kind="vertex"
+                :type-labels="endVertexTypeLabels"
+                :locked-type-display="endVertexTypeDisplay"
+                show-locked-type
+                require-type
+                locked-type-placeholder="— 請先選擇 Edge 類型 —"
+                locked-type-pending-hint="請先選擇 Edge 類型，終止 Vertex 類型才會確定"
+                locked-type-hint="搜尋僅限此 Vertex 類型"
+                placeholder="搜尋終止 Vertex 名稱或 ID…"
+                @update:model-value="onEndVertexIdUpdate"
             />
         </div>
     </template>
@@ -114,14 +224,17 @@ function update(field, value) {
     <template v-if="actionType === 'delete_edge'">
         <div class="mb-3">
             <label class="col-form-label fw-semibold">目標 Edge</label>
-            <div class="form-text mb-1">輸入既有 Edge AGE ID：</div>
-            <input
-                type="number"
-                class="form-control"
-                :value="modelValue.target_age_id"
-                placeholder="AGE edge ID"
+            <div class="form-text mb-1">搜尋既有 Edge（先選類型）：</div>
+            <AgeEntitySearch
+                :model-value="modelValue.target_age_id"
+                :search-url="routeSearchEdges"
+                entity-kind="edge"
+                :type-options="edgeTypeOptions"
+                require-type
+                type-placeholder="— 請先選擇 Edge 類型 —"
+                placeholder="搜尋起點／終點名稱或 ID…"
                 required
-                @input="update('target_age_id', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+                @update:model-value="update('target_age_id', $event)"
             />
         </div>
     </template>
