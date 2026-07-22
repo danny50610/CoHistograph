@@ -25,6 +25,13 @@ const emit = defineEmits(['update:modelValue']);
 
 const selectedTypeLabel = ref(null);
 
+const vertexTypeOptions = computed(() =>
+    (props.vertexTypes ?? []).map((vt) => ({
+        value: vt.age_label_name,
+        label: `${vt.name} (${vt.age_label_name})`,
+    })),
+);
+
 function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
 }
@@ -40,7 +47,7 @@ watch(
 
 /**
  * Determine the vertex label for the currently selected target.
- * Prefer same-revision create_vertex ref, otherwise the searched vertex type.
+ * Prefer same-revision create_vertex ref, otherwise the chosen / searched vertex type.
  */
 const resolvedVertexLabel = computed(() => {
     if (props.modelValue.target_ref_order !== null && props.modelValue.target_ref_order !== undefined) {
@@ -77,31 +84,57 @@ function propertyOptionLabel(prop) {
     return `${prop.vertexName} / ${prop.name}（${localeLabel}） [${prop.locale}] (${prop.age_property_name})`;
 }
 
+function clearPropertyIfInvalid(nextState) {
+    if (
+        nextState.age_property_name &&
+        !filteredProperties.value.some((p) => p.age_property_name === nextState.age_property_name)
+    ) {
+        nextState.age_property_name = null;
+    }
+
+    return nextState;
+}
+
+function onSearchTypeChange(typeLabel) {
+    selectedTypeLabel.value = typeLabel;
+    const next = clearPropertyIfInvalid({
+        ...props.modelValue,
+        target_age_id: null,
+        target_ref_order: null,
+    });
+    emit('update:modelValue', next);
+}
+
 function onExistingVertexIdUpdate(value) {
     const next = { ...props.modelValue, target_age_id: value };
     if (value !== null && value !== undefined) {
         next.target_ref_order = null;
-    } else {
-        selectedTypeLabel.value = null;
+    } else if (!selectedTypeLabel.value) {
+        // keep type filter from type selector
     }
     emit('update:modelValue', next);
 }
 
 function onExistingVertexSelected(item) {
-    selectedTypeLabel.value = item?.type_label ?? null;
+    selectedTypeLabel.value = item?.type_label ?? selectedTypeLabel.value;
+    const next = clearPropertyIfInvalid({
+        ...props.modelValue,
+        target_age_id: item.id,
+        target_ref_order: null,
+    });
+    emit('update:modelValue', next);
+}
 
-    if (
-        props.modelValue.age_property_name &&
-        !filteredProperties.value.some((p) => p.age_property_name === props.modelValue.age_property_name)
-    ) {
-        // Property list will change; clear invalid selection on next tick via emit
-        emit('update:modelValue', {
-            ...props.modelValue,
-            target_age_id: item.id,
-            target_ref_order: null,
-            age_property_name: null,
-        });
+function onTargetRefOrderChange(value) {
+    const next = {
+        ...props.modelValue,
+        target_ref_order: value !== '' ? parseInt(value, 10) : null,
+    };
+    if (value !== '') {
+        next.target_age_id = null;
+        selectedTypeLabel.value = null;
     }
+    emit('update:modelValue', clearPropertyIfInvalid(next));
 }
 </script>
 
@@ -116,7 +149,7 @@ function onExistingVertexSelected(item) {
                 <select
                     class="form-select"
                     :value="modelValue.target_ref_order !== null && modelValue.target_ref_order !== undefined ? String(modelValue.target_ref_order) : ''"
-                    @change="update('target_ref_order', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+                    @change="onTargetRefOrderChange($event.target.value)"
                 >
                     <option value="">— 不選擇 —</option>
                     <option
@@ -130,15 +163,18 @@ function onExistingVertexSelected(item) {
             </div>
         </template>
 
-        <div class="form-text mb-1">或搜尋既有 Vertex：</div>
+        <div class="form-text mb-1">或搜尋既有 Vertex（先選類型）：</div>
         <AgeEntitySearch
             :model-value="modelValue.target_age_id"
             :search-url="routeSearchVertices"
             entity-kind="vertex"
+            :type-options="vertexTypeOptions"
+            require-type
+            type-placeholder="— 請先選擇 Vertex 類型 —"
             placeholder="搜尋 Vertex 名稱或 ID…"
             @update:model-value="onExistingVertexIdUpdate"
             @select="onExistingVertexSelected"
-            @clear="selectedTypeLabel = null"
+            @type-change="onSearchTypeChange"
         />
     </div>
 

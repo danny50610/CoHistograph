@@ -25,6 +25,13 @@ const emit = defineEmits(['update:modelValue']);
 
 const selectedTypeLabel = ref(null);
 
+const edgeTypeOptions = computed(() =>
+    (props.edgeTypes ?? []).map((et) => ({
+        value: et.age_label_name,
+        label: `${et.name} (${et.start_vertex?.name ?? '?'} → ${et.end_vertex?.name ?? '?'})`,
+    })),
+);
+
 function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
 }
@@ -40,7 +47,7 @@ watch(
 
 /**
  * Determine the edge label for the currently selected target.
- * Prefer same-revision create_edge ref, otherwise the searched edge type.
+ * Prefer same-revision create_edge ref, otherwise the chosen / searched edge type.
  */
 const resolvedEdgeLabel = computed(() => {
     if (props.modelValue.target_ref_order !== null && props.modelValue.target_ref_order !== undefined) {
@@ -77,30 +84,55 @@ function propertyOptionLabel(prop) {
     return `${prop.edgeName} / ${prop.name}（${localeLabel}） [${prop.locale}] (${prop.age_property_name})`;
 }
 
+function clearPropertyIfInvalid(nextState) {
+    if (
+        nextState.age_property_name &&
+        !filteredProperties.value.some((p) => p.age_property_name === nextState.age_property_name)
+    ) {
+        nextState.age_property_name = null;
+    }
+
+    return nextState;
+}
+
+function onSearchTypeChange(typeLabel) {
+    selectedTypeLabel.value = typeLabel;
+    const next = clearPropertyIfInvalid({
+        ...props.modelValue,
+        target_age_id: null,
+        target_ref_order: null,
+    });
+    emit('update:modelValue', next);
+}
+
 function onExistingEdgeIdUpdate(value) {
     const next = { ...props.modelValue, target_age_id: value };
     if (value !== null && value !== undefined) {
         next.target_ref_order = null;
-    } else {
-        selectedTypeLabel.value = null;
     }
     emit('update:modelValue', next);
 }
 
 function onExistingEdgeSelected(item) {
-    selectedTypeLabel.value = item?.type_label ?? null;
+    selectedTypeLabel.value = item?.type_label ?? selectedTypeLabel.value;
+    const next = clearPropertyIfInvalid({
+        ...props.modelValue,
+        target_age_id: item.id,
+        target_ref_order: null,
+    });
+    emit('update:modelValue', next);
+}
 
-    if (
-        props.modelValue.age_property_name &&
-        !filteredProperties.value.some((p) => p.age_property_name === props.modelValue.age_property_name)
-    ) {
-        emit('update:modelValue', {
-            ...props.modelValue,
-            target_age_id: item.id,
-            target_ref_order: null,
-            age_property_name: null,
-        });
+function onTargetRefOrderChange(value) {
+    const next = {
+        ...props.modelValue,
+        target_ref_order: value !== '' ? parseInt(value, 10) : null,
+    };
+    if (value !== '') {
+        next.target_age_id = null;
+        selectedTypeLabel.value = null;
     }
+    emit('update:modelValue', clearPropertyIfInvalid(next));
 }
 </script>
 
@@ -115,7 +147,7 @@ function onExistingEdgeSelected(item) {
                 <select
                     class="form-select"
                     :value="modelValue.target_ref_order !== null && modelValue.target_ref_order !== undefined ? String(modelValue.target_ref_order) : ''"
-                    @change="update('target_ref_order', $event.target.value !== '' ? parseInt($event.target.value, 10) : null)"
+                    @change="onTargetRefOrderChange($event.target.value)"
                 >
                     <option value="">— 不選擇 —</option>
                     <option
@@ -129,15 +161,18 @@ function onExistingEdgeSelected(item) {
             </div>
         </template>
 
-        <div class="form-text mb-1">或搜尋既有 Edge：</div>
+        <div class="form-text mb-1">或搜尋既有 Edge（先選類型）：</div>
         <AgeEntitySearch
             :model-value="modelValue.target_age_id"
             :search-url="routeSearchEdges"
             entity-kind="edge"
-            placeholder="搜尋 Edge（起點／終點名稱或 ID）…"
+            :type-options="edgeTypeOptions"
+            require-type
+            type-placeholder="— 請先選擇 Edge 類型 —"
+            placeholder="搜尋起點／終點名稱或 ID…"
             @update:model-value="onExistingEdgeIdUpdate"
             @select="onExistingEdgeSelected"
-            @clear="selectedTypeLabel = null"
+            @type-change="onSearchTypeChange"
         />
     </div>
 

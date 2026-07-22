@@ -14,13 +14,36 @@ const props = defineProps({
         type: String,
         required: true, // 'vertex' | 'edge'
     },
+    /**
+     * Optional list of types the user can pick before searching.
+     * Shape: [{ value: age_label_name, label: display text }]
+     */
+    typeOptions: {
+        type: Array,
+        default: null,
+    },
+    /**
+     * Pre-locked type filter (e.g. create_edge start/end from selected EdgeType).
+     * When set without typeOptions, search is limited to these labels.
+     */
     typeLabels: {
         type: Array,
         default: null,
     },
+    /**
+     * When true, searching requires an effective type filter.
+     */
+    requireType: {
+        type: Boolean,
+        default: false,
+    },
     placeholder: {
         type: String,
         default: '搜尋名稱或 ID…',
+    },
+    typePlaceholder: {
+        type: String,
+        default: '— 請先選擇類型 —',
     },
     required: {
         type: Boolean,
@@ -32,11 +55,12 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['update:modelValue', 'select', 'clear']);
+const emit = defineEmits(['update:modelValue', 'select', 'clear', 'type-change']);
 
 const query = ref('');
 const results = ref([]);
 const selected = ref(null);
+const selectedType = ref('');
 const isOpen = ref(false);
 const isLoading = ref(false);
 const highlightedIndex = ref(-1);
@@ -47,14 +71,46 @@ let debounceTimer = null;
 let abortController = null;
 let requestSeq = 0;
 
+const hasTypeOptions = computed(() => Array.isArray(props.typeOptions) && props.typeOptions.length > 0);
+
+const effectiveTypeLabels = computed(() => {
+    if (hasTypeOptions.value) {
+        return selectedType.value ? [selectedType.value] : null;
+    }
+
+    if (Array.isArray(props.typeLabels) && props.typeLabels.length > 0) {
+        return props.typeLabels.filter((label) => typeof label === 'string' && label !== '');
+    }
+
+    return null;
+});
+
+const hasTypeFilter = computed(() => Array.isArray(effectiveTypeLabels.value) && effectiveTypeLabels.value.length > 0);
+
+const canSearch = computed(() => {
+    if (props.disabled) {
+        return false;
+    }
+
+    if (props.requireType || hasTypeOptions.value) {
+        return hasTypeFilter.value;
+    }
+
+    return true;
+});
+
 const hasSelection = computed(() => selected.value !== null);
 
 const emptyHint = computed(() => {
-    if (props.entityKind === 'edge') {
-        return '輸入起點／終點名稱、Edge 類型或 ID';
+    if (! canSearch.value) {
+        return hasTypeOptions.value ? '請先選擇類型' : '請先選擇類型後再搜尋';
     }
 
-    return '輸入顯示名稱、類型或 ID';
+    if (props.entityKind === 'edge') {
+        return '輸入起點／終點名稱或 ID';
+    }
+
+    return '輸入顯示名稱或 ID';
 });
 
 watch(
@@ -80,9 +136,12 @@ watch(
 );
 
 watch(
-    () => props.typeLabels,
+    () => [props.typeLabels, selectedType.value],
     () => {
-        if (! hasSelection.value && query.value !== '') {
+        results.value = [];
+        highlightedIndex.value = -1;
+
+        if (! hasSelection.value && canSearch.value && query.value !== '') {
             scheduleSearch();
         }
     },
@@ -120,6 +179,10 @@ function abortInFlight() {
 }
 
 function scheduleSearch() {
+    if (! canSearch.value) {
+        return;
+    }
+
     clearDebounce();
     debounceTimer = setTimeout(() => {
         void runSearch();
@@ -129,10 +192,8 @@ function scheduleSearch() {
 function buildSearchParams(extra = {}) {
     const params = new URLSearchParams(extra);
 
-    if (Array.isArray(props.typeLabels)) {
-        props.typeLabels
-            .filter((label) => typeof label === 'string' && label !== '')
-            .forEach((label) => params.append('types[]', label));
+    if (Array.isArray(effectiveTypeLabels.value)) {
+        effectiveTypeLabels.value.forEach((label) => params.append('types[]', label));
     }
 
     return params;
@@ -146,7 +207,8 @@ async function resolveById(id) {
     isLoading.value = true;
 
     try {
-        const params = buildSearchParams({ id: String(id) });
+        // Resolve by ID without type filter so edit mode can restore selection.
+        const params = new URLSearchParams({ id: String(id) });
         const response = await fetch(`${props.searchUrl}?${params.toString()}`, {
             headers: {
                 Accept: 'application/json',
@@ -171,6 +233,9 @@ async function resolveById(id) {
             selected.value = item;
             query.value = '';
             results.value = [];
+            if (hasTypeOptions.value && item.type_label) {
+                selectedType.value = item.type_label;
+            }
             emit('select', item);
         } else {
             selected.value = {
@@ -202,6 +267,11 @@ async function resolveById(id) {
 }
 
 async function runSearch() {
+    if (! canSearch.value) {
+        results.value = [];
+        return;
+    }
+
     abortInFlight();
     const controller = new AbortController();
     abortController = controller;
@@ -252,6 +322,25 @@ async function runSearch() {
     }
 }
 
+function onTypeChange() {
+    query.value = '';
+    results.value = [];
+    highlightedIndex.value = -1;
+    isOpen.value = false;
+
+    if (hasSelection.value) {
+        selected.value = null;
+        emit('update:modelValue', null);
+        emit('clear');
+    }
+
+    emit('type-change', selectedType.value || null);
+
+    if (canSearch.value) {
+        nextTick(() => inputEl.value?.focus());
+    }
+}
+
 function onInput() {
     if (hasSelection.value) {
         selected.value = null;
@@ -263,7 +352,7 @@ function onInput() {
 }
 
 function onFocus() {
-    if (props.disabled || hasSelection.value) {
+    if (! canSearch.value || hasSelection.value) {
         return;
     }
 
@@ -280,6 +369,9 @@ function choose(item) {
     results.value = [];
     isOpen.value = false;
     highlightedIndex.value = -1;
+    if (hasTypeOptions.value && item.type_label) {
+        selectedType.value = item.type_label;
+    }
     emit('update:modelValue', item.id);
     emit('select', item);
 }
@@ -291,10 +383,18 @@ function clearSelection() {
     isOpen.value = false;
     emit('update:modelValue', null);
     emit('clear');
-    nextTick(() => inputEl.value?.focus());
+    nextTick(() => {
+        if (canSearch.value) {
+            inputEl.value?.focus();
+        }
+    });
 }
 
 function onKeydown(event) {
+    if (! canSearch.value) {
+        return;
+    }
+
     if (! isOpen.value && ['ArrowDown', 'Enter'].includes(event.key)) {
         isOpen.value = true;
         scheduleSearch();
@@ -337,6 +437,24 @@ function resultSecondary(item) {
 
 <template>
     <div ref="rootEl" class="position-relative">
+        <div v-if="hasTypeOptions" class="mb-2">
+            <select
+                v-model="selectedType"
+                class="form-select"
+                :disabled="disabled || hasSelection"
+                @change="onTypeChange"
+            >
+                <option value="">{{ typePlaceholder }}</option>
+                <option
+                    v-for="option in typeOptions"
+                    :key="option.value"
+                    :value="option.value"
+                >
+                    {{ option.label }}
+                </option>
+            </select>
+        </div>
+
         <div v-if="hasSelection" class="input-group">
             <span class="form-control text-start bg-white">
                 <span class="fw-semibold">{{ selected.display_name }}</span>
@@ -358,9 +476,9 @@ function resultSecondary(item) {
                 v-model="query"
                 type="search"
                 class="form-control"
-                :placeholder="placeholder"
-                :required="required"
-                :disabled="disabled"
+                :placeholder="canSearch ? placeholder : emptyHint"
+                :required="required && canSearch"
+                :disabled="disabled || !canSearch"
                 autocomplete="off"
                 @input="onInput"
                 @focus="onFocus"
@@ -368,7 +486,7 @@ function resultSecondary(item) {
             />
 
             <div
-                v-if="isOpen"
+                v-if="isOpen && canSearch"
                 class="dropdown-menu show w-100 mt-1 shadow-sm"
                 style="max-height: 240px; overflow-y: auto"
             >

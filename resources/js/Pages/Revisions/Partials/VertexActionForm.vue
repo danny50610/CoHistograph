@@ -9,6 +9,7 @@
  *   createVertexActions — Array of actions with action === 'create_vertex'
  *   routeSearchVertices — Vertex search endpoint URL
  */
+import { computed } from 'vue';
 import AgeEntitySearch from './AgeEntitySearch.vue';
 
 const props = defineProps({
@@ -21,14 +22,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
+const vertexTypeOptions = computed(() =>
+    (props.vertexTypes ?? []).map((vt) => ({
+        value: vt.age_label_name,
+        label: `${vt.name} (${vt.age_label_name})`,
+    })),
+);
+
 function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
-}
-
-function onExistingVertexSelected() {
-    if (props.modelValue.target_ref_order !== null && props.modelValue.target_ref_order !== undefined) {
-        update('target_ref_order', null);
-    }
 }
 
 function onExistingVertexIdUpdate(value) {
@@ -100,14 +102,16 @@ function onTargetRefOrderChange(value) {
                 </div>
             </template>
 
-            <div class="form-text mb-1">或搜尋既有 Vertex：</div>
+            <div class="form-text mb-1">或搜尋既有 Vertex（先選類型）：</div>
             <AgeEntitySearch
                 :model-value="modelValue.target_age_id"
                 :search-url="routeSearchVertices"
                 entity-kind="vertex"
+                :type-options="vertexTypeOptions"
+                require-type
+                type-placeholder="— 請先選擇 Vertex 類型 —"
                 placeholder="搜尋 Vertex 名稱或 ID…"
                 @update:model-value="onExistingVertexIdUpdate"
-                @select="onExistingVertexSelected"
             />
         </div>
     </template>
