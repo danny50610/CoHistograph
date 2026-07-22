@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Listeners\ConfigureApacheAgeConnection;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Yajra\DataTables\Html\Builder;
 
@@ -28,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
         Builder::useVite();
+
+        Event::listen(ConnectionEstablished::class, ConfigureApacheAgeConnection::class);
 
         VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
             return (new MailMessage)

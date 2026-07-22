@@ -109,7 +109,7 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => ['ag_catalog'],
+            'search_path' => ['ag_catalog', 'public'],
             'sslmode' => 'prefer',
         ],
 

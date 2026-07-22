@@ -50,10 +50,13 @@ class SimulateGraphDataSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            DB::statement('SET SESSION search_path = ag_catalog, public;');
             $this->createGraphSchema();
-            $this->createGraphData();
         });
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->transaction(function () {
+                $this->createGraphData();
+            });
     }
 
     protected function createGraphSchema()
@@ -218,7 +221,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createVtuber(string $name)
     {
-        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
+        $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
             return $builder->createNode(null, $this->vTuber->age_label_name, [
                 $this->vTuberPropertyName->age_property_name => $name,
             ])->setAs(['v']);
@@ -227,7 +230,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createSong(string $name)
     {
-        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
+        $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($name) {
             return $builder->createNode(null, $this->song->age_label_name, [
                 $this->songPropertyName->age_property_name => $name,
             ])->setAs(['v']);
@@ -236,7 +239,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createYoutubeVideo(string $id)
     {
-        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id) {
+        $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id) {
             return $builder->createNode(null, $this->youtubeVideo->age_label_name, [
                 $this->youtubeVideoPropertyId->age_property_name => $id,
             ])->setAs(['v']);
@@ -245,7 +248,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createVocalEdge(string $vtuberName, string $songName, int $order)
     {
-        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vtuberName, $songName, $order) {
+        $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vtuberName, $songName, $order) {
             return $builder
                 ->matchNode('a', $this->vTuber->age_label_name, [
                     $this->vTuberPropertyName->age_property_name => $vtuberName,
@@ -267,7 +270,7 @@ class SimulateGraphDataSeeder extends Seeder
 
     protected function createHasYoutubeVideoEdge(string $songName, string $youtubeVideoId)
     {
-        DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($songName, $youtubeVideoId) {
+        $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($songName, $youtubeVideoId) {
             return $builder
                 ->matchNode('a', $this->song->age_label_name, [
                     $this->songPropertyName->age_property_name => $songName,
@@ -280,5 +283,10 @@ class SimulateGraphDataSeeder extends Seeder
                 ->withCreateNode('b')
                 ->setAs(['v']);
         })->get();
+    }
+
+    private function graphConnection()
+    {
+        return DB::connection(config('cohistograph.app.graph.connection-name'));
     }
 }
