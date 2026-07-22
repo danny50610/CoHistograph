@@ -30,10 +30,11 @@ class HomeController extends Controller
         $vertexInfoList = [];
         /** @var VertexType $vertexType */
         foreach ($vertexTypes as $vertexType) {
-            $vertexList = DB::apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vertexType) {
-                return $builder->matchNode('v', $vertexType->age_label_name)
-                    ->return('v');
-            })->get();
+            $vertexList = DB::connection(config('cohistograph.app.graph.connection-name'))
+                ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vertexType) {
+                    return $builder->matchNode('v', $vertexType->age_label_name)
+                        ->return('v');
+                })->get();
 
             $vertexList = $vertexList->map(function (object $item) use ($vertexType) {
                 $item->displayName = $this->displayNameResolver->resolve(
