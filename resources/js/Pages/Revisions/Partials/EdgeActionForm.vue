@@ -5,7 +5,7 @@
  * Props:
  *   modelValue          — local form object (v-model)
  *   actionType          — 'create_edge' | 'delete_edge'
- *   edgeTypes           — Array of EdgeType (with startVertex, endVertex)
+ *   edgeTypes           — Array of EdgeType (with start_vertex, end_vertex)
  *   createVertexActions — Array of actions with action === 'create_vertex'
  */
 const props = defineProps({
@@ -40,7 +40,7 @@ function update(field, value) {
                     :key="et.id"
                     :value="et.age_label_name"
                 >
-                    {{ et.name }} ({{ et.startVertex.name }} → {{ et.endVertex.name }})
+                    {{ et.name }} ({{ et.start_vertex?.name }} → {{ et.end_vertex?.name }})
                 </option>
             </select>
         </div>
