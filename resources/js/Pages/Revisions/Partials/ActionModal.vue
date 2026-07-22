@@ -13,6 +13,8 @@ const props = defineProps({
     graphLocales: Object,
     createVertexActions: Array,
     createEdgeActions: Array,
+    routeSearchVertices: String,
+    routeSearchEdges: String,
 });
 
 const emit = defineEmits(['confirm', 'close']);
@@ -199,6 +201,8 @@ function backToTypeSelect() {
                                 :graph-locales="graphLocales"
                                 :create-vertex-actions="createVertexActions"
                                 :create-edge-actions="createEdgeActions"
+                                :route-search-vertices="routeSearchVertices"
+                                :route-search-edges="routeSearchEdges"
                             />
                         </template>
                     </div>
