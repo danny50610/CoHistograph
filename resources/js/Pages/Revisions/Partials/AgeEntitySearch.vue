@@ -31,6 +31,33 @@ const props = defineProps({
         default: null,
     },
     /**
+     * Human-readable locked type shown when typeLabels is provided without typeOptions.
+     * Example: "人物 (Person)"
+     */
+    lockedTypeDisplay: {
+        type: String,
+        default: null,
+    },
+    /**
+     * When true, show a read-only type indicator for pre-locked typeFilters.
+     */
+    showLockedType: {
+        type: Boolean,
+        default: false,
+    },
+    lockedTypePlaceholder: {
+        type: String,
+        default: '— 請先選擇類型 —',
+    },
+    lockedTypeHint: {
+        type: String,
+        default: '搜尋僅限此類型',
+    },
+    lockedTypePendingHint: {
+        type: String,
+        default: '請先選擇類型以啟用搜尋',
+    },
+    /**
      * When true, searching requires an effective type filter.
      */
     requireType: {
@@ -72,6 +99,10 @@ let abortController = null;
 let requestSeq = 0;
 
 const hasTypeOptions = computed(() => Array.isArray(props.typeOptions) && props.typeOptions.length > 0);
+
+const hasLockedTypeDisplay = computed(() =>
+    typeof props.lockedTypeDisplay === 'string' && props.lockedTypeDisplay !== '',
+);
 
 const effectiveTypeLabels = computed(() => {
     if (hasTypeOptions.value) {
@@ -453,6 +484,20 @@ function resultSecondary(item) {
                     {{ option.label }}
                 </option>
             </select>
+        </div>
+
+        <div v-else-if="showLockedType" class="mb-2">
+            <div class="form-text mb-1">Vertex 類型限制</div>
+            <input
+                type="text"
+                class="form-control"
+                :value="hasLockedTypeDisplay ? lockedTypeDisplay : lockedTypePlaceholder"
+                readonly
+                disabled
+            >
+            <div class="form-text">
+                {{ hasLockedTypeDisplay ? lockedTypeHint : lockedTypePendingHint }}
+            </div>
         </div>
 
         <div v-if="hasSelection" class="input-group">

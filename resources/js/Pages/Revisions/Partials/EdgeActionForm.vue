@@ -44,6 +44,24 @@ const endVertexTypeLabels = computed(() => {
     return label ? [label] : null;
 });
 
+const startVertexTypeDisplay = computed(() => {
+    const vertex = selectedEdgeType.value?.start_vertex;
+    if (! vertex) {
+        return null;
+    }
+
+    return `${vertex.name} (${vertex.age_label_name})`;
+});
+
+const endVertexTypeDisplay = computed(() => {
+    const vertex = selectedEdgeType.value?.end_vertex;
+    if (! vertex) {
+        return null;
+    }
+
+    return `${vertex.name} (${vertex.age_label_name})`;
+});
+
 const edgeTypeOptions = computed(() =>
     (props.edgeTypes ?? []).map((et) => ({
         value: et.age_label_name,
@@ -151,7 +169,12 @@ function onEndRefOrderChange(value) {
                 :search-url="routeSearchVertices"
                 entity-kind="vertex"
                 :type-labels="startVertexTypeLabels"
+                :locked-type-display="startVertexTypeDisplay"
+                show-locked-type
                 require-type
+                locked-type-placeholder="— 請先選擇 Edge 類型 —"
+                locked-type-pending-hint="請先選擇 Edge 類型，起始 Vertex 類型才會確定"
+                locked-type-hint="搜尋僅限此 Vertex 類型"
                 placeholder="搜尋起始 Vertex 名稱或 ID…"
                 @update:model-value="onStartVertexIdUpdate"
             />
@@ -185,7 +208,12 @@ function onEndRefOrderChange(value) {
                 :search-url="routeSearchVertices"
                 entity-kind="vertex"
                 :type-labels="endVertexTypeLabels"
+                :locked-type-display="endVertexTypeDisplay"
+                show-locked-type
                 require-type
+                locked-type-placeholder="— 請先選擇 Edge 類型 —"
+                locked-type-pending-hint="請先選擇 Edge 類型，終止 Vertex 類型才會確定"
+                locked-type-hint="搜尋僅限此 Vertex 類型"
                 placeholder="搜尋終止 Vertex 名稱或 ID…"
                 @update:model-value="onEndVertexIdUpdate"
             />
