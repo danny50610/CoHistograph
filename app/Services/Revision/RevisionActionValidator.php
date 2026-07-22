@@ -5,6 +5,7 @@ namespace App\Services\Revision;
 use App\Enums\PropertyType;
 use App\Enums\RevisionActionType;
 use App\Models\RevisionAction;
+use App\Support\PropertyValueCaster;
 
 /**
  * 驗證單一 Revision 操作的邏輯
@@ -21,14 +22,18 @@ class RevisionActionValidator
 
     private RevisionActionResolver $resolver;
 
+    private PropertyValueCaster $propertyValueCaster;
+
     private array $actionHasError = [];
 
     public function __construct(
         AgeGraphStateManager $graphManager,
         RevisionActionResolver $resolver,
+        PropertyValueCaster $propertyValueCaster,
     ) {
         $this->graphManager = $graphManager;
         $this->resolver = $resolver;
+        $this->propertyValueCaster = $propertyValueCaster;
     }
 
     public function markActionError(int $order): void
@@ -491,12 +496,7 @@ class RevisionActionValidator
 
     private function valueMatchesType(string $value, PropertyType $propertyType): bool
     {
-        return match ($propertyType) {
-            PropertyType::Integer => preg_match('/^-?\\d+$/', $value) === 1,
-            PropertyType::Float => preg_match('/^-?(?:\\d+|\\d*\\.\\d+)$/', $value) === 1,
-            PropertyType::Boolean => in_array(strtolower($value), ['true', 'false'], true),
-            PropertyType::String => true,
-        };
+        return $this->propertyValueCaster->matchesType($value, $propertyType);
     }
 
     private function isProvided(mixed $value): bool

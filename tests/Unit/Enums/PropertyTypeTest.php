@@ -22,4 +22,12 @@ class PropertyTypeTest extends TestCase
             );
         }
     }
+
+    #[Test]
+    public function includes_date_and_timestamptz(): void
+    {
+        $this->assertSame('DATE', PropertyType::Date->value);
+        $this->assertSame('TIMESTAMPTZ', PropertyType::Timestamptz->value);
+        $this->assertCount(6, PropertyType::cases());
+    }
 }

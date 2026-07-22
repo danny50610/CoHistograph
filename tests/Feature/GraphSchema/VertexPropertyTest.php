@@ -47,6 +47,40 @@ class VertexPropertyTest extends TestCase
         $this->assertEquals(PropertyType::String, $property->age_property_type);
     }
 
+    public function test_store_date_and_timestamptz_types_success()
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Occurred On',
+                'description' => '',
+                'age_property_name' => 'occurred_on',
+                'age_property_type' => PropertyType::Date->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Recorded At',
+                'description' => '',
+                'age_property_name' => 'recorded_at',
+                'age_property_type' => PropertyType::Timestamptz->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals(
+            PropertyType::Date,
+            VertexProperty::where('age_property_name', 'occurred_on')->firstOrFail()->age_property_type,
+        );
+        $this->assertEquals(
+            PropertyType::Timestamptz,
+            VertexProperty::where('age_property_name', 'recorded_at')->firstOrFail()->age_property_type,
+        );
+    }
+
     public function test_store_fail_when_name_not_unique_within_vertex_type()
     {
         $vertexType = VertexType::factory()->create();

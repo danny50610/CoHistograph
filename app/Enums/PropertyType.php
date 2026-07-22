@@ -8,6 +8,10 @@ enum PropertyType: string
     case Float = 'FLOAT';
     case Boolean = 'BOOLEAN';
     case String = 'STRING';
+    /** Date-only value stored as `Y-m-d` string in AGE. */
+    case Date = 'DATE';
+    /** Instant with timezone, stored as ISO-8601 string with offset in AGE. */
+    case Timestamptz = 'TIMESTAMPTZ';
 
     /**
      * @return list<array{value: string, label: string}>
