@@ -5,7 +5,7 @@
  * Props:
  *   modelValue          — local form object (v-model)
  *   actionType          — 'create_edge' | 'delete_edge'
- *   edgeTypes           — Array of EdgeType (with startVertex, endVertex)
+ *   edgeTypes           — Array of EdgeType (with start_vertex, end_vertex)
  *   createVertexActions — Array of actions with action === 'create_vertex'
  *   routeSearchVertices — Vertex search endpoint URL
  *   routeSearchEdges    — Edge search endpoint URL
@@ -33,17 +33,13 @@ const selectedEdgeType = computed(() =>
 );
 
 const startVertexTypeLabels = computed(() => {
-    const label = selectedEdgeType.value?.start_vertex?.age_label_name
-        ?? selectedEdgeType.value?.startVertex?.age_label_name
-        ?? null;
+    const label = selectedEdgeType.value?.start_vertex?.age_label_name ?? null;
 
     return label ? [label] : null;
 });
 
 const endVertexTypeLabels = computed(() => {
-    const label = selectedEdgeType.value?.end_vertex?.age_label_name
-        ?? selectedEdgeType.value?.endVertex?.age_label_name
-        ?? null;
+    const label = selectedEdgeType.value?.end_vertex?.age_label_name ?? null;
 
     return label ? [label] : null;
 });
@@ -83,7 +79,7 @@ function onEndVertexIdUpdate(value) {
                     :key="et.id"
                     :value="et.age_label_name"
                 >
-                    {{ et.name }} ({{ (et.start_vertex ?? et.startVertex).name }} → {{ (et.end_vertex ?? et.endVertex).name }})
+                    {{ et.name }} ({{ et.start_vertex?.name }} → {{ et.end_vertex?.name }})
                 </option>
             </select>
         </div>
