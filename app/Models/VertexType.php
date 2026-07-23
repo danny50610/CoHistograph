@@ -24,11 +24,13 @@ class VertexType extends Model
         return $this->hasMany(VertexProperty::class);
     }
 
+    /** @return HasMany<EdgeType, $this> */
     public function startEdgeTypes(): HasMany
     {
         return $this->hasMany(EdgeType::class, 'start_vertex_id');
     }
 
+    /** @return HasMany<EdgeType, $this> */
     public function endEdgeTypes(): HasMany
     {
         return $this->hasMany(EdgeType::class, 'end_vertex_id');
