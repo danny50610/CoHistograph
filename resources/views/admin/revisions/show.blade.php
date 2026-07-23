@@ -78,7 +78,11 @@
                         @else
                             <span class="text-danger fw-semibold">驗證未通過</span>
                         @endif
-                        <span class="text-secondary small ms-2">（進入頁面時重新驗證）</span>
+                        @if ($revision->isPendingReview())
+                            <span class="text-secondary small ms-2">（進入頁面時重新驗證）</span>
+                        @elseif ($revision->isApproved())
+                            <span class="text-secondary small ms-2">（審核通過時已驗證）</span>
+                        @endif
                     </dd>
                 </dl>
             </div>

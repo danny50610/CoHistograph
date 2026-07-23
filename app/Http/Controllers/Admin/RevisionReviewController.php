@@ -10,6 +10,7 @@ use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\VertexType;
 use App\Services\Revision\RevisionReviewService;
+use App\Services\Revision\RevisionValidationResult;
 use App\Services\Revision\RevisionValidationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -45,7 +46,11 @@ class RevisionReviewController extends Controller
             'reviews.actorUser',
         ]);
 
-        $validationResult = $this->revisionValidationService->validate($revision);
+        // Approved revisions have already been applied to AGE; re-validating against
+        // the live graph would falsely fail delete_* actions whose targets are gone.
+        $validationResult = $revision->isApproved()
+            ? new RevisionValidationResult
+            : $this->revisionValidationService->validate($revision);
 
         $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
         $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
