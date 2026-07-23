@@ -91,6 +91,7 @@ class VertexShowTest extends TestCase
         $edgeLabel = $this->graphLabel();
         $edgeType = EdgeType::factory()->create([
             'name' => '參與',
+            'reverse_name' => '參與者',
             'age_label_name' => $edgeLabel,
             'start_vertex_id' => $personType->id,
             'end_vertex_id' => $songType->id,
@@ -116,10 +117,102 @@ class VertexShowTest extends TestCase
 
         $this->get(route('graph.vertex.show', ['vertex' => $personId]))
             ->assertOk()
+            ->assertSee('連出 Edge')
             ->assertSee('參與')
             ->assertSee('某歌曲')
             ->assertSee('繁體中文：主唱')
-            ->assertSee('English：Lead vocalist');
+            ->assertSee('English：Lead vocalist')
+            ->assertDontSee('參與者');
+    }
+
+    public function test_show_displays_incoming_edges_with_reverse_name(): void
+    {
+        $vtuberType = VertexType::factory()->create([
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($vtuberType)->create([
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $groupType = VertexType::factory()->create([
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($groupType)->create([
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $edgeLabel = $this->graphLabel();
+        EdgeType::factory()->create([
+            'name' => '團體',
+            'reverse_name' => '成員',
+            'age_label_name' => $edgeLabel,
+            'start_vertex_id' => $vtuberType->id,
+            'end_vertex_id' => $groupType->id,
+        ]);
+
+        $vtuberId = $this->createAgeVertex($vtuberType->age_label_name, ['name' => '星街彗星']);
+        $groupId = $this->createAgeVertex($groupType->age_label_name, ['name' => 'Hololive']);
+
+        $this->createAgeEdge($edgeLabel, $vtuberId, $groupId);
+
+        $this->get(route('graph.vertex.show', ['vertex' => $groupId]))
+            ->assertOk()
+            ->assertSee('連入 Edge')
+            ->assertSee('成員')
+            ->assertSee('星街彗星')
+            ->assertDontSee('團體');
+
+        $this->get(route('graph.vertex.show', ['vertex' => $vtuberId]))
+            ->assertOk()
+            ->assertSee('連出 Edge')
+            ->assertSee('團體')
+            ->assertSee('Hololive')
+            ->assertDontSee('成員');
+    }
+
+    public function test_show_keeps_both_directions_for_self_loop_edge_type(): void
+    {
+        $personType = VertexType::factory()->create([
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($personType)->create([
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $edgeLabel = $this->graphLabel();
+        EdgeType::factory()->create([
+            'name' => '認識',
+            'reverse_name' => '被認識',
+            'age_label_name' => $edgeLabel,
+            'start_vertex_id' => $personType->id,
+            'end_vertex_id' => $personType->id,
+        ]);
+
+        $aliceId = $this->createAgeVertex($personType->age_label_name, ['name' => 'Alice']);
+        $bobId = $this->createAgeVertex($personType->age_label_name, ['name' => 'Bob']);
+
+        $this->createAgeEdge($edgeLabel, $aliceId, $bobId);
+
+        $this->get(route('graph.vertex.show', ['vertex' => $aliceId]))
+            ->assertOk()
+            ->assertSee('連出 Edge')
+            ->assertSee('認識')
+            ->assertSee('Bob');
+
+        $this->get(route('graph.vertex.show', ['vertex' => $bobId]))
+            ->assertOk()
+            ->assertSee('連入 Edge')
+            ->assertSee('被認識')
+            ->assertSee('Alice');
     }
 
     /**
