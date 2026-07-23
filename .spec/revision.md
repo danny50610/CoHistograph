@@ -34,7 +34,7 @@ app/
 │   └── Graph/           # 圖資料瀏覽（Vertex 列表與詳情）
 ├── Models/              # Eloquent models
 ├── Rules/GraphSchema/   # 自訂驗證規則（AGE label/property 命名規則）
-├── Enums/               # PropertyType enum（INTEGER, FLOAT, BOOLEAN, STRING, DATE, TIMESTAMPTZ）
+├── Enums/               # PropertyType enum（INTEGER, FLOAT, BOOLEAN, STRING, DATE, MONTH_DAY, TIMESTAMPTZ）
 └── Services/            # MenuService
 database/
 ├── migrations/          # 關聯式 DB schema

@@ -24,10 +24,11 @@ class PropertyTypeTest extends TestCase
     }
 
     #[Test]
-    public function includes_date_and_timestamptz(): void
+    public function includes_date_month_day_and_timestamptz(): void
     {
         $this->assertSame('DATE', PropertyType::Date->value);
+        $this->assertSame('MONTH_DAY', PropertyType::MonthDay->value);
         $this->assertSame('TIMESTAMPTZ', PropertyType::Timestamptz->value);
-        $this->assertCount(6, PropertyType::cases());
+        $this->assertCount(7, PropertyType::cases());
     }
 }

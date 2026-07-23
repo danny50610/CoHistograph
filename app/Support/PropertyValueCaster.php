@@ -11,6 +11,14 @@ class PropertyValueCaster
 {
     private const DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/';
 
+    private const MONTH_DAY_PATTERN = '/^\d{2}-\d{2}$/';
+
+    /**
+     * Leap year used as a sentinel when materializing month-day as Carbon.
+     * Allows valid Feb 29 values without attaching a real year.
+     */
+    private const MONTH_DAY_SENTINEL_YEAR = 2000;
+
     /**
      * ISO-8601 datetime with explicit timezone offset or Z.
      * Examples: 2024-07-22T14:30:00+08:00, 2024-07-22T06:30:00Z
@@ -25,6 +33,7 @@ class PropertyValueCaster
             PropertyType::Boolean => in_array(strtolower($value), ['true', 'false'], true),
             PropertyType::String => true,
             PropertyType::Date => $this->isValidDate($value),
+            PropertyType::MonthDay => $this->isValidMonthDay($value),
             PropertyType::Timestamptz => $this->isValidTimestamptz($value),
         };
     }
@@ -32,7 +41,7 @@ class PropertyValueCaster
     /**
      * Convert a revision/input string into the PHP/AGE storage value.
      *
-     * DATE and TIMESTAMPTZ stay as normalized strings in AGE (agtype string).
+     * DATE / MONTH_DAY / TIMESTAMPTZ stay as normalized strings in AGE (agtype string).
      */
     public function toStorage(string $value, PropertyType $propertyType): int|float|bool|string
     {
@@ -46,6 +55,7 @@ class PropertyValueCaster
             PropertyType::Boolean => strtolower($value) === 'true',
             PropertyType::String => $value,
             PropertyType::Date => $value,
+            PropertyType::MonthDay => $value,
             PropertyType::Timestamptz => $this->normalizeTimestamptz($value),
         };
     }
@@ -54,6 +64,7 @@ class PropertyValueCaster
      * Convert a value read from AGE into the PHP object/scalar for this property type.
      *
      * DATE → CarbonImmutable (date-only, midnight UTC)
+     * MONTH_DAY → CarbonImmutable (sentinel year 2000, midnight UTC)
      * TIMESTAMPTZ → CarbonImmutable (timezone preserved from stored offset)
      */
     public function fromStorage(mixed $value, PropertyType $propertyType): mixed
@@ -68,6 +79,7 @@ class PropertyValueCaster
             PropertyType::Boolean,
             PropertyType::String => $value,
             PropertyType::Date => $this->parseDate($value),
+            PropertyType::MonthDay => $this->parseMonthDay($value),
             PropertyType::Timestamptz => $this->parseTimestamptz($value),
         };
     }
@@ -83,6 +95,7 @@ class PropertyValueCaster
 
             return match ($propertyType) {
                 PropertyType::Date => $carbon->toDateString(),
+                PropertyType::MonthDay => $carbon->format('m-d'),
                 PropertyType::Timestamptz => $carbon->toIso8601String(),
                 default => $carbon->toIso8601String(),
             };
@@ -100,6 +113,17 @@ class PropertyValueCaster
         [$year, $month, $day] = array_map('intval', explode('-', $value));
 
         return checkdate($month, $day, $year);
+    }
+
+    private function isValidMonthDay(string $value): bool
+    {
+        if (preg_match(self::MONTH_DAY_PATTERN, $value) !== 1) {
+            return false;
+        }
+
+        [$month, $day] = array_map('intval', explode('-', $value));
+
+        return checkdate($month, $day, self::MONTH_DAY_SENTINEL_YEAR);
     }
 
     private function isValidTimestamptz(string $value): bool
@@ -133,6 +157,25 @@ class PropertyValueCaster
         }
 
         return CarbonImmutable::createFromFormat('!Y-m-d', $value, 'UTC');
+    }
+
+    private function parseMonthDay(mixed $value): mixed
+    {
+        if ($value instanceof DateTimeInterface) {
+            return CarbonImmutable::instance($value)
+                ->setYear(self::MONTH_DAY_SENTINEL_YEAR)
+                ->startOfDay();
+        }
+
+        if (! is_string($value) || ! $this->isValidMonthDay($value)) {
+            return $value;
+        }
+
+        return CarbonImmutable::createFromFormat(
+            '!Y-m-d',
+            self::MONTH_DAY_SENTINEL_YEAR.'-'.$value,
+            'UTC',
+        );
     }
 
     private function parseTimestamptz(mixed $value): mixed

@@ -25,6 +25,12 @@ class LocalizedPropertyGrouperDateCastTest extends TestCase
             'locale' => null,
         ]);
         VertexProperty::factory()->for($vertexType)->create([
+            'name' => '週年',
+            'age_property_name' => 'anniversary',
+            'age_property_type' => PropertyType::MonthDay,
+            'locale' => null,
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
             'name' => '記錄時間',
             'age_property_name' => 'recorded_at',
             'age_property_type' => PropertyType::Timestamptz,
@@ -36,14 +42,17 @@ class LocalizedPropertyGrouperDateCastTest extends TestCase
             $vertexType->properties()->orderBy('id')->get(),
             [
                 'occurred_on' => '2024-07-22',
+                'anniversary' => '07-22',
                 'recorded_at' => '2024-07-22T14:30:00+08:00',
             ],
         );
 
-        $this->assertCount(2, $groups);
+        $this->assertCount(3, $groups);
         $this->assertInstanceOf(CarbonImmutable::class, $groups[0]['members'][0]['value']);
         $this->assertSame('2024-07-22', $groups[0]['members'][0]['value']->toDateString());
         $this->assertInstanceOf(CarbonImmutable::class, $groups[1]['members'][0]['value']);
-        $this->assertSame(480, $groups[1]['members'][0]['value']->offsetMinutes);
+        $this->assertSame('07-22', $groups[1]['members'][0]['value']->format('m-d'));
+        $this->assertInstanceOf(CarbonImmutable::class, $groups[2]['members'][0]['value']);
+        $this->assertSame(480, $groups[2]['members'][0]['value']->offsetMinutes);
     }
 }

@@ -2,7 +2,7 @@
 
 ## 現況
 
-`PropertyType` enum（`app/Enums/PropertyType.php`）定義屬性型別。目前共 **6** 種：
+`PropertyType` enum（`app/Enums/PropertyType.php`）定義屬性型別。目前共 **7** 種：
 
 | Enum case | 儲存值 | AGE 實際型別 | PHP 讀出型別 |
 |-----------|--------|--------------|--------------|
@@ -11,9 +11,10 @@
 | `Boolean` | `BOOLEAN` | agtype boolean | `bool` |
 | `String` | `STRING` | agtype string | `string` |
 | `Date` | `DATE` | **agtype string**（`Y-m-d`） | `Carbon\CarbonImmutable` |
+| `MonthDay` | `MONTH_DAY` | **agtype string**（`m-d`，如 `07-22`） | `Carbon\CarbonImmutable`（sentinel year `2000`） |
 | `Timestamptz` | `TIMESTAMPTZ` | **agtype string**（ISO-8601 + offset） | `Carbon\CarbonImmutable` |
 
-`DATE` 對應「只存日期」的 datetime 語意；`TIMESTAMPTZ` 為帶時區的時間點。
+`DATE` 對應完整日期；`MONTH_DAY` 只存月日（週年／紀念日等，不綁年份）；`TIMESTAMPTZ` 為帶時區的時間點。
 
 ## 字串儲存／讀出轉換
 
@@ -21,16 +22,18 @@
 
 - `matchesType()`：Revision 驗證（`RevisionActionValidator`）
 - `toStorage()`：寫入 AGE 前轉換（`RevisionApplyService`）
-  - `DATE` / `TIMESTAMPTZ` **維持字串**（不把 Carbon 丟進 Cypher SET）
+  - `DATE` / `MONTH_DAY` / `TIMESTAMPTZ` **維持字串**（不把 Carbon 丟進 Cypher SET）
   - `TIMESTAMPTZ` 會正規化成 ISO-8601（例如 `2024-07-22T14:30:00+08:00`）
 - `fromStorage()`：從 AGE 讀出後轉換（`LocalizedPropertyGrouper`）
   - `DATE` → `CarbonImmutable`（UTC midnight）
+  - `MONTH_DAY` → `CarbonImmutable`（year 固定 `2000`，以便支援 `02-29`）
   - `TIMESTAMPTZ` → `CarbonImmutable`（保留原始 offset）
 - `formatForDisplay()`：Blade 顯示用
 
 輸入格式：
 
 - `DATE`：嚴格 `YYYY-MM-DD`，且須為有效曆日
+- `MONTH_DAY`：嚴格 `MM-DD`（零填充），以 leap year `2000` 驗證曆日（允許 `02-29`）
 - `TIMESTAMPTZ`：必須帶時區（`Z` 或 `±HH:MM` / `±HHMM`），禁止無時區的 naive datetime
 
 `revision_actions.value` 仍為 text；型別轉換發生在驗證／套用／讀取顯示時，不靠 Eloquent cast。
@@ -59,7 +62,7 @@
 | 希望 agtype annotation（若未來 AGE 支援）還原成 Carbon | `Parser/AgtypeBaseListenerImpl.php` 的 `exitTypeAnnotation` / string value 路徑 |
 | 希望 CREATE/SET 產生 AGE 原生 temporal（若版本支援） | 查 AGE 文件後改 Cypher 產生方式；**不要**在應用層假設 driver 會回 Carbon |
 
-若只是新增屬性型別（如 DATE / TIMESTAMPTZ）：
+若只是新增屬性型別（如 DATE / MONTH_DAY / TIMESTAMPTZ）：
 
 1. 擴充 `App\Enums\PropertyType`
 2. 更新 `PropertyValueCaster` 的 `match` 分支

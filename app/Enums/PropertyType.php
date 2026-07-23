@@ -10,6 +10,8 @@ enum PropertyType: string
     case String = 'STRING';
     /** Date-only value stored as `Y-m-d` string in AGE. */
     case Date = 'DATE';
+    /** Month and day only, stored as `m-d` string in AGE (e.g. `07-22`). */
+    case MonthDay = 'MONTH_DAY';
     /** Instant with timezone, stored as ISO-8601 string with offset in AGE. */
     case Timestamptz = 'TIMESTAMPTZ';
 
