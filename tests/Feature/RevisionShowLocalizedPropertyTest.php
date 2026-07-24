@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PropertyType;
 use App\Enums\RevisionStatus;
 use App\Models\EdgeType;
 use App\Models\Revision;
@@ -9,6 +10,7 @@ use App\Models\User;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -105,5 +107,47 @@ class RevisionShowLocalizedPropertyTest extends TestCase
         $this->assertSame('Track', $matched['end_vertex']['name'] ?? null);
         $this->assertArrayNotHasKey('startVertex', $matched);
         $this->assertArrayNotHasKey('endVertex', $matched);
+    }
+
+    public function test_edit_exposes_property_types_for_value_inputs(): void
+    {
+        $user = User::factory()->create();
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'event_label']);
+        VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'occurred_on',
+            'age_property_type' => PropertyType::Date,
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'anniversary',
+            'age_property_type' => PropertyType::MonthDay,
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'recorded_at',
+            'age_property_type' => PropertyType::Timestamptz,
+        ]);
+
+        $revision = Revision::query()->create([
+            'title' => 'Draft with typed properties',
+            'description' => '',
+            'status' => RevisionStatus::Draft,
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('revisions.edit', $revision))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Revisions/Edit')
+                ->where('vertexTypes', function (mixed $vertexTypes) use ($vertexType) {
+                    /** @var Collection<int, array<string, mixed>> $types */
+                    $types = collect($vertexTypes);
+                    $target = $types->firstWhere('id', $vertexType->id);
+                    $byName = collect($target['properties'] ?? [])->keyBy('age_property_name');
+
+                    return ($byName['occurred_on']['age_property_type'] ?? null) === PropertyType::Date->value
+                        && ($byName['anniversary']['age_property_type'] ?? null) === PropertyType::MonthDay->value
+                        && ($byName['recorded_at']['age_property_type'] ?? null) === PropertyType::Timestamptz->value;
+                })
+            );
     }
 }

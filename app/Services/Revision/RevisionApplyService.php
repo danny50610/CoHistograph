@@ -8,6 +8,7 @@ use App\Models\EdgeProperty;
 use App\Models\Revision;
 use App\Models\RevisionAction;
 use App\Models\VertexProperty;
+use App\Support\PropertyValueCaster;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Database\PostgresConnection;
@@ -30,8 +31,10 @@ class RevisionApplyService
     /** @var Collection<int, RevisionAction> */
     private Collection $actionsByOrder;
 
-    public function __construct(private AgeGraphStateManager $graphManager)
-    {
+    public function __construct(
+        private AgeGraphStateManager $graphManager,
+        private PropertyValueCaster $propertyValueCaster,
+    ) {
         $this->graphConnection = (string) config('cohistograph.app.graph.connection-name');
         $this->graphName = (string) config('cohistograph.app.graph.name');
     }
@@ -304,12 +307,7 @@ class RevisionApplyService
 
     private function castPropertyValue(string $value, PropertyType $propertyType): mixed
     {
-        return match ($propertyType) {
-            PropertyType::Integer => (int) $value,
-            PropertyType::Float => (float) $value,
-            PropertyType::Boolean => strtolower($value) === 'true',
-            PropertyType::String => $value,
-        };
+        return $this->propertyValueCaster->toStorage($value, $propertyType);
     }
 
     private function graphConnection(): PostgresConnection

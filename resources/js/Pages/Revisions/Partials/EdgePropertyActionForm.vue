@@ -11,6 +11,7 @@
  */
 import { computed, ref, watch } from 'vue';
 import AgeEntitySearch from './AgeEntitySearch.vue';
+import PropertyValueInput from './PropertyValueInput.vue';
 
 const props = defineProps({
     modelValue: Object,
@@ -71,17 +72,33 @@ const filteredProperties = computed(() => {
     return (et?.properties ?? []).map((p) => ({ ...p, edgeName: et.name }));
 });
 
+const selectedProperty = computed(() =>
+    filteredProperties.value.find((p) => p.age_property_name === props.modelValue.age_property_name) ?? null,
+);
+
+const selectedPropertyType = computed(() => selectedProperty.value?.age_property_type ?? null);
+
 const isCreate = computed(() => props.actionType === 'create_edge_property');
 const isUpdate = computed(() => props.actionType === 'update_edge_property');
 
 function propertyOptionLabel(prop) {
+    const typeSuffix = prop.age_property_type ? ` [${prop.age_property_type}]` : '';
+
     if (!prop.locale) {
-        return `${prop.edgeName} / ${prop.name} (${prop.age_property_name})`;
+        return `${prop.edgeName} / ${prop.name} (${prop.age_property_name})${typeSuffix}`;
     }
 
     const localeLabel = props.graphLocales?.[prop.locale] ?? prop.locale;
 
-    return `${prop.edgeName} / ${prop.name}（${localeLabel}） [${prop.locale}] (${prop.age_property_name})`;
+    return `${prop.edgeName} / ${prop.name}（${localeLabel}） [${prop.locale}] (${prop.age_property_name})${typeSuffix}`;
+}
+
+function onPropertyChange(name) {
+    emit('update:modelValue', {
+        ...props.modelValue,
+        age_property_name: name || null,
+        value: null,
+    });
 }
 
 function clearPropertyIfInvalid(nextState) {
@@ -90,6 +107,7 @@ function clearPropertyIfInvalid(nextState) {
         !filteredProperties.value.some((p) => p.age_property_name === nextState.age_property_name)
     ) {
         nextState.age_property_name = null;
+        nextState.value = null;
     }
 
     return nextState;
@@ -183,7 +201,7 @@ function onTargetRefOrderChange(value) {
             class="form-select"
             :value="modelValue.age_property_name"
             required
-            @change="update('age_property_name', $event.target.value || null)"
+            @change="onPropertyChange($event.target.value)"
         >
             <option value="">— 請選擇 —</option>
             <option
@@ -198,14 +216,14 @@ function onTargetRefOrderChange(value) {
 
     <!-- Value: only for create / update -->
     <div v-if="isCreate || isUpdate" class="mb-3">
-        <label class="col-form-label fw-semibold">屬性值</label>
-        <input
-            type="text"
-            class="form-control"
-            :value="modelValue.value"
-            placeholder="屬性值"
-            required
-            @input="update('value', $event.target.value || null)"
+        <label class="col-form-label fw-semibold">
+            屬性值
+            <span v-if="selectedPropertyType" class="badge text-bg-secondary ms-1">{{ selectedPropertyType }}</span>
+        </label>
+        <PropertyValueInput
+            :model-value="modelValue.value"
+            :property-type="selectedPropertyType"
+            @update:model-value="update('value', $event)"
         />
     </div>
 </template>
