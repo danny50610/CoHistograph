@@ -36,6 +36,8 @@
 - `MONTH_DAY`：嚴格 `MM-DD`（零填充），以 leap year `2000` 驗證曆日（允許 `02-29`）
 - `TIMESTAMPTZ`：必須帶時區（`Z` 或 `±HH:MM` / `±HHMM`），禁止無時區的 naive datetime
 
+修訂編輯 UI（`resources/js/Pages/Revisions/Partials/PropertyValueInput.vue`）依型別切換輸入元件，仍寫入上述字串格式。
+
 `revision_actions.value` 仍為 text；型別轉換發生在驗證／套用／讀取顯示時，不靠 Eloquent cast。
 
 ## Apache AGE driver 是否需要修改？
