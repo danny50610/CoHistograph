@@ -9,13 +9,9 @@
  *   createEdgeActions — Array of actions with action === 'create_edge'
  *   routeSearchEdges  — Edge search endpoint URL
  */
-<<<<<<< HEAD
 import { computed, ref, watch } from 'vue';
 import AgeEntitySearch from './AgeEntitySearch.vue';
-=======
-import { computed } from 'vue';
 import PropertyValueInput from './PropertyValueInput.vue';
->>>>>>> 8315815 (feat: 修訂編輯依屬性型別切換 value 輸入元件)
 
 const props = defineProps({
     modelValue: Object,
@@ -111,7 +107,6 @@ function clearPropertyIfInvalid(nextState) {
         !filteredProperties.value.some((p) => p.age_property_name === nextState.age_property_name)
     ) {
         nextState.age_property_name = null;
-        nextState.value = null;
     }
 
     return nextState;
