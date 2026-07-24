@@ -17,7 +17,7 @@
                 <p class="mb-2">
                     {{ $edgeTypeName }}
                     <a href="{{ route('graph-schema.edge-type.show', [$edgeInfo['type']]) }}"><i class="fa-solid fa-circle-info"></i></a>
-                    →
+                    {{ $useReverseName ? '←' : '→' }}
                     <a href="{{ route('graph.vertex.show', ['vertex' => $edgeItem['vertex']->id]) }}">
                         {{ $edgeItem['displayName'] }}
                     </a>

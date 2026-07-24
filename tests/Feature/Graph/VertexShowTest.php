@@ -118,8 +118,7 @@ class VertexShowTest extends TestCase
         $this->get(route('graph.vertex.show', ['vertex' => $personId]))
             ->assertOk()
             ->assertSee('連出 Edge')
-            ->assertSee('參與')
-            ->assertSee('某歌曲')
+            ->assertSeeInOrder(['參與', '→', '某歌曲'])
             ->assertSee('繁體中文：主唱')
             ->assertSee('English：Lead vocalist')
             ->assertDontSee('參與者');
@@ -164,15 +163,13 @@ class VertexShowTest extends TestCase
         $this->get(route('graph.vertex.show', ['vertex' => $groupId]))
             ->assertOk()
             ->assertSee('連入 Edge')
-            ->assertSee('成員')
-            ->assertSee('星街彗星')
+            ->assertSeeInOrder(['成員', '←', '星街彗星'])
             ->assertDontSee('團體');
 
         $this->get(route('graph.vertex.show', ['vertex' => $vtuberId]))
             ->assertOk()
             ->assertSee('連出 Edge')
-            ->assertSee('團體')
-            ->assertSee('Hololive')
+            ->assertSeeInOrder(['團體', '→', 'Hololive'])
             ->assertDontSee('成員');
     }
 
@@ -205,14 +202,12 @@ class VertexShowTest extends TestCase
         $this->get(route('graph.vertex.show', ['vertex' => $aliceId]))
             ->assertOk()
             ->assertSee('連出 Edge')
-            ->assertSee('認識')
-            ->assertSee('Bob');
+            ->assertSeeInOrder(['認識', '→', 'Bob']);
 
         $this->get(route('graph.vertex.show', ['vertex' => $bobId]))
             ->assertOk()
             ->assertSee('連入 Edge')
-            ->assertSee('被認識')
-            ->assertSee('Alice');
+            ->assertSeeInOrder(['被認識', '←', 'Alice']);
     }
 
     /**
