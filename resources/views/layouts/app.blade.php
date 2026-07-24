@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    {{-- Fork 可新增 resources/views/custom/head.blade.php（上游不提供此檔，避免同步衝突） --}}
+    @includeIf('custom.head')
+
     @php
         $title = '';
         if(View::hasSection('title')) {
