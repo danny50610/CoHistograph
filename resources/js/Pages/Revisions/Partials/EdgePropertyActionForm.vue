@@ -107,6 +107,7 @@ function clearPropertyIfInvalid(nextState) {
         !filteredProperties.value.some((p) => p.age_property_name === nextState.age_property_name)
     ) {
         nextState.age_property_name = null;
+        nextState.value = null;
     }
 
     return nextState;
