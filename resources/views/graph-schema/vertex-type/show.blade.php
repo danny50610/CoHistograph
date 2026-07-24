@@ -75,6 +75,7 @@
                             <span class=text-body-secondary>({{ $edgeType->age_label_name }})</span>
                         </dt>
                         <dd class="col-md-10 mb-0">
+                            ←
                             <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->startVertex]) }}">
                                 {{ $edgeType->startVertex->name}}
                             </a>
@@ -97,6 +98,7 @@
                             <span class=text-body-secondary>({{ $edgeType->age_label_name }})</span>
                         </dt>
                         <dd class="col-md-10 mb-0">
+                            →
                             <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->endVertex]) }}">
                                 {{ $edgeType->endVertex->name}}
                             </a>
