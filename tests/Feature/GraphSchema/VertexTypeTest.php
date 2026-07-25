@@ -439,6 +439,42 @@ class VertexTypeTest extends TestCase
         $this->assertStringContainsString('birth_year', $content);
     }
 
+    public function test_show_displays_incoming_and_outgoing_edges_with_direction_arrows(): void
+    {
+        $personType = VertexType::factory()->create(['name' => '人物']);
+        $songType = VertexType::factory()->create(['name' => '歌曲']);
+        $groupType = VertexType::factory()->create(['name' => '團體']);
+
+        EdgeType::factory()->create([
+            'name' => '參與',
+            'reverse_name' => '參與者',
+            'start_vertex_id' => $personType->id,
+            'end_vertex_id' => $songType->id,
+        ]);
+        EdgeType::factory()->create([
+            'name' => '隸屬',
+            'reverse_name' => '成員',
+            'start_vertex_id' => $personType->id,
+            'end_vertex_id' => $groupType->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('graph-schema.vertex-type.show', $personType))
+            ->assertOk()
+            ->assertSeeInOrder(['連出 Edge', '參與', '→', '歌曲'])
+            ->assertSeeInOrder(['連出 Edge', '隸屬', '→', '團體']);
+
+        $this->actingAs($this->user)
+            ->get(route('graph-schema.vertex-type.show', $songType))
+            ->assertOk()
+            ->assertSeeInOrder(['連入 Edge', '參與者', '←', '人物']);
+
+        $this->actingAs($this->user)
+            ->get(route('graph-schema.vertex-type.show', $groupType))
+            ->assertOk()
+            ->assertSeeInOrder(['連入 Edge', '成員', '←', '人物']);
+    }
+
     public function test_update_allows_localized_base_name_for_show_property_name(): void
     {
         $vertexType = VertexType::factory()->create();

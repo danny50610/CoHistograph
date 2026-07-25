@@ -96,15 +96,6 @@ class VertexController extends Controller
             $vertexProperties,
         );
 
-        $edgeInfoList = $this->getVertexEdgeInfo($vertexType, $id);
-
-        return view('graph.vertex.show', compact('vertex', 'vertexType', 'edgeInfoList', 'propertyGroups', 'displayName'));
-    }
-
-    protected function getVertexEdgeInfo(VertexType $vertexType, $id)
-    {
-        $edgeInfoList = [];
-
         $vertexType->load([
             'startEdgeTypes.properties',
             'startEdgeTypes.endVertex.properties',
@@ -112,26 +103,39 @@ class VertexController extends Controller
             'endEdgeTypes.startVertex.properties',
         ]);
 
-        $this->mergeInfo($edgeInfoList, $vertexType, $id, $vertexType->startEdgeTypes, 'endVertex', Direction::RIGHT);
-        $this->mergeInfo($edgeInfoList, $vertexType, $id, $vertexType->endEdgeTypes, 'startVertex', Direction::LEFT);
+        $outgoingEdges = $this->buildEdgeInfo(
+            $vertexType,
+            $id,
+            $vertexType->startEdgeTypes,
+            'endVertex',
+            Direction::RIGHT,
+        );
+        $incomingEdges = $this->buildEdgeInfo(
+            $vertexType,
+            $id,
+            $vertexType->endEdgeTypes,
+            'startVertex',
+            Direction::LEFT,
+        );
 
-        foreach ($edgeInfoList as $edgeTypeId => $edgeInfo) {
-            $relatedVertexType = $edgeInfo['vertex_type'];
-
-            foreach ($edgeInfo['edges'] as $index => $edgeItem) {
-                $edgeInfoList[$edgeTypeId]['edges'][$index]['displayName'] = $this->displayNameResolver->resolve(
-                    $relatedVertexType->show_property_name,
-                    $this->normalizeAgeProperties($edgeItem['vertex']->properties ?? []),
-                    $relatedVertexType->properties,
-                );
-            }
-        }
-
-        return $edgeInfoList;
+        return view('graph.vertex.show', compact(
+            'vertex',
+            'vertexType',
+            'outgoingEdges',
+            'incomingEdges',
+            'propertyGroups',
+            'displayName',
+        ));
     }
 
-    protected function mergeInfo(array &$edgeInfoList, VertexType $vertexType, $id, Collection $edgeTypeList, string $targetVertexName, Direction $direction)
+    /**
+     * @param  Collection<int, EdgeType>  $edgeTypeList
+     * @return array<int, array{type: EdgeType, vertex_type: VertexType, edges: list<array{edge: object, vertex: object, displayName: string}>}>
+     */
+    protected function buildEdgeInfo(VertexType $vertexType, int $id, Collection $edgeTypeList, string $targetVertexName, Direction $direction): array
     {
+        $edgeInfoList = [];
+
         /** @var EdgeType $edgeType */
         foreach ($edgeTypeList as $edgeType) {
             $edgeInfoList[$edgeType->id] = [
@@ -164,6 +168,20 @@ class VertexController extends Controller
                 }
             }
         }
+
+        foreach ($edgeInfoList as $edgeTypeId => $edgeInfo) {
+            $relatedVertexType = $edgeInfo['vertex_type'];
+
+            foreach ($edgeInfo['edges'] as $index => $edgeItem) {
+                $edgeInfoList[$edgeTypeId]['edges'][$index]['displayName'] = $this->displayNameResolver->resolve(
+                    $relatedVertexType->show_property_name,
+                    $this->normalizeAgeProperties($edgeItem['vertex']->properties ?? []),
+                    $relatedVertexType->properties,
+                );
+            }
+        }
+
+        return $edgeInfoList;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Services\Revision;
 use App\Enums\RevisionActionType;
 use App\Models\Revision;
 use App\Models\RevisionAction;
+use App\Support\PropertyValueCaster;
 use Illuminate\Support\Collection;
 
 /**
@@ -20,9 +21,14 @@ class RevisionValidationService
 {
     private AgeGraphStateManager $graphManager;
 
-    public function __construct(AgeGraphStateManager $graphManager)
-    {
+    private PropertyValueCaster $propertyValueCaster;
+
+    public function __construct(
+        AgeGraphStateManager $graphManager,
+        PropertyValueCaster $propertyValueCaster,
+    ) {
         $this->graphManager = $graphManager;
+        $this->propertyValueCaster = $propertyValueCaster;
     }
 
     public function validate(Revision $revision): RevisionValidationResult
@@ -74,7 +80,7 @@ class RevisionValidationService
         // 將已加載的 Age 狀態轉移到 resolver
         $this->syncAgeStatesToResolver($resolver);
 
-        $validator = new RevisionActionValidator($this->graphManager, $resolver);
+        $validator = new RevisionActionValidator($this->graphManager, $resolver, $this->propertyValueCaster);
 
         // 驗證每個操作
         foreach ($actions as $action) {

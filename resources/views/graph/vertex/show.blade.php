@@ -19,37 +19,18 @@
             </div>
         </div>
 
-        <h2>Edge</h2>
-        @php $hasEdges = false; @endphp
-        @foreach ($edgeInfoList as $edgeInfo)
-            @foreach ($edgeInfo['edges'] as $edgeItem)
-                @php
-                    $hasEdges = true;
-                    $edgePropertyGroups = app(\App\Support\LocalizedPropertyGrouper::class)->group(
-                        $edgeInfo['type']->properties,
-                        (array) ($edgeItem['edge']->properties ?? []),
-                    );
-                @endphp
-                <div class="card mb-2">
-                    <div class="card-body">
-                        <p class="mb-2">
-                            {{ $edgeInfo['type']->name }}
-                            <a href="{{ route('graph-schema.edge-type.show', [$edgeInfo['type']]) }}"><i class="fa-solid fa-circle-info"></i></a>
-                            →
-                            <a href="{{ route('graph.vertex.show', ['vertex' => $edgeItem['vertex']->id]) }}">
-                                {{ $edgeItem['displayName'] }}
-                            </a>
-                        </p>
+        @include('graph.vertex.partials.edge-section', [
+            'heading' => '連出 Edge',
+            'emptyMessage' => '目前沒有任何連出 Edge',
+            'edgeInfoList' => $outgoingEdges,
+            'useReverseName' => false,
+        ])
 
-                        @if ($edgePropertyGroups !== [])
-                            <x-localized-property-groups :groups="$edgePropertyGroups" />
-                        @endif
-                    </div>
-                </div>
-            @endforeach
-        @endforeach
-        @if (! $hasEdges)
-            <span>目前沒有任何 Edge</span>
-        @endif
+        @include('graph.vertex.partials.edge-section', [
+            'heading' => '連入 Edge',
+            'emptyMessage' => '目前沒有任何連入 Edge',
+            'edgeInfoList' => $incomingEdges,
+            'useReverseName' => true,
+        ])
     </div>
 @endsection

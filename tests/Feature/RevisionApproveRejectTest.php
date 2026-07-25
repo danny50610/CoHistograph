@@ -288,6 +288,33 @@ class RevisionApproveRejectTest extends TestCase
         ]);
     }
 
+    public function test_approved_revision_show_does_not_revalidate_deleted_edges_as_missing(): void
+    {
+        $owner = User::factory()->createOne();
+        $reviewer = $this->createReviewer();
+        $schema = $this->setupFullSchema();
+        $artistId = $this->createAgeVertex($schema['artist']->age_label_name);
+        $bandId = $this->createAgeVertex($schema['band']->age_label_name);
+        $edgeId = $this->createAgeEdge($schema['belongs_to']->age_label_name, $artistId, $bandId);
+
+        $revision = $this->createPendingRevision($owner, [
+            ['action' => 'delete_edge', 'target_age_id' => $edgeId],
+        ]);
+
+        $this->actingAs($reviewer)
+            ->post(route('admin.revisions.approve', $revision))
+            ->assertRedirect(route('admin.revisions.show', $revision))
+            ->assertSessionHas('global', '修訂已接受並套用');
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.revisions.show', $revision))
+            ->assertOk()
+            ->assertSee('驗證通過')
+            ->assertSee('審核通過時已驗證')
+            ->assertDontSee('驗證未通過')
+            ->assertDontSee('目標 Edge 不存在');
+    }
+
     public function test_approve_fails_when_apply_lock_is_held(): void
     {
         $owner = User::factory()->createOne();
@@ -528,6 +555,23 @@ class RevisionApproveRejectTest extends TestCase
             ->first();
 
         return (int) $result->v->id;
+    }
+
+    private function createAgeEdge(string $label, int $startVertexId, int $endVertexId): int
+    {
+        $result = DB::connection($this->graphConnection)
+            ->apacheAgeCypher($this->graphName, function (Builder $builder) use ($label, $startVertexId, $endVertexId) {
+                return $builder
+                    ->matchNode('s')
+                    ->where('id(s)', '=', $startVertexId)
+                    ->matchNode('t')
+                    ->where('id(t)', '=', $endVertexId)
+                    ->createRaw("(s)-[e:{$label}]->(t)")
+                    ->return('e');
+            })
+            ->first();
+
+        return (int) $result->e->id;
     }
 
     /**

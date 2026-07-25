@@ -12,6 +12,7 @@ class CustomContentSlotsTest extends TestCase
     {
         $this->get(route('faq'))
             ->assertOk()
+            ->assertDontSee('<!-- custom-head-marker -->', false)
             ->assertDontSee('<!-- custom-content-top-marker -->', false)
             ->assertDontSee('<!-- custom-content-bottom-marker -->', false);
     }
@@ -22,8 +23,32 @@ class CustomContentSlotsTest extends TestCase
 
         $this->get(route('faq'))
             ->assertOk()
+            ->assertSee('<!-- custom-head-marker -->', false)
             ->assertSee('<!-- custom-content-top-marker -->', false)
             ->assertSee('<!-- custom-content-bottom-marker -->', false);
+    }
+
+    public function test_optional_custom_head_slot_appears_early_in_html_head(): void
+    {
+        $this->prependCustomContentFixtures();
+
+        $content = $this->get(route('faq'))
+            ->assertOk()
+            ->getContent();
+
+        $headOpenPosition = strpos($content, '<head>');
+        $headMarkerPosition = strpos($content, '<!-- custom-head-marker -->');
+        $titlePosition = strpos($content, '<title>');
+        $headClosePosition = strpos($content, '</head>');
+
+        $this->assertNotFalse($headOpenPosition);
+        $this->assertNotFalse($headMarkerPosition);
+        $this->assertNotFalse($titlePosition);
+        $this->assertNotFalse($headClosePosition);
+
+        $this->assertGreaterThan($headOpenPosition, $headMarkerPosition);
+        $this->assertLessThan($titlePosition, $headMarkerPosition);
+        $this->assertLessThan($headClosePosition, $headMarkerPosition);
     }
 
     public function test_optional_custom_content_slots_appear_around_main_content_area(): void

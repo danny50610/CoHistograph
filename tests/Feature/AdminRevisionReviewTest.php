@@ -157,6 +157,28 @@ class AdminRevisionReviewTest extends TestCase
             ->assertDontSee('rejectRevisionModal', false);
     }
 
+    public function test_admin_detail_skips_live_revalidation_for_approved_delete_edge_revision(): void
+    {
+        $reviewer = $this->createReviewer();
+        $owner = User::factory()->createOne();
+        $revision = $this->createRevision($owner, 'Approved Delete Edge', RevisionStatus::Approved);
+
+        $revision->actions()->create([
+            'order' => 0,
+            'action' => 'delete_edge',
+            'target_age_id' => 999999999,
+        ]);
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.revisions.show', $revision))
+            ->assertOk()
+            ->assertSee('驗證通過')
+            ->assertSee('審核通過時已驗證')
+            ->assertDontSee('驗證未通過')
+            ->assertDontSee('目標 Edge 不存在')
+            ->assertDontSee('進入頁面時重新驗證');
+    }
+
     private function createReviewer(): User
     {
         $reviewer = User::factory()->createOne();

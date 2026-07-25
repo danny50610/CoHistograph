@@ -9,6 +9,10 @@ use Illuminate\Support\Str;
 
 class LocalizedPropertyGrouper
 {
+    public function __construct(
+        private PropertyValueCaster $propertyValueCaster = new PropertyValueCaster,
+    ) {}
+
     /**
      * @param  iterable<VertexProperty|EdgeProperty>  $propertyDefinitions
      * @param  array<string, mixed>  $propertyValues
@@ -42,10 +46,12 @@ class LocalizedPropertyGrouper
                 ];
             }
 
+            $rawValue = $propertyValues[$property->age_property_name] ?? null;
+
             $groups[$groupKey]['members'][] = [
                 'property' => $property,
                 'locale_label' => $this->localeLabel($property->locale),
-                'value' => $propertyValues[$property->age_property_name] ?? null,
+                'value' => $this->propertyValueCaster->fromStorage($rawValue, $property->age_property_type),
                 'locale' => $property->locale,
             ];
         }
