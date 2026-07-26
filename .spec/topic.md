@@ -79,7 +79,7 @@
 | Method | Path | 說明 |
 |--------|------|------|
 | GET | `/topics` | 已發布列表（依 `sort_order`，同序再依更新時間） |
-| GET | `/topics/{slug}` | 表格頁（唯讀；草稿僅管理者可預覽） |
+| GET | `/topics/{topic}` | 表格頁（route key = id；唯讀；草稿僅管理者可預覽） |
 
 ### Navbar（`MenuService`）
 
@@ -104,7 +104,7 @@
 | POST | `/admin/topics` | 儲存 |
 | GET | `/admin/topics/{topic}/edit` | 編輯表單 |
 | PUT/PATCH | `/admin/topics/{topic}` | 更新 |
-| DELETE | `/admin/topics/{topic}` | 刪除 |
+| DELETE | `/admin/topics/{topic}` | 硬刪除（confirm 後） |
 
 ---
 
@@ -114,16 +114,17 @@
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
-| `id` | bigint PK | |
+| `id` | bigint PK | 前台 URL 使用此 id（`/topics/{id}`），**無 slug** |
 | `name` | string | 顯示名稱（v1 單語） |
-| `slug` | string unique | 前台 URL |
 | `description` | text nullable | 說明（單語） |
 | `is_published` | boolean default false | 是否出現在公開列表 |
 | `sort_order` | integer default 0 | 列表手動排序（小到大） |
 | `definition` | json | 查詢與欄位定義（見下節） |
 | `created_at` / `updated_at` | timestamps | |
 
-不對 AGE 實例頂點做 FK。Schema 參照（vertex type／edge type／property）以 **id 寫在 JSON 內**，由應用層驗證；**不建資料庫 FK**。
+不做軟刪除。不對 AGE 實例頂點做 FK。Schema 參照（vertex type／edge type／property）以 **id 寫在 JSON 內**，由應用層驗證；**不建資料庫 FK**。
+
+> `page_size` 放在 `definition` JSON 內（見下節），不單獨成 column。
 
 ---
 
@@ -243,15 +244,58 @@
 
 ---
 
-## 後台 UX
+## 後台畫面
 
-- **結構化表單**，可動態新增／刪除：
-  - 屬性過濾列
-  - 路徑過濾（每條路徑可多步驟）
-  - 欄位列
-- VertexType／EdgeType／Property 以現有 schema 下拉選擇（寫入 JSON 的是 id）
-- 路徑過濾的目標實例頂點：以既有 graph search 選點，存 AGE id
-- 不做 raw JSON 主編輯（除錯用 textarea 非必須）
+對齊現有 Blade＋Bootstrap 管理頁（Graph Schema／角色表單風格）。需 `topic.manage`。
+
+### 管理列表 `/admin/topics`
+
+**版面：**
+
+1. `h1`：專題管理  
+2. 「新增專題」按鈕 → create  
+3. Topic 卡片列表（含草稿與已發布；**不做**狀態篩選）  
+4. 空狀態卡（若無任何 Topic）
+
+**每張卡：**
+
+| 元素 | 說明 |
+|------|------|
+| 名稱 | 主要文字 |
+| 發布狀態 | badge（已發布／草稿） |
+| 說明 | 有則顯示（可截斷） |
+| `sort_order` | 顯示目前值；於編輯表單修改 |
+| 操作 | 編輯、預覽前台（`/topics/{id}`）、刪除 |
+
+**刪除：** 按鈕＋ `confirm('確定要刪除此專題嗎？')` 後 **硬刪除**（對齊 Graph Schema）。不做軟刪除、不做獨立確認頁。
+
+列表排序建議：`sort_order` ASC，再 `id` ASC。
+
+### 建立／編輯表單 `/admin/topics/create`、`/admin/topics/{topic}/edit`
+
+**單頁分區塊**（不做 wizard；不做儲存前即時查詢預覽）：
+
+1. **基本資料**
+   - `name`（必填）
+   - `description`（textarea，可選）
+   - `is_published`（checkbox）
+   - `sort_order`（number）
+   - `page_size`（number；寫入 `definition.page_size`）
+   - **無 slug 欄位**；前台以 id 識別
+2. **主體**：`subject_vertex_type_id` 下拉（現有 VertexType）
+3. **屬性過濾**：可動態新增／刪除列；每列 property 下拉、operator、value；列可上移／下移
+4. **路徑過濾**：每條路徑一張小卡；卡內步驟可新增／刪除／上移／下移；可選目標 AGE vertex（既有 graph search 選點；可留空）
+5. **欄位**：可動態新增／刪除／上移／下移；依 type 顯示 subject_property 或 relation 相關欄位
+6. **預設排序**：對應 `definition.sort`
+7. **儲存**／**返回列表**
+
+控件原則：
+
+- VertexType／EdgeType／Property：schema 下拉，JSON 存 id  
+- 動態列：**新增／刪除＋上移／下移**（不做拖曳）  
+- 不做 raw JSON 主編輯  
+
+編輯頁可另提供「預覽」連到前台 `/topics/{id}`（草稿時靠權限可見）。
 
 ---
 
@@ -275,14 +319,14 @@
 
 | 元素 | 說明 |
 |------|------|
-| 名稱 | 主要文字，連到 `/topics/{slug}` |
+| 名稱 | 主要文字，連到 `/topics/{id}` |
 | 說明 | 有 `description` 才顯示；可截斷過長文字（實作時用既有／簡單 CSS 即可） |
 
 不做：縮圖、統計、更新時間、列數、篩選。
 
 瀏覽器 `<title>`：`專題 - {app display-name}`（對齊既有 `@section('title')`）。
 
-### 表格頁 `/topics/{slug}`
+### 表格頁 `/topics/{id}`
 
 **版面（由上到下）：**
 
@@ -314,7 +358,7 @@
 |------|------|
 | 未發布＋無 `topic.manage` | 404（或與專案慣例一致的不可見） |
 | 未發布＋有 `topic.manage` | 正常表格＋草稿 alert |
-| slug 不存在 | 404 |
+| id 不存在 | 404 |
 | 定義失效 | 200＋失效提示（管理者亦可見編輯入口，選用） |
 
 ---
@@ -343,7 +387,7 @@
 若任一 Topic 仍引用該 id：
 
 - **阻止刪除**
-- 回傳明確錯誤（指出哪些 Topic name／slug 依賴它）
+- 回傳明確錯誤（指出哪些 Topic name／id 依賴它）
 
 建立／更新 Topic 時亦須驗證 JSON 內所有引用 id 存在且語意合理（例如 property 屬於 subject type、edge 方向與端點類型相容——能做多少做多少，至少 id 存在）。
 
@@ -363,9 +407,9 @@
 ## 實作里程碑建議
 
 1. **資料與權限**：`topics` migration、Model、`topic.manage`、Navbar（左「專題」、右「專題管理」）
-2. **後台 CRUD**：結構化表單＋ Form Request 驗證 `definition`
+2. **後台 CRUD**：管理列表＋單頁分區塊表單＋ Form Request 驗證 `definition`；硬刪除
 3. **查詢服務**：依 definition 查 AGE＋分頁
-4. **前台**：列表＋表格頁
+4. **前台**：列表卡片＋`/topics/{id}` 表格頁（含空狀態、草稿 alert、responsive table）
 5. **Schema 刪除保護**：Graph Schema 刪除路徑接入依賴檢查
 6. **測試**：Feature tests 覆蓋 CRUD、權限、發布可見性、刪除阻擋、表格查詢快樂路徑／失效定義
 
@@ -375,8 +419,10 @@
 
 - 未登入使用者 navbar 左邊可見「專題」並進入 `/topics`
 - `/topics` 為卡片列表（名稱＋說明）；無資料時顯示空狀態卡
-- `/topics/{slug}` 為返回＋標題＋說明＋表格＋分頁；草稿有預覽警告
+- `/topics/{id}` 為返回＋標題＋說明＋表格＋分頁；草稿有預覽警告
 - 有 `topic.manage` 者在「網站管理」下可見「專題管理」
+- 管理列表可新增／編輯／預覽／硬刪除（confirm）
+- 建立／編輯為單頁分區塊；動態列可新增／刪除／上移／下移；無 slug
 - 有 `topic.manage` 者可建立草稿 Topic，填主體、過濾、路徑、欄位後儲存
 - 發布後未登入可於 `/topics` 看到並開啟表格
 - 草稿對未授權使用者 404（或等同不可見）
@@ -401,10 +447,13 @@
 | 多值關聯 | 全部列出、換行、可連結 |
 | 前台互動 | 完全固定（選項 C），僅分頁 |
 | 前台列表 | 簡單卡片：名稱＋說明；空狀態卡（無管理連結） |
-| 前台表格頁 | 返回＋標題＋說明＋responsive table；草稿 alert；空資料保留表頭 |
+| 前台表格頁 | 返回＋標題＋說明＋responsive table；草稿 alert；空資料保留表頭；URL 用 id |
+| 前台識別 | `/topics/{id}`，無 slug |
 | 分頁 | 要；page size 由定義決定 |
 | 權限 | `topic.manage`；公開讀已發布 |
-| 後台 UI | 結構化表單 |
+| 後台列表 | 卡片＋狀態 badge＋編輯／預覽／硬刪除；無狀態篩選 |
+| 後台表單 | 單頁分區塊；動態列新增／刪除／上移／下移 |
+| 刪除 | confirm 後硬刪除（不軟刪） |
 | 儲存 | `definition` JSON（不建 schema FK） |
 | Schema 刪除 | 檢查 Topic 依賴並阻止 |
 | 多語 | v1 單語 |
