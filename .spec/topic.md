@@ -275,7 +275,7 @@
 
 ### 建立／編輯表單 `/admin/topics/create`、`/admin/topics/{topic}/edit`
 
-**單頁分區塊**（不做 wizard；不做儲存前即時查詢預覽）：
+**單頁分區塊**（不做 wizard）：
 
 1. **基本資料**
    - `name`（必填）
