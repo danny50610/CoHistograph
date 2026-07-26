@@ -495,7 +495,143 @@ Blade + Bootstrap（`layouts.app`）。
 3. **後台**：Blade 列表 + Inertia 表單 + preview API + 防抖預覽 UI  
 4. **前台**：列表分頁 + 表格頁  
 5. **Schema 刪除保護**  
-6. **測試**：CRUD、preview、權限、EdgeProperty、刪除阻擋、查詢路徑  
+6. **測試**：依下方「測試案例」由淺入深實作  
+
+---
+
+## 測試案例
+
+實作時以 **PHPUnit**（Feature / Unit）撰寫；慣例對齊專案既有測試（`DatabaseTransactions`、權限用 `givePermission('topic.manage')`）。  
+建議**由層級 1 開始**，通過後再往下；不必一次寫完。
+
+### 層級 1：設定與 Model（最簡）
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T1-01 | `config/cohistograph/roles-and-permissions.php` 含 `topic.manage` | permissions 陣列有定義；`admin` 角色 permissions 含 `topic.manage` |
+| T1-02 | `Topic::PAGE_SIZE`（或同等常數） | 值為 **20** |
+| T1-03 | `TopicFactory` 建立一筆 | 可 persist；`definition` 讀回為 **array** |
+| T1-04 | `Topic::published()` scope | 只含 `is_published = true` |
+| T1-05 | `Topic::orderedForList()` scope（或列表查詢慣例） | 排序為 `sort_order` ASC、`id` ASC |
+
+### 層級 2：路由與權限
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T2-01 | 訪客 `GET /topics` | **200** |
+| T2-02 | 訪客 `GET /admin/topics` | **redirect** 登入 |
+| T2-03 | 已登入但無 `topic.manage` → `GET /admin/topics` | **403** |
+| T2-04 | 有 `topic.manage` → `GET /admin/topics` | **200** |
+| T2-05 | 訪客 `POST /admin/topics/preview` | **redirect** 登入 |
+| T2-06 | 無權限 `POST /admin/topics/preview` | **403** |
+| T2-07 | 有權限 `GET /admin/topics/create` | **200**（Inertia `Topics/Create`） |
+| T2-08 | 有權限 `GET /admin/topics/{topic}/edit` | **200**（Inertia `Topics/Edit`） |
+
+### 層級 3：前台列表 `/topics`
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T3-01 | 僅已發布專題出現在列表 | 草稿不出現 |
+| T3-02 | 列表排序 | `sort_order` ASC，再 `id` ASC |
+| T3-03 | 列表分頁 | 每頁 **20**；第 21 筆在第二頁 |
+| T3-04 | 無已發布專題 | 顯示空狀態卡「目前還沒有專題」；**無**管理後台連結 |
+| T3-05 | 卡片內容 | 名稱連到 `/topics/{id}`；有說明則顯示 |
+
+### 層級 4：前台表格 `/topics/{id}`
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T4-01 | 訪客瀏覽已發布專題 | **200**；標題、說明、表格、底部分頁 |
+| T4-02 | 訪客瀏覽草稿專題 | **404** |
+| T4-03 | 有 `topic.manage` 瀏覽草稿 | **200**；頂部 **草稿 alert**＋「前往編輯」 |
+| T4-04 | 不存在的 id | **404** |
+| T4-05 | 查無資料列 | 保留表頭；一行 colspan「目前沒有符合的資料」 |
+| T4-06 | `definition` 引用已刪 schema | **200**；失效 alert（不渲染空表） |
+| T4-07 | 表格分頁 | 每頁 **20**；訪客**不能**改排序／篩選／page size |
+| T4-08 | 關聯多值欄 | 同一格換行；可連結 vertex |
+| T4-09 | `edge_property` 多值 | 同一格換行列出 |
+
+### 層級 5：後台列表與 CRUD
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T5-01 | 管理列表含草稿與已發布 | 兩者皆可見；badge 區分狀態 |
+| T5-02 | 管理列表分頁 | 每頁 **20** |
+| T5-03 | 管理列表操作 | 有編輯、刪除；**無**「在前台開啟」 |
+| T5-04 | `POST /admin/topics` 有效 payload | 建立成功；redirect 或留在編輯頁（實作擇一，需一致） |
+| T5-05 | `PATCH /admin/topics/{topic}` | 更新成功 |
+| T5-06 | `DELETE /admin/topics/{topic}` | 硬刪除；資料庫無該筆 |
+| T5-07 | 管理列表空狀態 | 無 Topic 時顯示空狀態卡 |
+
+### 層級 6：`definition` 驗證（Form Request）
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T6-01 | 缺少 `name` | 驗證失敗 |
+| T6-02 | `columns` 為空 | 驗證失敗（至少 1 欄） |
+| T6-03 | 缺少 `subject_vertex_type_id` | 驗證失敗 |
+| T6-04 | 引用不存在的 VertexType / Property / EdgeType id | 驗證失敗 |
+| T6-05 | `operator` 與 property 型別不符（如 STRING 用 `gt`） | 驗證失敗 |
+| T6-06 | 儲存後 `columns[].key` | 依規則自動產生（如 `p_{id}`、`rel_{index}`、`ep_{step}_{id}`） |
+| T6-07 | `sort` 未設或空 | 查詢時預設主體 vertex **id ASC** |
+| T6-08 | `sort` 設單欄 | 依 `column_key` + `direction` 排序 |
+| T6-09 | 多語 property 過濾帶 `locale` | 接受並寫入 JSON |
+| T6-10 | 路徑 step 含 `edge_property_filters` | 接受並寫入 JSON |
+| T6-11 | 欄位 type `edge_property` 含 `step_index` | 接受並寫入 JSON |
+
+### 層級 7：`TopicQueryService`（Unit / Feature）
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T7-01 | 僅 `property_filters`（AND） | 只回符合全部條件的主體列 |
+| T7-02 | `property_filters` + `path_filters`（AND） | 交集結果 |
+| T7-03 | 多層 `path_filters.steps` | 多跳路徑正確 |
+| T7-04 | step 上 `edge_property_filters` | 只保留 edge 屬性符合的列 |
+| T7-05 | `path_filters.target_vertex_id` 有設 | 終點須為該 AGE id |
+| T7-06 | `path_filters.target_vertex_id` 未設 | 存在符合路徑即可 |
+| T7-07 | 欄位 `subject_property` + `locale` | 顯示對應語系值 |
+| T7-08 | 欄位 `relation` + 自選 `vertex_property_id` | 顯示對端屬性 |
+| T7-09 | 欄位 `edge_property` + `step_index` | 顯示該步 edge 屬性 |
+| T7-10 | 分頁 | 固定 **20** 筆／頁 |
+
+> 需 AGE 測試資料的案例，可對齊 `SimulateGraphDataSeeder` 或測試內 factory／seed 最小圖。
+
+### 層級 8：即時預覽 `POST /admin/topics/preview`
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T8-01 | 有效未儲存 definition + `page=1` | 回傳表格資料（≤20 列）與總筆數 |
+| T8-02 | `page=2` | 第二頁資料 |
+| T8-03 | definition 不完整（無主體等） | 不查詢；回傳提示狀態 |
+| T8-04 | 查詢錯誤 | 預覽區錯誤訊息；**不**等同儲存失敗 |
+| T8-05 | 與前台表格欄位一致 | 欄序、`label`、多值換行規則相同 |
+
+### 層級 9：Graph Schema 刪除保護
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T9-01 | 刪除被 Topic 引用的 **VertexType** | 失敗；錯誤含 Topic name／id |
+| T9-02 | 刪除被引用的 **EdgeType** | 同上 |
+| T9-03 | 刪除被引用的 **VertexProperty** | 同上 |
+| T9-04 | 刪除被引用的 **EdgeProperty** | 同上 |
+| T9-05 | 無 Topic 引用 | 刪除成功（沿用既有 schema 刪除測試行為） |
+
+### 層級 10：Navbar 與選單
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T10-01 | 任意頁面 navbar 左側 | 有「專題」→ `/topics` |
+| T10-02 | 訪客 navbar 右側「網站管理」 | **無**「專題管理」 |
+| T10-03 | 有 `topic.manage` | 「網站管理」下有「專題管理」 |
+
+### 層級 11：前端表單行為（可选手動／瀏覽器測試）
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| T11-01 | 變更主體 VertexType | confirm 後清空 filters／columns／sort |
+| T11-02 | 動態列 | 屬性過濾、路徑、欄位可新增／刪除／上移／下移 |
+| T11-03 | 表單變更 | 防抖後自動呼叫 preview（不 abort 舊請求） |
+| T11-04 | 建立／編輯頁 | **無**「在前台開啟」按鈕 |
 
 ---
 
