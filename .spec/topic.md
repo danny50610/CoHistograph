@@ -23,8 +23,9 @@
 1. 管理者可 CRUD Topic（含草稿／發布、手動排序、編輯時即時預覽）
 2. 以結構化查詢定義（非自由 Cypher）從 Apache AGE 取出列資料
 3. 前台公開列出已發布 Topic，並以固定表格＋分頁顯示
-4. 支援多層路徑過濾、主體／關聯欄位、常用屬性運算子
-5. 刪除 Graph Schema 前檢查 Topic JSON 依賴並阻止
+4. 支援多層路徑過濾、主體／關聯／**邊屬性**欄位、常用屬性運算子
+5. 支援路徑步驟上的 **EdgeProperty** 過濾
+6. 刪除 Graph Schema 前檢查 Topic JSON 依賴並阻止
 
 ### 非目標（v1）
 
@@ -32,11 +33,11 @@
 - 自由 Cypher／SQL 編輯
 - OR 條件組、正規表示式
 - 聚合欄（count／sum 等）
-- 多語系名稱／說明／欄位標題
+- 多語系 Topic 名稱／說明／欄位標題（**欄位值的 locale 可選**，見下）
 - 圖表或 graph canvas
 - 一般使用者自建私人 Topic
 - Issue #4 三個情境的種子 Topic
-- 後台側欄並排預覽、另開視窗預覽
+- 後台側欄並排預覽、另開視窗預覽、後台「在前台開啟」連結
 
 ---
 
@@ -47,7 +48,8 @@
 | Topic（專題） | 一組可發布的表格視圖定義：主體類型、過濾、欄位、排序、分頁 |
 | 主體（subject） | 表格每一列對應的主 vertex type |
 | 路徑過濾（path filter） | 以 edge 步驟陣列描述的多層關聯條件 |
-| 關聯欄（relation column） | 沿路徑取相關 vertex 的顯示值 |
+| 關聯欄（relation column） | 沿路徑取相關 vertex，顯示自選 VertexProperty |
+| 邊屬性欄（edge_property column） | 沿路徑指定步驟的 edge，顯示自選 EdgeProperty |
 
 ---
 
@@ -69,7 +71,7 @@
 | 對象 | 已發布 | 草稿 |
 |------|--------|------|
 | 未登入／一般使用者 | 可看列表與表格頁 | 不可見 |
-| 有 `topic.manage` | 可看 | 可預覽 |
+| 有 `topic.manage` | 可看 | 可預覽（直接造訪 `/topics/{id}` 或編輯流程） |
 
 ---
 
@@ -79,7 +81,7 @@
 
 | Method | Path | 說明 |
 |--------|------|------|
-| GET | `/topics` | 已發布列表（依 `sort_order`，同序再依更新時間） |
+| GET | `/topics` | 已發布列表（分頁；見「實作約定」） |
 | GET | `/topics/{topic}` | 表格頁（route key = id；唯讀；草稿僅管理者可預覽） |
 
 ### Navbar（`MenuService`）
@@ -96,15 +98,15 @@
 
 ### 後台
 
-建議前綴：`/admin/topics`（或與現有 Admin 路由風格一致）
+建議前綴：`/admin/topics`（與 `/admin/revisions` 風格一致）
 
 | Method | Path | 說明 |
 |--------|------|------|
-| GET | `/admin/topics` | 管理列表（含草稿） |
-| GET | `/admin/topics/create` | 建立表單 |
+| GET | `/admin/topics` | 管理列表（含草稿；分頁） |
+| GET | `/admin/topics/create` | 建立表單（Inertia） |
 | POST | `/admin/topics` | 儲存 |
-| POST | `/admin/topics/preview` | 即時預覽（未儲存 definition＋分頁；需 `topic.manage`） |
-| GET | `/admin/topics/{topic}/edit` | 編輯表單 |
+| POST | `/admin/topics/preview` | 即時預覽（未儲存 definition＋page；需 `topic.manage`） |
+| GET | `/admin/topics/{topic}/edit` | 編輯表單（Inertia） |
 | PUT/PATCH | `/admin/topics/{topic}` | 更新 |
 | DELETE | `/admin/topics/{topic}` | 硬刪除（confirm 後） |
 
@@ -126,7 +128,91 @@
 
 不做軟刪除。不對 AGE 實例頂點做 FK。Schema 參照（vertex type／edge type／property）以 **id 寫在 JSON 內**，由應用層驗證；**不建資料庫 FK**。
 
-> `page_size` 放在 `definition` JSON 內（見下節），不單獨成 column。
+---
+
+## 實作約定
+
+### 技術選型
+
+| 區塊 | 技術 |
+|------|------|
+| 後台建立／編輯表單 | **Inertia.js + Vue 3**（對齊 `Revisions/Edit`、可複用 `AgeEntitySearch`） |
+| 後台管理列表 | Blade（對齊 `admin/revisions/index`）或 Inertia，實作時擇一與專案慣例一致 |
+| 前台列表／表格 | Blade + Bootstrap（對齊 `overview`） |
+| 查詢邏輯 | `TopicQueryService`（前台表格與後台預覽共用） |
+
+### 分頁
+
+| 情境 | 每頁筆數 |
+|------|----------|
+| 前台 `/topics` 專題列表 | **20**（固定） |
+| 前台 `/topics/{id}` 表格 | **20**（固定） |
+| 後台 `/admin/topics` 管理列表 | **20**（固定） |
+| 後台表單即時預覽 | **20**（固定） |
+
+v1 **不提供** `page_size` 設定；常數 `20` 由應用層強制，可不寫入 `definition` 或寫入但儲存時覆寫為 20。
+
+### 列表排序
+
+前台專題列表與後台管理列表皆：**`sort_order` ASC，再 `id` ASC**。
+
+### `columns[].key` 自動產生
+
+管理者只填 `label`；`key` 由系統產生並在儲存時寫入 JSON，同一 Topic 內唯一：
+
+| 欄位 `type` | `key` 規則（範例） |
+|-------------|-------------------|
+| `subject_property` | `p_{vertex_property_id}` |
+| `relation` | `rel_{欄位在 columns 中的 0-based index}` |
+| `edge_property` | `ep_{step_index}_{edge_property_id}` |
+
+`sort.column_key` 必須引用上述 `key`。
+
+### 預設排序（`definition.sort`）
+
+- v1 **單欄**排序：一個 `column_key` + `direction`（`asc` / `desc`）
+- 未設定或 `column_key` 為空：**主體 vertex id 升冪**（穩定預設）
+- 表單 UI：下拉選已定義的 column + 方向；可選「預設（主體 id）」
+
+### 屬性過濾與運算子
+
+依 `VertexProperty.age_property_type` / `EdgeProperty.age_property_type` **限制可選 operator**（實作時維護對照表）。例如：
+
+| 型別 | 可用 operator（v1） |
+|------|---------------------|
+| STRING | `eq`, `contains`, `is_null`, `is_not_null` |
+| INTEGER / FLOAT | `eq`, `gt`, `gte`, `lt`, `lte`, `between`, `is_null`, `is_not_null` |
+| BOOLEAN | `eq`, `is_null`, `is_not_null` |
+| DATE / TIMESTAMPTZ 等 | `eq`, `gt`, `gte`, `lt`, `lte`, `between`, `is_null`, `is_not_null` |
+
+`TIMESTAMPTZ` 以 **app timezone** 解讀與比較。
+
+### 多語 property（locale）
+
+主體 **VertexProperty** 過濾、路徑步驟 **EdgeProperty** 過濾、以及各欄位顯示，若 property 為多語系欄位：
+
+- 每一條過濾或每一欄可選 **`locale`**（如 `zh_TW`）
+- **未選**則跟 **app locale** fallback
+- 表單依 property 是否多語顯示 locale 下拉
+
+Topic 本身的 `name` / `description` / 欄位 `label` 仍為 v1 單語。
+
+### 變更主體 VertexType
+
+編輯時若使用者變更 `subject_vertex_type_id`：
+
+1. 前端 **confirm**：「變更主體將清除查詢與欄位設定」
+2. 確認後清空 `property_filters`、`path_filters`、`columns`、`sort`
+
+### 欄位數量
+
+至少 **1** 個 column 才能儲存與觸發預覽查詢。
+
+### 即時預覽
+
+- **防抖**自動重查（建議約 500ms）
+- **不** abort 進行中請求（僅防抖）
+- 定義不完整時不發查詢；查詢失敗不阻擋儲存
 
 ---
 
@@ -137,23 +223,16 @@
 ```json
 {
   "subject_vertex_type_id": 1,
-  "page_size": 20,
-  "sort": [
-    {
-      "column_key": "event_date",
-      "direction": "desc"
-    }
-  ],
+  "sort": {
+    "column_key": "p_10",
+    "direction": "desc"
+  },
   "property_filters": [
     {
       "vertex_property_id": 10,
       "operator": "eq",
-      "value": "台灣"
-    },
-    {
-      "vertex_property_id": 11,
-      "operator": "between",
-      "value": { "from": "2024-01-01", "to": "2024-12-31" }
+      "value": "台灣",
+      "locale": "zh_TW"
     }
   ],
   "path_filters": [
@@ -162,7 +241,15 @@
         {
           "edge_type_id": 5,
           "direction": "outgoing",
-          "target_vertex_type_id": 2
+          "target_vertex_type_id": 2,
+          "edge_property_filters": [
+            {
+              "edge_property_id": 3,
+              "operator": "eq",
+              "value": "主唱",
+              "locale": "zh_TW"
+            }
+          ]
         }
       ],
       "target_vertex_id": 12345
@@ -170,14 +257,15 @@
   ],
   "columns": [
     {
-      "key": "title",
+      "key": "p_1",
       "label": "名稱",
       "type": "subject_property",
       "vertex_property_id": 1,
+      "locale": null,
       "link_to_subject": true
     },
     {
-      "key": "organizers",
+      "key": "rel_1",
       "label": "主辦",
       "type": "relation",
       "path": [
@@ -187,8 +275,24 @@
           "target_vertex_type_id": 2
         }
       ],
-      "display": "show_property",
+      "vertex_property_id": 4,
+      "locale": "zh_TW",
       "link_to_vertex": true
+    },
+    {
+      "key": "ep_0_5",
+      "label": "參與日期",
+      "type": "edge_property",
+      "path": [
+        {
+          "edge_type_id": 6,
+          "direction": "outgoing",
+          "target_vertex_type_id": 2
+        }
+      ],
+      "step_index": 0,
+      "edge_property_id": 5,
+      "locale": null
     }
   ]
 }
@@ -201,13 +305,21 @@
 | Key | 說明 |
 |-----|------|
 | `subject_vertex_type_id` | 主體 VertexType id（必填） |
-| `page_size` | 每頁筆數；前台不可改 |
-| `sort` | 預設排序；前台不可改。`column_key` 對應 `columns[].key` 或約定的主體屬性 key |
-| `property_filters` | 主體屬性過濾，條件之間 **AND** |
+| `sort` | 單欄排序；見「實作約定」 |
+| `property_filters` | 主體 **VertexProperty** 過濾，條件之間 **AND** |
 | `path_filters` | 多層路徑過濾，條件之間 **AND** |
-| `columns` | 表格欄位（順序即顯示順序） |
+| `columns` | 表格欄位（順序即顯示順序；至少 1 欄） |
 
-#### `property_filters[].operator`（v1）
+#### `property_filters` / `edge_property_filters`
+
+| 欄位 | 說明 |
+|------|------|
+| `vertex_property_id` / `edge_property_id` | 屬性 id |
+| `operator` | 見運算子表 |
+| `value` | 依 operator；`is_null` / `is_not_null` 可省略 |
+| `locale` | 可選；多語 property 時由使用者選擇；未選跟 app locale |
+
+#### `property_filters[].operator` / `edge_property_filters[].operator`（v1）
 
 | Operator | 適用 | `value` |
 |----------|------|---------|
@@ -219,7 +331,7 @@
 
 不做 regex、不做 OR 群組。
 
-#### `path_filters` / 關聯欄 `path` 的步驟
+#### `path_filters` / 欄位 `path` 的步驟
 
 每步：
 
@@ -228,6 +340,7 @@
 | `edge_type_id` | EdgeType id |
 | `direction` | `outgoing` 或 `incoming`（相對當前節點） |
 | `target_vertex_type_id` | 可選；用於驗證／限制對端類型 |
+| `edge_property_filters` | 可選；針對**此步 edge** 的屬性過濾（AND） |
 
 路徑可多層（步驟陣列）。`path_filters` 可選 `target_vertex_id`：最後一層對端須等於該 **AGE vertex id**（非關聯式 FK）。未指定時表示「存在符合路徑的關聯即可」。
 
@@ -235,20 +348,21 @@
 
 | `type` | 說明 |
 |--------|------|
-| `subject_property` | 主體上的 VertexProperty |
-| `relation` | 沿 `path` 取相關頂點；顯示其 show property（或約定顯示欄） |
+| `subject_property` | 主體上的 VertexProperty；可選 `locale` |
+| `relation` | 沿 `path` 取對端 vertex；**自選** `vertex_property_id` 顯示；可選 `locale`；可選 `link_to_vertex` |
+| `edge_property` | 沿 `path` 的 **`step_index`（0-based）** 步驟上的 edge；**自選** `edge_property_id`；可選 `locale` |
 
 系統行為：
 
-- 主體列應能連到既有 `/graph/vertex/{id}` 詳情（由 `link_to_subject` 控制）
-- 關聯多值：**全部列出、換行、可點連結**（`link_to_vertex`）
+- `subject_property` 可選 `link_to_subject` 連到 `/graph/vertex/{id}`
+- 關聯 vertex、edge 屬性若有多筆符合：**全部列出、換行**；vertex 可選連結
 - v1 不做聚合欄
 
 ---
 
 ## 後台畫面
 
-對齊現有 Blade＋Bootstrap 管理頁（Graph Schema／角色表單風格）。需 `topic.manage`。
+需 `topic.manage`。建立／編輯為 **Inertia 頁**；列表可為 Blade。
 
 ### 管理列表 `/admin/topics`
 
@@ -257,7 +371,8 @@
 1. `h1`：專題管理  
 2. 「新增專題」按鈕 → create  
 3. Topic 卡片列表（含草稿與已發布；**不做**狀態篩選）  
-4. 空狀態卡（若無任何 Topic）
+4. 底部分頁（每頁 **20**）  
+5. 空狀態卡（若無任何 Topic）
 
 **每張卡：**
 
@@ -267,146 +382,98 @@
 | 發布狀態 | badge（已發布／草稿） |
 | 說明 | 有則顯示（可截斷） |
 | `sort_order` | 顯示目前值；於編輯表單修改 |
-| 操作 | 編輯、預覽前台（`/topics/{id}`）、刪除 |
+| 操作 | 編輯、刪除（**無**「在前台開啟」） |
 
-**刪除：** 按鈕＋ `confirm('確定要刪除此專題嗎？')` 後 **硬刪除**（對齊 Graph Schema）。不做軟刪除、不做獨立確認頁。
+**刪除：** 按鈕＋ `confirm('確定要刪除此專題嗎？')` 後 **硬刪除**（對齊 Graph Schema）。
 
-列表排序建議：`sort_order` ASC，再 `id` ASC。
+列表排序：`sort_order` ASC，再 `id` ASC。
 
-### 建立／編輯表單 `/admin/topics/create`、`/admin/topics/{topic}/edit`
+### 建立／編輯表單（Inertia）
+
+頁面建議：`Topics/Create`、`Topics/Edit`。
 
 **單頁分區塊**（不做 wizard）：
 
-1. **基本資料**
-   - `name`（必填）
-   - `description`（textarea，可選）
-   - `is_published`（checkbox）
-   - `sort_order`（number）
-   - `page_size`（number；寫入 `definition.page_size`）
-   - **無 slug 欄位**；前台以 id 識別
-2. **主體**：`subject_vertex_type_id` 下拉（現有 VertexType）
-3. **屬性過濾**：可動態新增／刪除列；每列 property 下拉、operator、value；列可上移／下移
-4. **路徑過濾**：每條路徑一張小卡；卡內步驟可新增／刪除／上移／下移；可選目標 AGE vertex（既有 graph search 選點；可留空）
-5. **欄位**：可動態新增／刪除／上移／下移；依 type 顯示 subject_property 或 relation 相關欄位
-6. **預設排序**：對應 `definition.sort`
+1. **基本資料**：`name`（必填）、`description`、`is_published`、`sort_order`；**無 slug**；**無 page_size 欄位**
+2. **主體**：`subject_vertex_type_id`（變更時 confirm 並清空查詢區塊）
+3. **屬性過濾**：動態列；property、operator、value、**locale（多語時）**；上移／下移
+4. **路徑過濾**：每條路徑一卡；步驟可增刪排序；每步可掛 **edge_property_filters**；可選目標 vertex（`AgeEntitySearch`；可留空）
+5. **欄位**：動態列；type 為 `subject_property` / `relation` / `edge_property`；relation 選顯示 property + locale；edge_property 選 `step_index` + `edge_property_id` + locale
+6. **預設排序**：單欄 column + 方向，或「預設（主體 id）」
 7. **儲存**／**返回列表**
 
-**即時預覽（v1 要做）：**
+**即時預覽（表單下方）：**
 
-- 位置：表單**下方**同一頁（不做側欄並排、不另開視窗）
-- 觸發：表單內容變更後**防抖自動重查**（建議約 500ms；實作可微調）
-- 資料來源：以**目前表單未儲存內容**組 definition 查 AGE（不必先按儲存）
-- 列數：與表單中的 `page_size` 相同
-- **提供分頁**：預覽區可翻頁（同樣受 `page_size` 約束）
-- 呈現：小表格（欄位同當前 columns 定義）＋總筆數／分頁控件；風格對齊前台表格（含多值換行）
-- 定義不完整（例如尚未選主體、必填欄位不足）時：預覽區顯示提示，**不發查詢**
-- 查詢／驗證失敗：預覽區顯示錯誤訊息，**不阻擋**使用者按儲存（儲存仍走完整 Form Request）
+- 防抖自動重查；**不 abort** 進行中請求
+- 以未儲存表單組 definition；每頁 **20** 列；**可分頁**
+- 呈現對齊前台表格（含多值換行）
+- 不完整定義不查詢；錯誤不阻擋儲存
+- API：`POST /admin/topics/preview`
 
-預覽 API 建議：`POST /admin/topics/preview`（建立／編輯共用；需 `topic.manage`），body 為表單 definition＋page；回 JSON 或 HTML partial（實作選與前端互動方式一致者）。
+**不提供**「在前台開啟」按鈕（建立、編輯皆無）；預覽僅靠表單下方區塊。管理者若已知 id 仍可手動造訪 `/topics/{id}`。
 
-另可保留「在前台開啟」連結（已儲存的 `/topics/{id}`），與即時預覽分開。
-
-控件原則：
-
-- VertexType／EdgeType／Property：schema 下拉，JSON 存 id  
-- 動態列：**新增／刪除＋上移／下移**（不做拖曳）  
-- 不做 raw JSON 主編輯  
-
-編輯頁可另提供「在前台開啟」連到 `/topics/{id}`（草稿時靠權限可見），與下方即時預覽分開。
+控件：schema 下拉存 id；動態列新增／刪除／上移／下移；不做 raw JSON 編輯。
 
 ---
 
 ## 前台畫面
 
-對齊現有 Blade＋Bootstrap 風格（`layouts.app`、`container`、卡片／`table`），不另做設計系統。
-
-### Navbar
-
-見上方「Navbar（`MenuService`）」：左邊「專題」→ `/topics`。
+Blade + Bootstrap（`layouts.app`）。
 
 ### 列表頁 `/topics`
 
-**版面（由上到下）：**
-
 1. `h1`：專題  
-2. 已發布 Topic 卡片列表（`sort_order` ASC，同序再 `updated_at` DESC）  
-3. 若無任何已發布 Topic：一張空狀態卡（文案如「目前還沒有專題」；**不**附管理後台連結）
+2. 已發布 Topic 卡片（`sort_order` ASC，再 `id` ASC）  
+3. 底部分頁（每頁 **20**）  
+4. 空狀態卡：「目前還沒有專題」（無管理連結）
 
-**每張專題卡：**
-
-| 元素 | 說明 |
-|------|------|
-| 名稱 | 主要文字，連到 `/topics/{id}` |
-| 說明 | 有 `description` 才顯示；可截斷過長文字（實作時用既有／簡單 CSS 即可） |
-
-不做：縮圖、統計、更新時間、列數、篩選。
-
-瀏覽器 `<title>`：`專題 - {app display-name}`（對齊既有 `@section('title')`）。
+每卡：名稱（連 `/topics/{id}`）+ 說明（可選）。
 
 ### 表格頁 `/topics/{id}`
 
-**版面（由上到下）：**
+1. 草稿 alert（未發布 + `topic.manage`）+「前往編輯」  
+2. 返回 `/topics`  
+3. `h1` + 說明  
+4. responsive 表格（每頁 **20**）+ 分頁  
 
-1. **草稿預覽提示**（僅當未發布且檢視者有 `topic.manage`）：Bootstrap alert，文案如「此專題尚未發布，僅管理者可見」，並附「前往編輯」連到後台編輯頁  
-2. 返回按鈕 → `/topics`  
-3. `h1`：專題名稱  
-4. 說明（有則顯示）  
-5. 資料表格  
-6. 分頁（`{{ $paginator->links() }}`，對齊修訂／schema 列表）
+- 0 列：保留表頭 + colspan 提示  
+- 定義失效：alert，不渲染空表  
+- 多值欄：換行；可連結 vertex  
 
-**不顯示：** 查詢條件摘要、排序說明、主體類型、page size 選擇器、欄位排序控制。
-
-**表格：**
-
-- Bootstrap `table`，外層 `table-responsive`（小螢幕橫向捲動）  
-- 欄位順序＝`definition.columns` 順序；表頭文字＝各欄 `label`  
-- 主體可連結欄：連到 `/graph/vertex/{id}`  
-- 關聯多值欄：同一格內**換行**列出；可連結者各成一行連結  
-- **0 列**：保留表頭，一行 `colspan` 提示「目前沒有符合的資料」  
-- **定義失效**（引用的 schema 缺漏等）：不渲染空表；改顯示錯誤狀態（如 alert「此專題設定已失效」）  
-- 分頁在表格下方；page size 完全由定義決定
-
-瀏覽器 `<title>`：`{專題名稱} - {app display-name}`。  
-若有說明，可選擇放入 meta description（選用，非必須）。
-
-### 前台權限與錯誤（畫面層）
+### 前台權限與錯誤
 
 | 情況 | 行為 |
 |------|------|
-| 未發布＋無 `topic.manage` | 404（或與專案慣例一致的不可見） |
-| 未發布＋有 `topic.manage` | 正常表格＋草稿 alert |
+| 未發布＋無 `topic.manage` | 404 |
+| 未發布＋有 `topic.manage` | 表格 + 草稿 alert |
 | id 不存在 | 404 |
-| 定義失效 | 200＋失效提示（管理者亦可見編輯入口，選用） |
+| 定義失效 | 200 + 失效提示 |
 
 ---
 
 ## 查詢執行
 
-1. 讀取 Topic `definition`，解析並驗證引用的 schema id 仍存在
-2. 組出 Apache AGE Cypher（或專案既有查詢封裝）
-3. 套用 property_filters、path_filters（AND）
-4. 依 `sort` 排序，再依 `page_size` 分頁
-5. 依 `columns` 組列資料（關聯欄另外解析路徑結果）
-
-實作應落在 Service 層（例如 `TopicQueryService`），Controller 不寫 Cypher。
+1. 讀取 `definition`，驗證 schema 引用  
+2. 組 AGE 查詢（`TopicQueryService`）  
+3. 套用 `property_filters`、`path_filters`（含步驟上 `edge_property_filters`），皆 AND  
+4. 排序（`sort` 或預設主體 id ASC）  
+5. 分頁（固定 page size **20**）  
+6. 依 `columns` 組列（含 relation / edge_property 路徑解析）
 
 ---
 
 ## Graph Schema 刪除保護
 
-即使 `definition` 為 JSON、無 DB FK，刪除下列資源前仍須掃描所有 Topic 的 `definition`：
+刪除前掃描所有 Topic 的 `definition`，檢查引用：
 
-- VertexType
-- EdgeType
-- VertexProperty
-- EdgeProperty（若未來欄位／過濾會引用）
+- VertexType  
+- EdgeType  
+- VertexProperty  
+- **EdgeProperty**
 
-若任一 Topic 仍引用該 id：
+若仍被引用：**阻止刪除**，並指出 Topic `name` / `id`。
 
-- **阻止刪除**
-- 回傳明確錯誤（指出哪些 Topic name／id 依賴它）
-
-建立／更新 Topic 時亦須驗證 JSON 內所有引用 id 存在且語意合理（例如 property 屬於 subject type、edge 方向與端點類型相容——能做多少做多少，至少 id 存在）。
+建立／更新時驗證引用 id 存在且語意合理（property 所屬 type、edge 端點相容等）。
 
 ---
 
@@ -414,40 +481,37 @@
 
 | 現有 | 關係 |
 |------|------|
-| `/overview`、`/graph/vertex` | 通用瀏覽；Topic 是策展式表格，不取代它們 |
-| `/graph-schema/visualization` | Schema 視覺化；與 Topic 無關 |
-| Revision | Topic 只讀已套用到 AGE 的資料，不經修訂流程寫入 |
+| Inertia + Vue（Revisions） | 後台 Topic 表單沿用；複用 `AgeEntitySearch` |
+| `/overview`、`/graph/vertex` | 通用瀏覽；Topic 為策展表格 |
+| Revision | Topic 唯讀 AGE 資料 |
 | Laratrust | 新增 `topic.manage` |
 
 ---
 
 ## 實作里程碑建議
 
-1. **資料與權限**：`topics` migration、Model、`topic.manage`、Navbar（左「專題」、右「專題管理」）
-2. **後台 CRUD**：管理列表＋單頁分區塊表單＋防抖即時預覽（含分頁）＋ Form Request 驗證 `definition`；硬刪除
-3. **查詢服務**：依 definition 查 AGE＋分頁（前台與後台預覽共用）
-4. **前台**：列表卡片＋`/topics/{id}` 表格頁（含空狀態、草稿 alert、responsive table）
-5. **Schema 刪除保護**：Graph Schema 刪除路徑接入依賴檢查
-6. **測試**：Feature tests 覆蓋 CRUD、預覽 API、權限、發布可見性、刪除阻擋、表格查詢快樂路徑／失效定義
+1. **資料與權限**：migration、Model、`topic.manage`、Navbar  
+2. **TopicQueryService**：過濾、路徑、欄位、分頁（含 EdgeProperty）  
+3. **後台**：Blade 列表 + Inertia 表單 + preview API + 防抖預覽 UI  
+4. **前台**：列表分頁 + 表格頁  
+5. **Schema 刪除保護**  
+6. **測試**：CRUD、preview、權限、EdgeProperty、刪除阻擋、查詢路徑  
 
 ---
 
 ## 驗收標準
 
-- 未登入使用者 navbar 左邊可見「專題」並進入 `/topics`
-- `/topics` 為卡片列表（名稱＋說明）；無資料時顯示空狀態卡
-- `/topics/{id}` 為返回＋標題＋說明＋表格＋分頁；草稿有預覽警告
-- 有 `topic.manage` 者在「網站管理」下可見「專題管理」
-- 管理列表可新增／編輯／預覽／硬刪除（confirm）
-- 建立／編輯為單頁分區塊；動態列可新增／刪除／上移／下移；無 slug
-- 編輯表單下方有防抖即時預覽，列數跟 `page_size`，預覽區可分頁
-- 有 `topic.manage` 者可建立草稿 Topic，填主體、過濾、路徑、欄位後儲存
-- 發布後未登入可於 `/topics` 看到並開啟表格
-- 草稿對未授權使用者 404（或等同不可見）
-- 前台無法改排序／篩選／page size，僅能翻頁
-- 關聯多值欄換行列出；0 列時保留表頭並提示無資料
-- 刪除仍被 Topic 引用的 VertexType／EdgeType／Property 會失敗並提示依賴
-- 無 issue #4 三情境的強制種子資料
+- Navbar 左「專題」；右「專題管理」（`topic.manage`）  
+- `/topics` 卡片列表，每頁 20，排序 `sort_order` + `id`  
+- `/topics/{id}` 固定表格 + 分頁；草稿 alert  
+- 後台 Inertia 表單：單頁分區塊、動態列、防抖預覽（每頁 20、可分頁）  
+- 無 slug、無「在前台開啟」、無 page_size 設定  
+- 主體／edge 過濾可選 locale；欄位可選顯示 property + locale  
+- 路徑步驟可掛 edge 屬性過濾；欄位支援 `edge_property` + `step_index`  
+- 改主體 type confirm 後清空查詢設定  
+- 至少 1 欄；`columns[].key` 自動產生  
+- 硬刪除 Topic；Schema 刪除檢查含 EdgeProperty  
+- 無 issue #4 種子資料  
 
 ---
 
@@ -455,25 +519,24 @@
 
 | 決策 | 選擇 |
 |------|------|
-| 名稱 | Topic（專題），不用 view |
-| Navbar | 左邊公開「專題」→ `/topics`；右邊「網站管理」下「專題管理」（`topic.manage`） |
-| 可設定方式 | 後台 CRUD，非寫死 config |
-| 呈現 | 先做表格 |
-| 查詢 | 結構化 JSON，非 raw Cypher |
-| 路徑 | 多層步驟陣列，條件 AND |
-| 欄位 | 主體屬性＋關聯欄 |
-| 多值關聯 | 全部列出、換行、可連結 |
-| 前台互動 | 完全固定（選項 C），僅分頁 |
-| 前台列表 | 簡單卡片：名稱＋說明；空狀態卡（無管理連結） |
-| 前台表格頁 | 返回＋標題＋說明＋responsive table；草稿 alert；空資料保留表頭；URL 用 id |
+| 後台表單技術 | Inertia.js + Vue |
+| 名稱 | Topic（專題） |
 | 前台識別 | `/topics/{id}`，無 slug |
-| 分頁 | 要；page size 由定義決定 |
-| 權限 | `topic.manage`；公開讀已發布 |
-| 後台列表 | 卡片＋狀態 badge＋編輯／預覽／硬刪除；無狀態篩選 |
-| 後台表單 | 單頁分區塊；動態列新增／刪除／上移／下移 |
-| 後台預覽 | 表單下方防抖自動預覽；列數＝`page_size`；可分頁 |
-| 刪除 | confirm 後硬刪除（不軟刪） |
-| 儲存 | `definition` JSON（不建 schema FK） |
-| Schema 刪除 | 檢查 Topic 依賴並阻止 |
-| 多語 | v1 單語 |
-| Issue #4 三情境 | 不當種子，之後手動建 |
+| Navbar | 左「專題」；右「專題管理」 |
+| `columns[].key` | 系統自動產生 |
+| 排序 | 單欄；未設 → 主體 id ASC |
+| 過濾運算子 | 依 property 型別限制 |
+| 多語 property | 過濾／顯示可選 locale；未選跟 app locale |
+| 關聯欄 | 自選 VertexProperty |
+| 邊屬性 | 步驟上可 filter；欄位 type `edge_property` |
+| 改主體 type | confirm 後清空查詢設定 |
+| page_size | 固定 20 |
+| 列表排序 | `sort_order` + `id` ASC（前後台一致） |
+| 列表分頁 | 前後台皆每頁 20 |
+| 最少欄位 | 1 |
+| 即時預覽 | 防抖；不 abort |
+| 前台連結 | 不提供「在前台開啟」 |
+| Topic 文案多語 | v1 單語 |
+| 刪除 Topic | 硬刪除 |
+| Schema 刪除 | 含 EdgeProperty 依賴檢查 |
+| Issue #4 三情境 | 不當種子 |
