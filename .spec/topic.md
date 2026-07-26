@@ -38,6 +38,7 @@
 - 一般使用者自建私人 Topic
 - Issue #4 三個情境的種子 Topic
 - 後台側欄並排預覽、另開視窗預覽、後台「在前台開啟」連結
+- **`sort` 以 `relation`／`edge_property` 欄排序**（v1 僅 `subject_property`）
 
 ---
 
@@ -171,8 +172,9 @@ v1 **不提供** `page_size` 設定；常數 `20` 由應用層強制，可不寫
 ### 預設排序（`definition.sort`）
 
 - v1 **單欄**排序：一個 `column_key` + `direction`（`asc` / `desc`）
+- `column_key` **僅允許**對應 `type = subject_property` 的 column（不可為 `rel_*`／`ep_*`）
 - 未設定或 `column_key` 為空：**主體 vertex id 升冪**（穩定預設）
-- 表單 UI：下拉選已定義的 column + 方向；可選「預設（主體 id）」
+- 表單 UI：下拉選已定義的 **subject_property** column + 方向；可選「預設（主體 id）」
 
 ### 屬性過濾與運算子
 
@@ -526,6 +528,11 @@ Blade + Bootstrap（`layouts.app`）。
 | T2-06 | 無權限 `POST /admin/topics/preview` | **403** |
 | T2-07 | 有權限 `GET /admin/topics/create` | **200**（Inertia `Topics/Create`） |
 | T2-08 | 有權限 `GET /admin/topics/{topic}/edit` | **200**（Inertia `Topics/Edit`） |
+| T2-09 | 無權限 `POST /admin/topics` | **403** |
+| T2-10 | 無權限 `PATCH /admin/topics/{topic}` | **403** |
+| T2-11 | 無權限 `DELETE /admin/topics/{topic}` | **403** |
+| T2-12 | 訪客 `POST`／`PATCH`／`DELETE` 後台 Topic | **redirect** 登入 |
+| T2-13 | `php artisan app:apply-role-and-permission-command` 後 | `admin` 角色實際擁有 `topic.manage` |
 
 ### 層級 3：前台列表 `/topics`
 
@@ -550,6 +557,10 @@ Blade + Bootstrap（`layouts.app`）。
 | T4-07 | 表格分頁 | 每頁 **20**；訪客**不能**改排序／篩選／page size |
 | T4-08 | 關聯多值欄 | 同一格換行；可連結 vertex |
 | T4-09 | `edge_property` 多值 | 同一格換行列出 |
+| T4-10 | 已登入但**無** `topic.manage` 瀏覽草稿 | **404**（與訪客相同） |
+| T4-11 | Topic 硬刪除後再 `GET /topics/{id}` | **404** |
+| T4-12 | `link_to_subject` / `link_to_vertex` 為 false | 顯示文字、**無**連結 |
+| T4-13 | 欄位值為 null／空 | 格子顯示空（或約定 placeholder，實作寫死並測） |
 
 ### 層級 5：後台列表與 CRUD
 
@@ -562,6 +573,7 @@ Blade + Bootstrap（`layouts.app`）。
 | T5-05 | `PATCH /admin/topics/{topic}` | 更新成功 |
 | T5-06 | `DELETE /admin/topics/{topic}` | 硬刪除；資料庫無該筆 |
 | T5-07 | 管理列表空狀態 | 無 Topic 時顯示空狀態卡 |
+| T5-08 | 發布 → 前台列表出現；取消發布 → 前台列表消失 | 列表與 `is_published` 同步 |
 
 ### 層級 6：`definition` 驗證（Form Request）
 
@@ -578,6 +590,13 @@ Blade + Bootstrap（`layouts.app`）。
 | T6-09 | 多語 property 過濾帶 `locale` | 接受並寫入 JSON |
 | T6-10 | 路徑 step 含 `edge_property_filters` | 接受並寫入 JSON |
 | T6-11 | 欄位 type `edge_property` 含 `step_index` | 接受並寫入 JSON |
+| T6-12 | 引用不存在的 **EdgeProperty** id | 驗證失敗 |
+| T6-13 | `vertex_property_id` 不屬於 `subject_vertex_type_id` | 驗證失敗 |
+| T6-14 | `edge_property_id` 不屬於該 step 的 `edge_type_id` | 驗證失敗 |
+| T6-15 | `sort.column_key` 指向不存在的 column key | 驗證失敗 |
+| T6-16 | 請求帶自訂 `page_size` | 忽略或覆寫為 **20**（不得存其他值） |
+| T6-17 | `relation`／`edge_property` 欄缺少必要 path／property id | 驗證失敗 |
+| T6-18 | `target_vertex_type_id` 與 EdgeType 端點類型不符 | 驗證失敗 |
 
 ### 層級 7：`TopicQueryService`（Unit / Feature）
 
@@ -615,12 +634,15 @@ Blade + Bootstrap（`layouts.app`）。
 
 **活動頂點（主體列）：**
 
-| vertex | `location` (STRING) | `event_date` (DATE) | `attendee_count` (INTEGER) | `is_public` (BOOLEAN) | `note` (STRING, 可 null) |
-|--------|---------------------|---------------------|----------------------------|-------------------------|--------------------------|
-| E1 | 台灣 | 2024-06-01 | 100 | true | 夏季活動 |
-| E2 | 日本 | 2024-07-15 | 50 | false | null |
-| E3 | 台灣 | 2024-08-20 | 200 | true | 秋季活動 |
-| E4 | 韓國 | 2023-12-01 | 30 | false | 海外 |
+| vertex | `location` (STRING) | `event_date` (DATE) | `starts_at` (TIMESTAMPTZ) | `attendee_count` (INTEGER) | `score` (FLOAT) | `is_public` (BOOLEAN) | `note` (STRING, 可 null) |
+|--------|---------------------|---------------------|---------------------------|----------------------------|-----------------|-------------------------|--------------------------|
+| E1 | 台灣 | 2024-06-01 | 2024-06-01 10:00:00+08 | 100 | 4.5 | true | 夏季活動 |
+| E2 | 日本 | 2024-07-15 | 2024-07-15 18:00:00+09 | 50 | 3.0 | false | null |
+| E3 | 台灣 | 2024-08-20 | 2024-08-20 14:00:00+08 | 200 | 4.5 | true | 秋季活動 |
+| E4 | 韓國 | 2023-12-01 | 2023-12-01 12:00:00+09 | 30 | 2.5 | false | 海外 |
+| E5 | 台灣 | 2024-09-01 | 2024-09-01 09:00:00+08 | 10 | 1.0 | true | 無主辦 |
+
+> `starts_at` 比較一律以 **app timezone** 解讀（見實作約定）。E5 **沒有** `organized_by` 邊，用於「路徑存在」負向案例。
 
 **成員頂點：** M1（Alice）、M2（Bob）
 
@@ -633,6 +655,8 @@ Blade + Bootstrap（`layouts.app`）。
 | OB3 | M2 | E3 |
 | OB4 | M2 | E4 |
 
+（E5 無邊）
+
 #### QF-Song（多跳路徑、Edge 屬性、多語）
 
 延伸 `SimulateGraphDataSeeder` 概念；主體為 **歌曲 `song`**。
@@ -640,6 +664,10 @@ Blade + Bootstrap（`layouts.app`）。
 **歌曲：** S1 綺麗事、S2 いのち、S3 The Last Frontier  
 
 **VTuber：** V1 星街すいせい、V2 AZKi  
+
+**團體：** G1  
+
+**地點：** P1（台灣）— 供三跳路徑  
 
 **邊 `vocal`（`vtuber` → `song`）與屬性：**
 
@@ -651,7 +679,9 @@ Blade + Bootstrap（`layouts.app`）。
 | VC4 | V1 | S3 | 1 | 主唱 | ボーカル |
 | VC5 | V2 | S3 | 2 | 和聲 | コーラス |
 
-**邊 `member`（`vtuber` → `group`）：** V1、V2 皆屬團體 G1（Hololive JP 等假名即可）
+**邊 `member`（`vtuber` → `group`）：** V1、V2 皆屬 G1  
+
+**邊 `based_in`（`group` → `place`）：** G1 → P1  
 
 **邊 `has_youtube_video`（`song` → `youtube_video`）：** 每首歌至少一筆（id 固定字串即可）
 
@@ -663,19 +693,29 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期主體 |
 |----|------|----------|
-| QS-A01 | `location` `eq` `台灣` | E1, E3 |
-| QS-A02 | `location` `contains` `台` | E1, E3 |
+| QS-A01 | `location` `eq` `台灣` | E1, E3, E5 |
+| QS-A02 | `location` `contains` `台` | E1, E3, E5 |
 | QS-A03 | `location` `eq` `日本` | E2 |
 | QS-A04 | `note` `is_null` | E2 |
-| QS-A05 | `note` `is_not_null` | E1, E3, E4 |
+| QS-A05 | `note` `is_not_null` | E1, E3, E4, E5 |
 | QS-A06 | `attendee_count` `gte` `100` | E1, E3 |
 | QS-A07 | `attendee_count` `between` `40`–`60` | E2 |
 | QS-A08 | `event_date` `between` `2024-06-01`–`2024-08-31` | E1, E2, E3 |
 | QS-A09 | `event_date` `lt` `2024-01-01` | E4 |
-| QS-A10 | `is_public` `eq` `true` | E1, E3 |
-| QS-A11 | 兩條 AND：`location eq 台灣` + `is_public eq true` | E1, E3 |
+| QS-A10 | `is_public` `eq` `true` | E1, E3, E5 |
+| QS-A11 | 兩條 AND：`location eq 台灣` + `is_public eq true` | E1, E3, E5 |
 | QS-A12 | 兩條 AND：`location eq 台灣` + `attendee_count gt 150` | E3 only |
-| QS-A13 | 三條 AND 無符合 | `location eq 台灣` + `attendee_count lt 10` | （空） |
+| QS-A13 | 兩條 AND 無符合：`location eq 台灣` + `attendee_count lt 10` | （空） |
+| QS-A14 | `is_public` `eq` `false` | E2, E4 |
+| QS-A15 | `attendee_count` `gt` `100` | E3（不含 100） |
+| QS-A16 | `attendee_count` `lte` `50` | E2, E4, E5 |
+| QS-A17 | `attendee_count` `lt` `50` | E4, E5 |
+| QS-A18 | `score` (FLOAT) `eq` `4.5` | E1, E3 |
+| QS-A19 | `score` `gt` `3.0` | E1, E3 |
+| QS-A20 | `score` `between` `2.0`–`3.5` | E2, E4 |
+| QS-A21 | `starts_at` (TIMESTAMPTZ) `gte` app-tz 下 `2024-06-01 00:00:00` | E1, E2, E3, E5（依 app tz 解讀） |
+| QS-A22 | `starts_at` `lt` app-tz 下 `2024-01-01 00:00:00` | E4 |
+| QS-A23 | `starts_at` `between` 2024-07-01～2024-08-31（app tz） | E2, E3 |
 
 ### B. 路徑過濾（`path_filters`）
 
@@ -683,13 +723,16 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期主體 |
 |----|------|----------|
-| QS-B01 | 一步 `organized_by` **incoming**（event ← member），無 `target_vertex_id` | E1–E4（皆有主辦） |
+| QS-B01 | 一步 `organized_by` **incoming**（event ← member），無 `target_vertex_id` | E1–E4（**不含 E5**） |
 | QS-B02 | 同上 + `target_vertex_id` = **M1** | E1, E2 |
 | QS-B03 | 同上 + `target_vertex_id` = **M2** | E3, E4 |
 | QS-B04 | 同上 + `target_vertex_id` = 不存在的 AGE id | （空） |
 | QS-B05 | `property_filters`: `location eq 台灣` **AND** `path`: incoming `organized_by` + target **M2** | E3 only |
 | QS-B06 | 兩條 `path_filters` AND：target M1 **且** target M2 | （空） |
-| QS-B07 | 兩條 `path_filters` AND：target M1 **且** `location eq 台灣` | E1 only |
+| QS-B07 | 兩條 `path_filters` AND、有交集：補 fixture「E1 亦被 M2 主辦」後，target M1 **且** target M2 | 僅該共同主辦活動（快樂路徑） |
+| QS-B08 | 僅 path「存在 organized_by」相對全列 | 結果不含 **E5** |
+
+> QS-B07 需在 fixture 另加邊 OB5：M2→E1（僅此案或共用擴充 fixture）。若不想改基底圖，可於該測試內臨時加邊。
 
 ### C. 多層路徑（`path_filters.steps` 多步）
 
@@ -699,11 +742,16 @@ Blade + Bootstrap（`layouts.app`）。
 |----|------|----------|
 | QS-C01 | 一步：`vocal` **incoming**（song ← vtuber），target **V1** | S1, S3 |
 | QS-C02 | 一步：`vocal` incoming，target **V2** | S1, S2, S3 |
-| QS-C03 | 兩步：① `vocal` incoming → vtuber ② `member` **outgoing**（vtuber → group）終點類型 `group`；無 target | S1–S3（經 vtuber 所屬團體） |
-| QS-C04 | 兩步 + 第一步 `target_vertex_id` **V1** | S1, S3 |
-| QS-C05 | 兩步 + 第一步 target V1 + 第二步路徑存在即可 + `property_filters` 無 | 同 QS-C04 |
-| QS-C06 | 兩步 + 第一步 target **V2** + 第二步終點 `group` 存在 | S1, S2, S3 |
-| QS-C07 | 錯誤方向（應無結果）：`vocal` **outgoing** from song（若 schema 為 vtuber→song） | （空）或驗證階段即拒絕 |
+| QS-C03 | 兩步：① `vocal` incoming → vtuber ② `member` **outgoing**（vtuber → group）終點類型 `group`；無 target | S1–S3 |
+| QS-C04 | 兩步 + 路徑終點約束（實作：`target_vertex_id` 指**整條 path 最後一層**終點，或第一步終點——**寫死為最後一層**）：最後一層 group = **G1** | S1–S3 |
+| QS-C05 | 兩步 + 另測「中間層為特定 vtuber」：用**兩條** path_filters（一步 target V1 + 一步存在 member→G1）或單 path 第一步加 edge／中間約束 | S1, S3（語意寫進實作註解） |
+| QS-C06 | 兩步 + 最後一層終點 = 不存在 group id | （空） |
+| QS-C07 | 錯誤方向：`vocal` **outgoing** from song（schema 為 vtuber→song） | （空）或驗證拒絕 |
+| QS-C08 | **三步**：① vocal incoming ② member outgoing ③ `based_in` outgoing → place；target **P1** | S1–S3 |
+| QS-C09 | 三步 + target **P1** 不存在的 id | （空） |
+| QS-C10 | step 上 `target_vertex_type_id` 與 EdgeType 端點**不符** | 驗證失敗（見 T6-18）；若漏網則查詢空結果 |
+
+> **`target_vertex_id` 語意（寫死）：** 一律約束該條 `path_filter` **最後一步**的對端頂點。若需約束中間層，改用另一步驟的 `edge_property_filters`、拆成多條 path_filters，或未來擴充（v1 不支援中間層 target）。
 
 ### D. 路徑步驟 Edge 屬性過濾（`edge_property_filters`）
 
@@ -711,16 +759,18 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期主體 |
 |----|------|----------|
-| QS-D01 | step 上 `order` `eq` `1`（至少一條 vocal 邊 order=1） | S1, S2, S3 |
-| QS-D02 | step 上 `order` `eq` `2` | S1, S3（和聲） |
-| QS-D03 | step 上 `role_zh_tw` `eq` `主唱` + `locale` `zh_TW` | S1（VC1）, S2（VC3）, S3（VC4） |
+| QS-D01 | step 上 `order` `eq` `1` | S1, S2, S3 |
+| QS-D02 | step 上 `order` `eq` `2` | S1, S3 |
+| QS-D03 | step 上 `role_zh_tw` `eq` `主唱` + `locale` `zh_TW` | S1, S2, S3 |
 | QS-D04 | step 上 `role_zh_tw` `eq` `和聲` | S1, S3 |
-| QS-D05 | step 上 `role_ja_jp` `eq` `ボーカル` + `locale` `ja_jp` | 同 QS-D03（跨語系欄位） |
-| QS-D06 | step 上 `role_zh_tw` `eq` `主唱` **且** path target **V1** | S1, S3 |
-| QS-D07 | step 上 `role_zh_tw` `eq` `主唱` **且** path target **V2** | S2 only |
-| QS-D08 | 多層路徑：兩步（見 QS-C04）+ 第一步 `edge_property_filters`: `role_zh_tw eq 主唱` | S1, S3 |
-| QS-D09 | `edge_property_filters` + `property_filters` 無（song 無主體 filter） | 依 D 條件 |
+| QS-D05 | step 上 `role_ja_jp` `eq` `ボーカル` + `locale` `ja_jp` | 同 QS-D03 |
+| QS-D06 | step 上 `role_zh_tw` `eq` `主唱` **且** path 最後終點 **V1** | S1, S3 |
+| QS-D07 | step 上 `role_zh_tw` `eq` `主唱` **且** path 最後終點 **V2** | S2 only |
+| QS-D08 | 多層路徑（兩步）+ **第一步** `edge_property_filters`: `role_zh_tw eq 主唱` | S1, S2, S3（第一步有主唱邊的歌） |
+| QS-D09 | 僅 `edge_property_filters`（無主體 property_filters、無 target）+ `order eq 2` | S1, S3（同 QS-D02） |
 | QS-D10 | `order` `between` `1`–`1` | 同 QS-D01 |
+| QS-D11 | **同一 step 兩條** edge filter AND：`order eq 1` + `role_zh_tw eq 主唱` | S1, S2, S3 |
+| QS-D12 | 同一 step AND：`order eq 2` + `role_zh_tw eq 主唱` | （空） |
 
 ### E. 條件組合（跨類型 AND）
 
@@ -731,26 +781,30 @@ Blade + Bootstrap（`layouts.app`）。
 | QS-E03 | song | path vocal incoming target **V1** + step `role_zh_tw eq 主唱` | S1, S3 |
 | QS-E04 | song | path vocal incoming target **V1** + step `role_zh_tw eq 和聲` | （空） |
 | QS-E05 | song | path vocal incoming（無 target）+ step `role_zh_tw eq 和聲` | S1, S3 |
-| QS-E06 | event | `property_filters` 空 + `path_filters` 空 | E1–E4 全列 |
+| QS-E06 | event | `property_filters` 空 + `path_filters` 空 | E1–E5 全列 |
+| QS-E07 | event | `location eq 台灣` + path 存在 organized_by（無 target） | E1, E3（**不含 E5**） |
 
-**路徑 + edge 屬性語意（QS-E03～E05）：** `target_vertex_id` 約束該 path 的**終點**頂點；`edge_property_filters` 約束**滿足該步路徑的那條 edge** 的屬性。同一主體若有多條同類邊，只要**存在一條**同時滿足路徑與 edge 條件即納入（existential）。
+**路徑 + edge 屬性語意（QS-E03～E05）：** `target_vertex_id` 約束該 path **最後一步**對端；`edge_property_filters` 約束**滿足該步路徑的那條 edge**。同一主體多條同類邊時，**存在一條**同時滿足即可（existential）。
 
 ### F. 排序（`sort`）
 
-使用 QF-Event 全列 E1–E4；欄位至少含 `event_date`（`p_{event_date_id}`）。
+使用 QF-Event；預設全列時注意 E5 插入後 id 順序以 fixture 實際 AGE id 為準（測試用名稱集合＋穩定排序鍵 assert）。
 
 | ID | `sort` | 預期順序（主體） |
 |----|--------|------------------|
-| QS-F01 | 未設 / null | E1, E2, E3, E4（**id ASC** 預設；若 id 建立順序與表一致） |
-| QS-F02 | `event_date` **asc** | E4, E1, E2, E3（依日期） |
-| QS-F03 | `event_date` **desc** | E3, E2, E1, E4 |
-| QS-F04 | `attendee_count` **desc** | E3, E1, E2, E4 |
+| QS-F01 | 未設 / null | 主體 **AGE id ASC**（以 fixture 回傳 id 驗證，勿寫死 E1…E5 順序假設） |
+| QS-F02 | `event_date` **asc** | E4, E1, E2, E3, E5 |
+| QS-F03 | `event_date` **desc** | E5, E3, E2, E1, E4 |
+| QS-F04 | `attendee_count` **desc** | E3, E1, E2, E4, E5 |
+| QS-F05 | `score` **asc** | E5, E4, E2, E1, E3（同分再以 id ASC 穩定） |
+
+> v1 **`sort.column_key` 僅允許 `subject_property` 欄的 key**（不可指 `rel_*`／`ep_*`）。見 T6 與下方非目標備註。
 
 ### G. 分頁（固定 20）
 
 | ID | 條件 | 預期 |
 |----|------|------|
-| QS-G01 | QF-Event 全列、`page=1` | 4 列；`total=4` |
+| QS-G01 | QF-Event 全列、`page=1` | 5 列；`total=5` |
 | QS-G02 | 人工 seed **25** 筆活動（同 type）、`page=1` / `page=2` | 第 1 頁 20 筆、第 2 頁 5 筆；`total=25` |
 | QS-G03 | 篩選後僅 3 筆、`page=2` | 空列或第 2 頁無資料（依 Laravel paginator 慣例） |
 
@@ -758,25 +812,41 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 案例 | 預期 |
 |----|------|------|
-| QS-H01 | `property_filters` 與 `path_filters` 皆空陣列 | 主體 type 下**全部**頂點 |
+| QS-H01 | `property_filters` 與 `path_filters` 皆空陣列 | 主體 type 下**全部**頂點（含 E5） |
 | QS-H02 | 主體 type 下無任何頂點 | 空結果；總筆數 0 |
-| QS-H03 | `contains` 空字串 | 實作定義（建議：驗證拒絕或視為無 op） |
-| QS-H04 | `between` from > to | 驗證失敗（Form Request）或空結果（擇一並寫死） |
-| QS-H05 | `locale` 未設，讀取多語 property | 使用 **app locale** 對應欄位 |
-| QS-H06 | `locale` 設 `zh_TW` 但 filter 用 `role_ja_jp` 語意欄位 | 驗證失敗或忽略 locale（應驗證 property 與 locale 一致） |
+| QS-H03 | `contains` 空字串 | **驗證拒絕**（Form Request） |
+| QS-H04 | `between` from > to | **驗證拒絕** |
+| QS-H05 | `locale` 未設，過濾多語 property | 使用 **app locale** 對應欄位 |
+| QS-H06 | `locale` 與 property 的 locale 標籤不一致（如對 `role_ja_jp` 傳 `zh_TW`） | **驗證拒絕** |
 | QS-H07 | `path_filters.steps` 空陣列 | 驗證失敗 |
 | QS-H08 | `edge_property` 欄位 `step_index` 超出 path 長度 | 驗證失敗 |
 | QS-H09 | 引用已刪除的 `vertex_property_id`（查詢前） | 定義失效；不執行查詢 |
+| QS-H10 | `contains` 含 Cypher／特殊字元字串 | 安全跳脫；不 500；結果可空 |
+| QS-H11 | `sort.column_key` 為 `rel_*`／`ep_*` | 驗證拒絕（v1 僅 subject_property） |
 
 ### I. 預覽 API 與查詢一致性
-
-每個 **QS-A***～**QS-E*** 案例應各有一項對應測試（可參數化）：
 
 | ID | 案例 | 預期 |
 |----|------|------|
 | QS-I01 | `POST /admin/topics/preview` body = 與 QS-A11 相同 definition | 回傳主體集合與 **QS-A11** 一致 |
 | QS-I02 | preview `page=1` 與前台 `GET /topics/{id}?page=1` 同 Topic 定義 | 列資料一致 |
 | QS-I03 | 修改表單尚未儲存 → preview | 結果不寫入 DB，且與儲存後同定義之查詢一致 |
+| QS-I04 | create 頁與 edit 頁 preview 同一 payload | 行為與結果一致 |
+| QS-I05 | 連續快速變更觸發多次 preview（不 abort） | 最終畫面與**最後一次完成的**回應一致即可（允許中間過時；不強制最新優先） |
+
+### J. 欄位渲染（顯示，非篩選）
+
+使用 QF-Song；主體 `song`；assert 儲存格文字／連結。
+
+| ID | 案例 | 預期 |
+|----|------|------|
+| QS-J01 | `subject_property` 多語欄 + 明確 `locale` | 顯示該語系值 |
+| QS-J02 | `subject_property` 多語欄 + `locale` null | 跟 **app locale** |
+| QS-J03 | `relation` 自選 `vertex_property_id`；一歌多位演唱 | **換行**列出；順序穩定（建議對端 AGE **id ASC**） |
+| QS-J04 | `relation` + `link_to_vertex` true／false | 有／無 `<a href>` 至 `/graph/vertex/{id}` |
+| QS-J05 | `edge_property` + `step_index=0`（一步 vocal 的 `order`） | S1 顯示 `1` 與 `2` 換行（多條 vocal） |
+| QS-J06 | `edge_property` + **兩步 path** 的 `step_index=1`（第二步 edge 屬性；fixture 需第二步有 EdgeProperty，或對 `based_in` 加屬性） | 只取第二步 edge 的值 |
+| QS-J07 | 顯示 property 值為 null | 該列該格為空字串 |
 
 ### 實作備註
 
@@ -784,7 +854,9 @@ Blade + Bootstrap（`layouts.app`）。
 2. **Fixture 建立順序**：先 PG schema（VertexType 等）→ AGE 頂點／邊 → Topic `definition` 引用 PG id。  
 3. **id 穩定**：測試內用 fixture 回傳的 M1/E1 AGE id，勿寫死 magic number。  
 4. **方向詞彙**：`incoming` / `outgoing` 一律相對**當前 traversal 節點**（主體或步驟累積的當前點）。  
-5. **層級 7（T7-*）** 可由本節 QS-* 涵蓋；實作時以 QS 為準，T7 作煙霧測試即可。
+5. **層級 7（T7-*）** 可由本節 QS-* 涵蓋；實作時以 QS 為準，T7 作煙霧測試即可。  
+6. **v1 sort**：僅 `subject_property` 欄；`rel_*`／`ep_*` 排序為非目標（QS-H11）。  
+7. **E5／三跳／FLOAT／TIMESTAMPTZ**：為補齊缺口而擴充的 fixture，與初版 QF 表一併維護。
 
 ---
 
@@ -802,11 +874,13 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 案例 | 預期 |
 |----|------|------|
-| T9-01 | 刪除被 Topic 引用的 **VertexType** | 失敗；錯誤含 Topic name／id |
-| T9-02 | 刪除被引用的 **EdgeType** | 同上 |
-| T9-03 | 刪除被引用的 **VertexProperty** | 同上 |
-| T9-04 | 刪除被引用的 **EdgeProperty** | 同上 |
+| T9-01 | 刪除被 Topic 引用的 **VertexType**（含 `subject_vertex_type_id`） | 失敗；錯誤含 Topic name／id |
+| T9-02 | 刪除被引用的 **EdgeType**（含 `path`／`path_filters.steps`） | 同上 |
+| T9-03 | 刪除被引用的 **VertexProperty**（含 filters 與 columns） | 同上 |
+| T9-04 | 刪除被引用的 **EdgeProperty**（含 `edge_property_filters` 與 `edge_property` 欄） | 同上 |
 | T9-05 | 無 Topic 引用 | 刪除成功（沿用既有 schema 刪除測試行為） |
+| T9-06 | 僅在 `columns[].path[].edge_type_id` 引用 | 仍阻止刪除（掃描路徑完整） |
+| T9-07 | 僅在 `edge_property_filters[].edge_property_id` 引用 | 仍阻止刪除 |
 
 ### 層級 10：Navbar 與選單
 
@@ -864,6 +938,7 @@ Blade + Bootstrap（`layouts.app`）。
 | 最少欄位 | 1 |
 | 即時預覽 | 防抖；不 abort |
 | 前台連結 | 不提供「在前台開啟」 |
+| sort 範圍 | v1 僅 subject_property 欄 |
 | Topic 文案多語 | v1 單語 |
 | 刪除 Topic | 硬刪除 |
 | Schema 刪除 | 含 EdgeProperty 依賴檢查 |
