@@ -20,7 +20,7 @@
 
 ### 目標（v1）
 
-1. 管理者可 CRUD Topic（含草稿／發布、手動排序）
+1. 管理者可 CRUD Topic（含草稿／發布、手動排序、編輯時即時預覽）
 2. 以結構化查詢定義（非自由 Cypher）從 Apache AGE 取出列資料
 3. 前台公開列出已發布 Topic，並以固定表格＋分頁顯示
 4. 支援多層路徑過濾、主體／關聯欄位、常用屬性運算子
@@ -36,6 +36,7 @@
 - 圖表或 graph canvas
 - 一般使用者自建私人 Topic
 - Issue #4 三個情境的種子 Topic
+- 後台側欄並排預覽、另開視窗預覽
 
 ---
 
@@ -102,6 +103,7 @@
 | GET | `/admin/topics` | 管理列表（含草稿） |
 | GET | `/admin/topics/create` | 建立表單 |
 | POST | `/admin/topics` | 儲存 |
+| POST | `/admin/topics/preview` | 即時預覽（未儲存 definition＋分頁；需 `topic.manage`） |
 | GET | `/admin/topics/{topic}/edit` | 編輯表單 |
 | PUT/PATCH | `/admin/topics/{topic}` | 更新 |
 | DELETE | `/admin/topics/{topic}` | 硬刪除（confirm 後） |
@@ -289,13 +291,28 @@
 6. **預設排序**：對應 `definition.sort`
 7. **儲存**／**返回列表**
 
+**即時預覽（v1 要做）：**
+
+- 位置：表單**下方**同一頁（不做側欄並排、不另開視窗）
+- 觸發：表單內容變更後**防抖自動重查**（建議約 500ms；實作可微調）
+- 資料來源：以**目前表單未儲存內容**組 definition 查 AGE（不必先按儲存）
+- 列數：與表單中的 `page_size` 相同
+- **提供分頁**：預覽區可翻頁（同樣受 `page_size` 約束）
+- 呈現：小表格（欄位同當前 columns 定義）＋總筆數／分頁控件；風格對齊前台表格（含多值換行）
+- 定義不完整（例如尚未選主體、必填欄位不足）時：預覽區顯示提示，**不發查詢**
+- 查詢／驗證失敗：預覽區顯示錯誤訊息，**不阻擋**使用者按儲存（儲存仍走完整 Form Request）
+
+預覽 API 建議：`POST /admin/topics/preview`（建立／編輯共用；需 `topic.manage`），body 為表單 definition＋page；回 JSON 或 HTML partial（實作選與前端互動方式一致者）。
+
+另可保留「在前台開啟」連結（已儲存的 `/topics/{id}`），與即時預覽分開。
+
 控件原則：
 
 - VertexType／EdgeType／Property：schema 下拉，JSON 存 id  
 - 動態列：**新增／刪除＋上移／下移**（不做拖曳）  
 - 不做 raw JSON 主編輯  
 
-編輯頁可另提供「預覽」連到前台 `/topics/{id}`（草稿時靠權限可見）。
+編輯頁可另提供「在前台開啟」連到 `/topics/{id}`（草稿時靠權限可見），與下方即時預覽分開。
 
 ---
 
@@ -407,11 +424,11 @@
 ## 實作里程碑建議
 
 1. **資料與權限**：`topics` migration、Model、`topic.manage`、Navbar（左「專題」、右「專題管理」）
-2. **後台 CRUD**：管理列表＋單頁分區塊表單＋ Form Request 驗證 `definition`；硬刪除
-3. **查詢服務**：依 definition 查 AGE＋分頁
+2. **後台 CRUD**：管理列表＋單頁分區塊表單＋防抖即時預覽（含分頁）＋ Form Request 驗證 `definition`；硬刪除
+3. **查詢服務**：依 definition 查 AGE＋分頁（前台與後台預覽共用）
 4. **前台**：列表卡片＋`/topics/{id}` 表格頁（含空狀態、草稿 alert、responsive table）
 5. **Schema 刪除保護**：Graph Schema 刪除路徑接入依賴檢查
-6. **測試**：Feature tests 覆蓋 CRUD、權限、發布可見性、刪除阻擋、表格查詢快樂路徑／失效定義
+6. **測試**：Feature tests 覆蓋 CRUD、預覽 API、權限、發布可見性、刪除阻擋、表格查詢快樂路徑／失效定義
 
 ---
 
@@ -423,6 +440,7 @@
 - 有 `topic.manage` 者在「網站管理」下可見「專題管理」
 - 管理列表可新增／編輯／預覽／硬刪除（confirm）
 - 建立／編輯為單頁分區塊；動態列可新增／刪除／上移／下移；無 slug
+- 編輯表單下方有防抖即時預覽，列數跟 `page_size`，預覽區可分頁
 - 有 `topic.manage` 者可建立草稿 Topic，填主體、過濾、路徑、欄位後儲存
 - 發布後未登入可於 `/topics` 看到並開啟表格
 - 草稿對未授權使用者 404（或等同不可見）
@@ -453,6 +471,7 @@
 | 權限 | `topic.manage`；公開讀已發布 |
 | 後台列表 | 卡片＋狀態 badge＋編輯／預覽／硬刪除；無狀態篩選 |
 | 後台表單 | 單頁分區塊；動態列新增／刪除／上移／下移 |
+| 後台預覽 | 表單下方防抖自動預覽；列數＝`page_size`；可分頁 |
 | 刪除 | confirm 後硬刪除（不軟刪） |
 | 儲存 | `definition` JSON（不建 schema FK） |
 | Schema 刪除 | 檢查 Topic 依賴並阻止 |
