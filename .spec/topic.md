@@ -81,7 +81,17 @@
 | GET | `/topics` | 已發布列表（依 `sort_order`，同序再依更新時間） |
 | GET | `/topics/{slug}` | 表格頁（唯讀；草稿僅管理者可預覽） |
 
-導覽列／選單新增「專題」入口（透過既有 `MenuService` 或同等機制）。
+### Navbar（`MenuService`）
+
+對齊現有左右選單分工（左：公開瀏覽；右：帳號／管理）：
+
+| 位置 | 項目 | 條件 | 連結 |
+|------|------|------|------|
+| **左邊** `left` | **專題** | 所有人（含未登入） | `/topics`（route `topics.index`） |
+| **右邊** `right` →「網站管理」 | **專題管理** | 需 `topic.manage` | `/admin/topics`（route `admin.topics.index`） |
+
+- 左邊目前為空；「專題」為第一個公開 nav item（品牌仍連 `/overview`）。
+- 「專題管理」與會員管理、Graph Schema 等同樣掛在「網站管理」下拉，權限 gated。
 
 ### 後台
 
@@ -307,7 +317,7 @@
 
 ## 實作里程碑建議
 
-1. **資料與權限**：`topics` migration、Model、`topic.manage`、選單
+1. **資料與權限**：`topics` migration、Model、`topic.manage`、Navbar（左「專題」、右「專題管理」）
 2. **後台 CRUD**：結構化表單＋ Form Request 驗證 `definition`
 3. **查詢服務**：依 definition 查 AGE＋分頁
 4. **前台**：列表＋表格頁
@@ -333,6 +343,7 @@
 | 決策 | 選擇 |
 |------|------|
 | 名稱 | Topic（專題），不用 view |
+| Navbar | 左邊公開「專題」→ `/topics`；右邊「網站管理」下「專題管理」（`topic.manage`） |
 | 可設定方式 | 後台 CRUD，非寫死 config |
 | 呈現 | 先做表格 |
 | 查詢 | 結構化 JSON，非 raw Cypher |
