@@ -631,6 +631,7 @@ Blade + Bootstrap（`layouts.app`）。
 |------|-----------|------|
 | 活動 `event` | `event` | 主體；屬性見下 |
 | 成員 `member` | `member` | 路徑對端 |
+| 公司 `company` | `company` | Issue #4「公司辦活動」 |
 
 **活動頂點（主體列）：**
 
@@ -641,19 +642,24 @@ Blade + Bootstrap（`layouts.app`）。
 | E3 | 台灣 | 2024-08-20 | 2024-08-20 14:00:00+08 | 200 | 4.5 | true | 秋季活動 |
 | E4 | 韓國 | 2023-12-01 | 2023-12-01 12:00:00+09 | 30 | 2.5 | false | 海外 |
 | E5 | 台灣 | 2024-09-01 | 2024-09-01 09:00:00+08 | 10 | 1.0 | true | 無主辦 |
+| E6 | 台灣 | 2024-10-10 | 2024-10-10 19:00:00+08 | 80 | 3.5 | true | 公司場 |
 
-> `starts_at` 比較一律以 **app timezone** 解讀（見實作約定）。E5 **沒有** `organized_by` 邊，用於「路徑存在」負向案例。
+> `starts_at` 比較一律以 **app timezone** 解讀（見實作約定）。E5 **沒有**主辦邊；E6 由**公司**主辦。
 
-**成員頂點：** M1（Alice）、M2（Bob）
+**成員頂點：** M1（Alice）、M2（Bob）  
+**公司頂點：** C1（Acme）
 
-**邊（`organized_by`）：** `member` —`organized_by`→ `event`（語意：成員主辦活動；查詢時依 step `direction` 從 event 出發）
+**邊 `organized_by_member`：** `member` → `event`  
+**邊 `organized_by_company`：** `company` → `event`  
+（實作可共用同一 EdgeType `organized_by` 若 start 端允許多 type；測試以**兩條 EdgeType** 或單一 `organized_by`＋不同 start type 皆可，fixture 需能分別篩「成員主辦／公司主辦」。建議：**兩條 EdgeType** `organized_by_member`、`organized_by_company`。）
 
-| 邊 | 起點 | 終點 |
-|----|------|------|
-| OB1 | M1 | E1 |
-| OB2 | M1 | E2 |
-| OB3 | M2 | E3 |
-| OB4 | M2 | E4 |
+| 邊 | EdgeType | 起點 | 終點 |
+|----|----------|------|------|
+| OB1 | organized_by_member | M1 | E1 |
+| OB2 | organized_by_member | M1 | E2 |
+| OB3 | organized_by_member | M2 | E3 |
+| OB4 | organized_by_member | M2 | E4 |
+| OB5 | organized_by_company | C1 | E6 |
 
 （E5 無邊）
 
@@ -661,7 +667,14 @@ Blade + Bootstrap（`layouts.app`）。
 
 延伸 `SimulateGraphDataSeeder` 概念；主體為 **歌曲 `song`**。
 
-**歌曲：** S1 綺麗事、S2 いのち、S3 The Last Frontier  
+**歌曲：**  
+
+| vertex | `name` | `is_cover` (BOOLEAN) |
+|--------|--------|----------------------|
+| S1 | 綺麗事 | false |
+| S2 | いのち | false |
+| S3 | The Last Frontier | false |
+| S4 | 紅蓮華（cover） | **true** |
 
 **VTuber：** V1 星街すいせい、V2 AZKi  
 
@@ -678,6 +691,9 @@ Blade + Bootstrap（`layouts.app`）。
 | VC3 | V2 | S2 | 1 | 主唱 | ボーカル |
 | VC4 | V1 | S3 | 1 | 主唱 | ボーカル |
 | VC5 | V2 | S3 | 2 | 和聲 | コーラス |
+| VC6 | V1 | S4 | 1 | 主唱 | ボーカル |
+
+**邊 `group_vocal`（`group` → `song`）：** G1 → S3（團體名義曲，供「團體出的歌曲」）
 
 **邊 `member`（`vtuber` → `group`）：** V1、V2 皆屬 G1  
 
@@ -693,17 +709,17 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期主體 |
 |----|------|----------|
-| QS-A01 | `location` `eq` `台灣` | E1, E3, E5 |
-| QS-A02 | `location` `contains` `台` | E1, E3, E5 |
+| QS-A01 | `location` `eq` `台灣` | E1, E3, E5, E6 |
+| QS-A02 | `location` `contains` `台` | E1, E3, E5, E6 |
 | QS-A03 | `location` `eq` `日本` | E2 |
 | QS-A04 | `note` `is_null` | E2 |
-| QS-A05 | `note` `is_not_null` | E1, E3, E4, E5 |
+| QS-A05 | `note` `is_not_null` | E1, E3, E4, E5, E6 |
 | QS-A06 | `attendee_count` `gte` `100` | E1, E3 |
 | QS-A07 | `attendee_count` `between` `40`–`60` | E2 |
 | QS-A08 | `event_date` `between` `2024-06-01`–`2024-08-31` | E1, E2, E3 |
 | QS-A09 | `event_date` `lt` `2024-01-01` | E4 |
-| QS-A10 | `is_public` `eq` `true` | E1, E3, E5 |
-| QS-A11 | 兩條 AND：`location eq 台灣` + `is_public eq true` | E1, E3, E5 |
+| QS-A10 | `is_public` `eq` `true` | E1, E3, E5, E6 |
+| QS-A11 | 兩條 AND：`location eq 台灣` + `is_public eq true` | E1, E3, E5, E6 |
 | QS-A12 | 兩條 AND：`location eq 台灣` + `attendee_count gt 150` | E3 only |
 | QS-A13 | 兩條 AND 無符合：`location eq 台灣` + `attendee_count lt 10` | （空） |
 | QS-A14 | `is_public` `eq` `false` | E2, E4 |
@@ -711,9 +727,9 @@ Blade + Bootstrap（`layouts.app`）。
 | QS-A16 | `attendee_count` `lte` `50` | E2, E4, E5 |
 | QS-A17 | `attendee_count` `lt` `50` | E4, E5 |
 | QS-A18 | `score` (FLOAT) `eq` `4.5` | E1, E3 |
-| QS-A19 | `score` `gt` `3.0` | E1, E3 |
-| QS-A20 | `score` `between` `2.0`–`3.5` | E2, E4 |
-| QS-A21 | `starts_at` (TIMESTAMPTZ) `gte` app-tz 下 `2024-06-01 00:00:00` | E1, E2, E3, E5（依 app tz 解讀） |
+| QS-A19 | `score` `gt` `3.0` | E1, E3, E6 |
+| QS-A20 | `score` `between` `2.0`–`3.5` | E2, E4, E6 |
+| QS-A21 | `starts_at` (TIMESTAMPTZ) `gte` app-tz 下 `2024-06-01 00:00:00` | E1, E2, E3, E5, E6 |
 | QS-A22 | `starts_at` `lt` app-tz 下 `2024-01-01 00:00:00` | E4 |
 | QS-A23 | `starts_at` `between` 2024-07-01～2024-08-31（app tz） | E2, E3 |
 
@@ -723,14 +739,15 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期主體 |
 |----|------|----------|
-| QS-B01 | 一步 `organized_by` **incoming**（event ← member），無 `target_vertex_id` | E1–E4（**不含 E5**） |
+| QS-B01 | 一步 `organized_by_member` **incoming**（event ← member），無 `target_vertex_id` | E1–E4（**不含 E5、E6**） |
 | QS-B02 | 同上 + `target_vertex_id` = **M1** | E1, E2 |
 | QS-B03 | 同上 + `target_vertex_id` = **M2** | E3, E4 |
 | QS-B04 | 同上 + `target_vertex_id` = 不存在的 AGE id | （空） |
-| QS-B05 | `property_filters`: `location eq 台灣` **AND** `path`: incoming `organized_by` + target **M2** | E3 only |
+| QS-B05 | `property_filters`: `location eq 台灣` **AND** `path`: incoming `organized_by_member` + target **M2** | E3 only |
 | QS-B06 | 兩條 `path_filters` AND：target M1 **且** target M2 | （空） |
 | QS-B07 | 兩條 `path_filters` AND、有交集：補 fixture「E1 亦被 M2 主辦」後，target M1 **且** target M2 | 僅該共同主辦活動（快樂路徑） |
-| QS-B08 | 僅 path「存在 organized_by」相對全列 | 結果不含 **E5** |
+| QS-B08 | 僅 path「存在 `organized_by_member`」相對全列 | 結果為 E1–E4（**不含 E5、E6**） |
+| QS-B09 | 一步 `organized_by_company` incoming + target **C1** | E6 |
 
 > QS-B07 需在 fixture 另加邊 OB5：M2→E1（僅此案或共用擴充 fixture）。若不想改基底圖，可於該測試內臨時加邊。
 
@@ -740,14 +757,14 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期主體 |
 |----|------|----------|
-| QS-C01 | 一步：`vocal` **incoming**（song ← vtuber），target **V1** | S1, S3 |
+| QS-C01 | 一步：`vocal` **incoming**（song ← vtuber），target **V1** | S1, S3, S4 |
 | QS-C02 | 一步：`vocal` incoming，target **V2** | S1, S2, S3 |
-| QS-C03 | 兩步：① `vocal` incoming → vtuber ② `member` **outgoing**（vtuber → group）終點類型 `group`；無 target | S1–S3 |
-| QS-C04 | 兩步 + 路徑終點約束（實作：`target_vertex_id` 指**整條 path 最後一層**終點，或第一步終點——**寫死為最後一層**）：最後一層 group = **G1** | S1–S3 |
-| QS-C05 | 兩步 + 另測「中間層為特定 vtuber」：用**兩條** path_filters（一步 target V1 + 一步存在 member→G1）或單 path 第一步加 edge／中間約束 | S1, S3（語意寫進實作註解） |
+| QS-C03 | 兩步：① `vocal` incoming → vtuber ② `member` **outgoing**（vtuber → group）終點類型 `group`；無 target | S1–S4 |
+| QS-C04 | 兩步 + 路徑終點約束（`target_vertex_id` = **最後一層**）：最後一層 group = **G1** | S1–S4 |
+| QS-C05 | 兩步 + 另測「中間層為特定 vtuber」：用**兩條** path_filters（一步 target V1 + 一步存在 member→G1）或單 path 第一步加 edge／中間約束 | S1, S3, S4（語意寫進實作註解） |
 | QS-C06 | 兩步 + 最後一層終點 = 不存在 group id | （空） |
 | QS-C07 | 錯誤方向：`vocal` **outgoing** from song（schema 為 vtuber→song） | （空）或驗證拒絕 |
-| QS-C08 | **三步**：① vocal incoming ② member outgoing ③ `based_in` outgoing → place；target **P1** | S1–S3 |
+| QS-C08 | **三步**：① vocal incoming ② member outgoing ③ `based_in` outgoing → place；target **P1** | S1–S4 |
 | QS-C09 | 三步 + target **P1** 不存在的 id | （空） |
 | QS-C10 | step 上 `target_vertex_type_id` 與 EdgeType 端點**不符** | 驗證失敗（見 T6-18）；若漏網則查詢空結果 |
 
@@ -759,30 +776,30 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期主體 |
 |----|------|----------|
-| QS-D01 | step 上 `order` `eq` `1` | S1, S2, S3 |
+| QS-D01 | step 上 `order` `eq` `1` | S1, S2, S3, S4 |
 | QS-D02 | step 上 `order` `eq` `2` | S1, S3 |
-| QS-D03 | step 上 `role_zh_tw` `eq` `主唱` + `locale` `zh_TW` | S1, S2, S3 |
+| QS-D03 | step 上 `role_zh_tw` `eq` `主唱` + `locale` `zh_TW` | S1, S2, S3, S4 |
 | QS-D04 | step 上 `role_zh_tw` `eq` `和聲` | S1, S3 |
 | QS-D05 | step 上 `role_ja_jp` `eq` `ボーカル` + `locale` `ja_jp` | 同 QS-D03 |
-| QS-D06 | step 上 `role_zh_tw` `eq` `主唱` **且** path 最後終點 **V1** | S1, S3 |
+| QS-D06 | step 上 `role_zh_tw` `eq` `主唱` **且** path 最後終點 **V1** | S1, S3, S4 |
 | QS-D07 | step 上 `role_zh_tw` `eq` `主唱` **且** path 最後終點 **V2** | S2 only |
-| QS-D08 | 多層路徑（兩步）+ **第一步** `edge_property_filters`: `role_zh_tw eq 主唱` | S1, S2, S3（第一步有主唱邊的歌） |
+| QS-D08 | 多層路徑（兩步）+ **第一步** `edge_property_filters`: `role_zh_tw eq 主唱` | S1, S2, S3, S4 |
 | QS-D09 | 僅 `edge_property_filters`（無主體 property_filters、無 target）+ `order eq 2` | S1, S3（同 QS-D02） |
 | QS-D10 | `order` `between` `1`–`1` | 同 QS-D01 |
-| QS-D11 | **同一 step 兩條** edge filter AND：`order eq 1` + `role_zh_tw eq 主唱` | S1, S2, S3 |
+| QS-D11 | **同一 step 兩條** edge filter AND：`order eq 1` + `role_zh_tw eq 主唱` | S1, S2, S3, S4 |
 | QS-D12 | 同一 step AND：`order eq 2` + `role_zh_tw eq 主唱` | （空） |
 
 ### E. 條件組合（跨類型 AND）
 
 | ID | 主體 | 條件摘要 | 預期主體 |
 |----|------|----------|----------|
-| QS-E01 | event | `location eq 台灣` + path incoming `organized_by` target M1 | E1 |
-| QS-E02 | event | `location eq 台灣` + path target M2 | E3 |
-| QS-E03 | song | path vocal incoming target **V1** + step `role_zh_tw eq 主唱` | S1, S3 |
+| QS-E01 | event | `location eq 台灣` + path incoming `organized_by_member` target M1 | E1 |
+| QS-E02 | event | `location eq 台灣` + path `organized_by_member` target M2 | E3 |
+| QS-E03 | song | path vocal incoming target **V1** + step `role_zh_tw eq 主唱` | S1, S3, S4 |
 | QS-E04 | song | path vocal incoming target **V1** + step `role_zh_tw eq 和聲` | （空） |
 | QS-E05 | song | path vocal incoming（無 target）+ step `role_zh_tw eq 和聲` | S1, S3 |
-| QS-E06 | event | `property_filters` 空 + `path_filters` 空 | E1–E5 全列 |
-| QS-E07 | event | `location eq 台灣` + path 存在 organized_by（無 target） | E1, E3（**不含 E5**） |
+| QS-E06 | event | `property_filters` 空 + `path_filters` 空 | E1–E6 全列 |
+| QS-E07 | event | `location eq 台灣` + path 存在 `organized_by_member`（無 target） | E1, E3（**不含 E5、E6**） |
 
 **路徑 + edge 屬性語意（QS-E03～E05）：** `target_vertex_id` 約束該 path **最後一步**對端；`edge_property_filters` 約束**滿足該步路徑的那條 edge**。同一主體多條同類邊時，**存在一條**同時滿足即可（existential）。
 
@@ -792,11 +809,11 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | `sort` | 預期順序（主體） |
 |----|--------|------------------|
-| QS-F01 | 未設 / null | 主體 **AGE id ASC**（以 fixture 回傳 id 驗證，勿寫死 E1…E5 順序假設） |
-| QS-F02 | `event_date` **asc** | E4, E1, E2, E3, E5 |
-| QS-F03 | `event_date` **desc** | E5, E3, E2, E1, E4 |
-| QS-F04 | `attendee_count` **desc** | E3, E1, E2, E4, E5 |
-| QS-F05 | `score` **asc** | E5, E4, E2, E1, E3（同分再以 id ASC 穩定） |
+| QS-F01 | 未設 / null | 主體 **AGE id ASC**（以 fixture 回傳 id 驗證，勿寫死 E1…E6 順序假設） |
+| QS-F02 | `event_date` **asc** | E4, E1, E2, E3, E5, E6 |
+| QS-F03 | `event_date` **desc** | E6, E5, E3, E2, E1, E4 |
+| QS-F04 | `attendee_count` **desc** | E3, E1, E6, E2, E4, E5 |
+| QS-F05 | `score` **asc** | E5, E4, E2, E6, E1, E3（同分再以 id ASC 穩定） |
 
 > v1 **`sort.column_key` 僅允許 `subject_property` 欄的 key**（不可指 `rel_*`／`ep_*`）。見 T6 與下方非目標備註。
 
@@ -804,7 +821,7 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 條件 | 預期 |
 |----|------|------|
-| QS-G01 | QF-Event 全列、`page=1` | 5 列；`total=5` |
+| QS-G01 | QF-Event 全列、`page=1` | 6 列；`total=6` |
 | QS-G02 | 人工 seed **25** 筆活動（同 type）、`page=1` / `page=2` | 第 1 頁 20 筆、第 2 頁 5 筆；`total=25` |
 | QS-G03 | 篩選後僅 3 筆、`page=2` | 空列或第 2 頁無資料（依 Laravel paginator 慣例） |
 
@@ -812,7 +829,7 @@ Blade + Bootstrap（`layouts.app`）。
 
 | ID | 案例 | 預期 |
 |----|------|------|
-| QS-H01 | `property_filters` 與 `path_filters` 皆空陣列 | 主體 type 下**全部**頂點（含 E5） |
+| QS-H01 | `property_filters` 與 `path_filters` 皆空陣列 | 主體 type 下**全部**頂點（含 E5、E6） |
 | QS-H02 | 主體 type 下無任何頂點 | 空結果；總筆數 0 |
 | QS-H03 | `contains` 空字串 | **驗證拒絕**（Form Request） |
 | QS-H04 | `between` from > to | **驗證拒絕** |
@@ -856,7 +873,68 @@ Blade + Bootstrap（`layouts.app`）。
 4. **方向詞彙**：`incoming` / `outgoing` 一律相對**當前 traversal 節點**（主體或步驟累積的當前點）。  
 5. **層級 7（T7-*）** 可由本節 QS-* 涵蓋；實作時以 QS 為準，T7 作煙霧測試即可。  
 6. **v1 sort**：僅 `subject_property` 欄；`rel_*`／`ep_*` 排序為非目標（QS-H11）。  
-7. **E5／三跳／FLOAT／TIMESTAMPTZ**：為補齊缺口而擴充的 fixture，與初版 QF 表一併維護。
+7. **E5／E6／三跳／FLOAT／TIMESTAMPTZ／cover**：為補齊缺口與 Issue #4 情境而擴充的 fixture，與初版 QF 表一併維護。
+
+---
+
+## Issue #4 情境測試案例
+
+來源：[issue #4](https://github.com/danny50610/CoHistograph/issues/4) 需求列舉：
+
+1. 特定成員或公司在台灣舉辦的活動  
+2. 特定成員或團體出的歌曲（包含 cover 曲）  
+3. 用表格呈現近期活動  
+
+**定位：** 這些是 **查詢能力／端到端驗收** 案例（`TopicQueryService` + 前台表格頁），證明通用引擎能表達 issue 情境。  
+**不是** 預建種子 Topic（產品決策：不當種子，由管理者之後手動建立）。測試可在 setup 時用 factory **臨時建立** Topic（或只呼叫 QueryService），測完 rollback。
+
+建議測試類：`tests/Feature/Topic/Issue4ScenarioTest.php`（或同等），Fixture 用 QF-Event／QF-Song。
+
+### 情境 1：特定成員或公司在台灣舉辦的活動
+
+| ID | 對應 issue | definition 摘要 | 預期 |
+|----|------------|-----------------|------|
+| ISS-1-01 | 特定**成員**在台灣辦的活動 | 主體 `event`；`location eq 台灣`；path `organized_by_member` incoming + `target_vertex_id` = **M1**；columns：活動名稱／日期／地點／主辦（relation） | 主體 **E1**；不含 E2（日本）、E3（M2）、E5（無主辦）、E6（公司） |
+| ISS-1-02 | 特定**公司**在台灣辦的活動 | 主體 `event`；`location eq 台灣`；path `organized_by_company` incoming + target **C1**；同上欄位風格 | 主體 **E6** |
+| ISS-1-03 | 成員＋台灣，排除海外同主辦 | 同 ISS-1-01 條件 | **不含 E2**（M1 有主辦但 location≠台灣） |
+| ISS-1-04 | 端到端前台 | 以 ISS-1-01 建**已發布** Topic → 訪客 `GET /topics/{id}` | **200**；表格列對應 E1；可見地點「台灣」與主辦名稱 |
+
+### 情境 2：特定成員或團體出的歌曲（含 cover）
+
+| ID | 對應 issue | definition 摘要 | 預期 |
+|----|------------|-----------------|------|
+| ISS-2-01 | 特定**成員**出的歌曲（含 cover） | 主體 `song`；path `vocal` incoming + target **V1**；columns：歌名、`is_cover`、演唱者（relation） | **S1, S3, S4**；其中 S4 `is_cover=true` |
+| ISS-2-02 | 僅 cover | 同 path target V1 + `is_cover eq true` | **S4** only |
+| ISS-2-03 | 特定**團體**出的歌曲 | 主體 `song`；path `group_vocal` incoming + target **G1**；columns：歌名、團體（relation） | **S3**（fixture 中 G1→S3） |
+| ISS-2-04 | 成員所屬團體相關曲（多跳） | 兩步：vocal incoming → member outgoing，最後一層 target **G1** | **S1–S4**（經 V1/V2 屬 G1） |
+| ISS-2-05 | 端到端前台（含 cover） | 以 ISS-2-01 建已發布 Topic → 訪客開啟表格 | 列含 S4；cover 欄可辨識 true／顯示 |
+
+### 情境 3：用表格呈現近期活動
+
+| ID | 對應 issue | definition 摘要 | 預期 |
+|----|------------|-----------------|------|
+| ISS-3-01 | 近期活動（日期下界） | 主體 `event`；`event_date gte 2024-06-01`；`sort` = `event_date` **desc**；columns：名稱、日期、地點、是否公開 | 主體 **E6, E5, E3, E2, E1**（依日期新→舊）；**不含 E4**（2023） |
+| ISS-3-02 | 近期＋僅公開 | 同上 + `is_public eq true` | **E6, E5, E3, E1**（不含 E2） |
+| ISS-3-03 | 表格欄位與排序 | 同 ISS-3-01；assert 列順序與欄位 `label` | 第一列為日期最新者（E6）；表頭含名稱／日期／地點 |
+| ISS-3-04 | 端到端前台 | 以 ISS-3-01 建已發布 Topic → 訪客 `GET /topics/{id}` | 唯讀表格＋分頁；**無**篩選控件；順序同 ISS-3-01 |
+| ISS-3-05 | preview 與前台一致 | 同 definition 打 `POST /admin/topics/preview` 與已存 Topic 前台頁 | 主體集合與順序一致 |
+
+### 與 QS-* 的對照
+
+| Issue 情境 | 可複用／相近的 QS |
+|------------|-------------------|
+| ISS-1-01 | QS-E01、QS-B05 |
+| ISS-1-02 | QS-B09 |
+| ISS-2-01／02 | QS-C01 + `is_cover` filter（新增於本節） |
+| ISS-2-03 | 專用 `group_vocal` path（本節） |
+| ISS-2-04 | QS-C03／C04 |
+| ISS-3-01／02 | QS-A08／A10／A21 + QS-F03 |
+
+### 驗收（相對 issue #4）
+
+- 引擎能以 **結構化 definition** 表達上述三類查詢，無需寫死頁面  
+- 前台能以**表格**呈現結果（情境 3 的核心 UI）  
+- **不**要求 repo 內預置對應名稱的種子 Topic  
 
 ---
 
@@ -913,7 +991,7 @@ Blade + Bootstrap（`layouts.app`）。
 - 改主體 type confirm 後清空查詢設定  
 - 至少 1 欄；`columns[].key` 自動產生  
 - 硬刪除 Topic；Schema 刪除檢查含 EdgeProperty  
-- 無 issue #4 種子資料  
+- **Issue #4 三情境**以 ISS-* 查詢／E2E 案例覆蓋；**無**強制種子 Topic  
 
 ---
 
@@ -942,4 +1020,4 @@ Blade + Bootstrap（`layouts.app`）。
 | Topic 文案多語 | v1 單語 |
 | 刪除 Topic | 硬刪除 |
 | Schema 刪除 | 含 EdgeProperty 依賴檢查 |
-| Issue #4 三情境 | 不當種子 |
+| Issue #4 三情境 | 不當種子；以 ISS-* 測試案例驗證查詢能力 |
