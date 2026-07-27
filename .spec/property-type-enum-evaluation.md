@@ -3,190 +3,122 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
+**狀態：決策樹主幹已鎖定（Q1–Q11）。** 實作前仍須完成 AGE list round-trip spike。
+
+---
+
+## 結論（v1）
+
+新增 `PropertyType::Enum = 'ENUM'`：
+
+| 層 | 儲存 |
+|----|------|
+| Schema | `vertex_properties` / `edge_properties.enum_options`（json）：`[{value, label, active}, …]` |
+| Revision | `revision_actions.value`：**text → jsonb**；ENUM 為非空 JSON string array |
+| AGE | agtype **list of strings**（只存 option `value`） |
+
+語意摘要：多選集合、拒重複、依 options 定義序正規化；禁止 `[]`（清空＝delete）；可 `active:false` 停用（祖父條款）；不可設 `locale`；與 `BOOLEAN` 並存；Topic 用成員類 operator。
+
+---
+
 ## 現況約束（評估前提）
 
 - `vertex_properties` / `edge_properties` 目前只有 `age_property_type`（string），**沒有**選項清單欄位。
-- `PropertyValueCaster::matchesType($value, PropertyType)` **只看型別、看不到 property 列**；`ENUM` 驗證勢必需要「該 property 的允許值」。
+- `PropertyValueCaster::matchesType($value, PropertyType)` **只看型別、看不到 property 列**；`ENUM` 驗證勢必需要「該 property 的允許值／active 狀態／圖上 current」。
 - Revision `value`、AGE 寫入路徑目前都假設**單一純量**（非 array）。
 - 多語系 property 慣例上為 `STRING`（見 `.spec/localized-property.md`）。
 - UI：`PropertyValueInput.vue` 依 `propertyType` 字串切換；schema 表單用 `PropertyType::selectOptions()`。
 
-## 決策樹（進行中）
+---
 
-每題附推薦答案；已鎖定者標 ✅。
+## 決策樹（已鎖定）
 
-### Q1 — 基線語意：單選 vs 多選 ✅
+### Q1 — 單選 vs 多選 ✅ → **B 多選**
 
-| 選項 | 含義 |
-|------|------|
-| A. 單選 | AGE 存單一 string |
-| **B. 多選（已選）** | 一個屬性可同時持有多個選項值 |
+### Q2 — AGE 儲存 ✅ → **A agtype list**
 
-**決定：B。** v1 以多選為基線（非整數「剛好選一個」的單選型別）。
+實作前 spike：`set(['v.prop' => ['a','b']])` round-trip；失敗再小改 driver。
 
-### Q2 — AGE 多值如何儲存？ ✅
+### Q3 — 選項存在哪 ✅ → **A property 上 `enum_options` JSON**
 
-| 選項 | AGE 實際型別 | 例子 |
-|------|--------------|------|
-| **A. 原生 list（已選）** | agtype list | `['rock', 'jazz']` |
-| B. JSON 字串 | agtype string | `'["rock","jazz"]'` |
-| C. 逗號分隔 | agtype string | `'rock,jazz'` |
+### Q4 — options 形狀 ✅ → **B `{value, label}`**（後由 Q7 加上 `active`）
 
-**決定：A。** 實作前先 spike：`set(['v.prop' => ['a','b']])` 經現有 `laravel-apache-age-driver` 寫讀 round-trip；失敗再小改 driver，不退回字串方案。
+約束：至少 1 個 option；`value`／`label` 非空；`value` 唯一。
 
-### Q3 — Schema 上「允許的選項」存在哪？ ✅
+### Q5 / Q5b — revision 編碼 ✅ → **B1 `value` → jsonb**
 
-| 選項 | 做法 |
-|------|------|
-| **A. Property JSON 欄位（已選）** | `vertex_properties` / `edge_properties` 加 `enum_options`（json） |
-| B. 獨立關聯表 | `property_enum_options` |
-| C. 全域共用選項集 | 多 property 共用 |
+純量＝JSON scalar；ENUM＝JSON array。既有 text 以 `to_jsonb(value)` 遷移。
 
-**決定：A。** 僅當 `age_property_type = ENUM` 時有意義；其他型別為 `null`／忽略。
+### Q6 — 空陣列 ✅ → **A 禁止 `[]`**；清空＝`delete_*_property`
 
-### Q4 — `enum_options` JSON 形狀？ ✅
+### Q7 — options 變更 ✅ → **A + 停用 `active`**
 
-| 選項 | 形狀 | AGE list 存什麼 |
-|------|------|-----------------|
-| A. 純字串陣列 | `["rock", "jazz"]` | 同字串 |
-| **B. value + label（已選）** | `[{"value":"rock","label":"搖滾"}, …]` | 只存 `value` |
-| C. value + 多語 labels | `value` + `labels:{…}` | 只存 `value` |
+- 可新增 option、改 label、設 `active:false`
+- 硬刪／更名 `value`：圖上無人使用該 value 才允許
 
-**決定：B。** 約束（實作時寫進 Form Request）：
-- 至少 1 個 option
-- 每個 `value`、`label` 為非空字串
-- `value` 在同一 property 內唯一
-- AGE／revision 比對只認 `value`；`label` 僅 schema／UI 顯示
+### Q7b — 停用後舊值 ✅ → **A 祖父條款**
 
-### Q5 — Revision `value` 如何編碼多選？ ✅
+- create：僅 `active` options
+- update：允許 `active` ∪（current ∩ inactive）；不可**新引入** inactive
 
-| 選項 | 做法 |
-|------|------|
-| A. JSON 陣列塞進既有 text `value` | 一筆 action，`value = '["rock","jazz"]'` |
-| **B. 改 DB 結構（已選）** | 調整欄位型別或另開欄位／表 |
-| C. 多筆 revision action | 每個選中值一筆 |
+### Q8 — locale ✅ → **A ENUM 不可設 locale**
 
-**決定：B → 細化為 B1。**
+### Q9 — list 語意 ✅ → **A 集合**：拒重複；依 `enum_options` 定義序正規化
 
-### Q5b — `revision_actions` 具體怎麼改？ ✅
+### Q10 — BOOLEAN ✅ → **A 並存**，不取代
 
-| 選項 | Schema |
-|------|--------|
-| **B1. `value` → jsonb（已選）** | 單欄；純量＝JSON scalar，ENUM＝JSON array |
-| B2. text `value` + jsonb `values` | 雙欄互斥 |
-| B3. 子表 | 一列一個選中值 |
+### Q11 — Topic operators ✅ → **A 成員導向**
 
-**決定：B1。** 實作要點：
-- migration：`text` → `jsonb`；既有列以 `to_jsonb(value)`（或等價）轉成 JSON string
-- Eloquent：`value` 需能承載 scalar 與 array（自訂 cast 或等價策略）
-- `PropertyValueCaster` / validator / apply：接受 `mixed`，不再一律 `(string) $action->value`
-- `actions_snapshot` 已是 jsonb，對齊後 ENUM 直接是 array
+| Operator | 含義 | filter `value` |
+|----------|------|----------------|
+| `contains` | list 含該 value | 單一 option value |
+| `contains_any` | 含任一 | value 陣列 |
+| `contains_all` | 含全部 | value 陣列 |
+| `is_null` | property 不存在 | 無 |
+| `is_not_null` | property 存在 | 無 |
 
-### Q6 — 空陣列 `[]` 與「刪除屬性」如何區分？ ✅
-
-| 選項 | 含義 |
-|------|------|
-| **A. 禁止 `[]`（已選）** | create/update 至少 1 個值；清空走 delete |
-| B. 允許 `[]` 與 delete 並存 | 空 list ≠ 無 property |
-| C. `[]` 自動當 delete | update 隱藏成 REMOVE |
-
-**決定：A。** create/update 的 ENUM `value` 必須為**非空** JSON array；每個元素必須 ∈ 該 property 的**仍可選** options。刪除屬性仍用 `delete_*_property` 且 `value = null`。
-
-### Q7 — 既有圖資料下，能否改／刪 `enum_options`？ ✅
-
-| 選項 | 規則 |
-|------|------|
-| **A + 停用標記（已選）** | 可加 option、改 label；可將 option **標記為不在使用**；硬刪／更名 `value` 若圖上仍有成員使用則拒絕 |
-| B. 全開放 | 允許 orphan |
-| C. 有資料整包鎖定 | 過嚴 |
-| D. 僅軟刪、無硬刪護欄 | 不足 |
-
-**決定：A + 停用。** `enum_options` 元素：
-
-```json
-{"value":"rock","label":"搖滾","active":true}
-```
-
-- `active: true`（預設）：可新選
-- `active: false`：**未來不能再新增此值**（見 Q7b）
-- 硬刪 option 或改 `value` 字串：僅當 AGE 中無人使用該 value（擴充 data checker）
-
-### Q7b — 停用後，圖上「已經選過」的值怎麼辦？ ✅
-
-| 選項 | 含義 |
-|------|------|
-| **A. 祖父條款（已選）** | 已在圖上的停用 value 可保留；不可新引入 |
-| B. 全面禁止停用 value | create/update 皆拒 |
-| C. 停用即掃圖清除 | 無 revision 審計，不採用 |
-
-**決定：A。** 驗證規則（update）：
-- 令 `incoming` = 修訂提出的 value 集合，`current` = 圖上現有 list 集合
-- 允許的元素 = `active` options ∪ (`current` ∩ inactive options)
-- `incoming` 必須 ⊆ 允許集合，且 `incoming` 非空
-- create：只允許 `active` options
-
-### Q8 — `ENUM` 能否搭配 property `locale`？ ✅
-
-| 選項 | 含義 |
-|------|------|
-| **A. 禁止（已選）** | `ENUM` ⇒ `locale` 必須 `null` |
-| B. 允許每語一列 ENUM | 選項易漂移 |
-| C. 允許但強制 options 相同 | v1 過重 |
-
-**決定：A。** Form Request：`age_property_type = ENUM` 時拒絕非 null `locale`。多語顯示不靠 locale-property 複製 ENUM。
-
-### Q9 — 選取 list 重複與順序？ ✅
-
-| 選項 | 重複 | 順序 |
-|------|------|------|
-| **A. 集合語意（已選）** | 拒絕重複 | 依 `enum_options` 定義序正規化 |
-| B. 有序多重集 | 允許重複 | 保留使用者序 |
-| C. 有序唯一 | 拒絕重複 | 保留使用者序 |
-
-**決定：A。** create/update 若含重複 value → **驗證拒絕**。寫入 AGE 前依該 property `enum_options` 陣列順序排序，使集合相等 ⇒ list 相等。
-
-### Q10 — 與既有 `BOOLEAN` 的關係？ ✅
-
-| 選項 | 含義 |
-|------|------|
-| **A. 兩者並存（已選）** | BOOLEAN 純量；ENUM 為 string list + options |
-| B. 廢棄 BOOLEAN | 遷移成本高 |
-| C. BOOLEAN 當 ENUM 糖 | 底層扭曲 |
-
-**決定：A。** 二元旗標用 `BOOLEAN`；多標籤用 `ENUM`。不互相取代。
-
-### Q11 — Topic 過濾對 `ENUM` 開放哪些 operator？（進行中）
-
-見對話。（若 Topic 尚未實作，此題仍先鎖定，避免實作時另開平行字串表。）
+不做整包集合 `eq`（v1）。因 Q6 無空 list，`is_null` ≡ 無此屬性。
 
 ---
 
-## 暫定假設（未鎖定前勿實作）
+## 鎖定摘要表
 
-| 項目 | 狀態 |
+| 項目 | 決定 |
 |------|------|
 | 基線語意 | ✅ 多選 |
-| AGE 儲存格式 | ✅ agtype list of strings（option `value`） |
-| Schema 選項定義 | ✅ property 上 `enum_options` JSON |
-| `enum_options` 形狀 | ✅ `[{value, label, active}, …]` |
-| Revision `value` 編碼 | ✅ `revision_actions.value` → **jsonb**（ENUM＝array） |
-| 空集合 vs 刪除屬性 | ✅ 禁止 `[]`；清空＝delete |
-| 選項變更 vs 既有資料 | ✅ 可停用；硬刪需無人使用 |
-| 停用後舊值語意 | ✅ 祖父條款（不可新引入） |
-| locale | ✅ ENUM 不可設 locale |
-| list 去重／順序 | ✅ 拒重複；依 options 定義序正規化 |
-| 與 BOOLEAN 關係 | ✅ 並存，不取代 |
-| Topic operators | ⏳ |
+| AGE 儲存 | ✅ agtype list of option `value` |
+| Schema 選項 | ✅ `enum_options` JSON on property |
+| options 形狀 | ✅ `[{value, label, active}, …]` |
+| Revision `value` | ✅ **jsonb**（ENUM＝非空 array） |
+| 空集合 | ✅ 禁止 `[]`；清空＝delete |
+| 選項生命週期 | ✅ 可停用；硬刪需無人使用 |
+| 停用舊值 | ✅ 祖父條款 |
+| locale | ✅ 不可 |
+| list 去重／序 | ✅ 拒重複；定義序正規化 |
+| BOOLEAN | ✅ 並存 |
+| Topic | ✅ `contains` / `contains_any` / `contains_all` / null 檢查 |
 
 ---
 
-## 實作觸點（確認後）
+## 實作觸點
 
-依 `.spec/property-types.md` checklist，另加：
+1. `App\Enums\PropertyType` 新增 `Enum = 'ENUM'`
+2. migration：`vertex_properties` / `edge_properties` 加 `enum_options`（json nullable）
+3. migration：`revision_actions.value` text → jsonb + 資料轉換
+4. Form Requests：ENUM 時驗證 `enum_options`、禁止 locale；非 ENUM 時 `enum_options` 必須 null
+5. 更新 property 時：停用／硬刪護欄（擴充 `AgePropertyDataChecker` 查 list 成員）
+6. `PropertyValueCaster` + `RevisionActionValidator` / `RevisionApplyService`：`mixed` value、ENUM 集合驗證與正規化
+7. `PropertyValueInput.vue`：multi-select；需 props 帶入 `enum_options`（含 inactive 顯示規則）
+8. Schema Blade：ENUM 時編輯 options（value/label/active）
+9. Topic（實作時）：掛上 Q11 operators
+10. 更新 `.spec/property-types.md`、`.spec/revision.md`、本文件
+11. **先做** AGE list write/read spike（driver）
 
-1. Schema：選項儲存欄位或關聯表
-2. Form Request：建立／更新 property 時驗證選項
-3. `RevisionActionValidator`：`ENUM` 需帶入該 property 的允許值（caster API 可能要擴充）
-4. `PropertyValueInput.vue`：select；需能取得 options（不只 type 字串）
-5. Topic 過濾（若已實作）：`eq` / `in`? / null 檢查
-6. 文件：`.spec/property-types.md`、本文件決策紀錄
+## 成功標準（實作 PR）
+
+- [ ] Spike：PHP array ↔ AGE list round-trip 通過（或已修 driver）
+- [ ] 可建立 ENUM property（options + active）
+- [ ] 修訂 create/update 寫入非空唯一 list；delete 移除屬性
+- [ ] 停用 value 不可新選；祖父值可保留
+- [ ] 硬刪仍被使用的 value → 拒絕
+- [ ] 相關 unit／feature tests；`composer run test` / `phpstan` 通過
