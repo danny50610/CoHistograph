@@ -125,7 +125,17 @@
 - `incoming` 必須 ⊆ 允許集合，且 `incoming` 非空
 - create：只允許 `active` options
 
-### Q8 — `ENUM` 能否搭配 property `locale`（多語系欄位）？（進行中）
+### Q8 — `ENUM` 能否搭配 property `locale`？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 禁止（已選）** | `ENUM` ⇒ `locale` 必須 `null` |
+| B. 允許每語一列 ENUM | 選項易漂移 |
+| C. 允許但強制 options 相同 | v1 過重 |
+
+**決定：A。** Form Request：`age_property_type = ENUM` 時拒絕非 null `locale`。多語顯示不靠 locale-property 複製 ENUM。
+
+### Q9 — 選取 list 是否允許重複？順序有無語意？（進行中）
 
 見對話。
 
@@ -143,7 +153,9 @@
 | 空集合 vs 刪除屬性 | ✅ 禁止 `[]`；清空＝delete |
 | 選項變更 vs 既有資料 | ✅ 可停用；硬刪需無人使用 |
 | 停用後舊值語意 | ✅ 祖父條款（不可新引入） |
-| 與 locale／BOOLEAN 關係 | ⏳ |
+| locale | ✅ ENUM 不可設 locale |
+| list 去重／順序 | ⏳ |
+| 與 BOOLEAN 關係 | ⏳ |
 
 ---
 
