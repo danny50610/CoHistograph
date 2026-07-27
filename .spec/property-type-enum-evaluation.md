@@ -34,7 +34,17 @@
 
 **決定：A。** 實作前先 spike：`set(['v.prop' => ['a','b']])` 經現有 `laravel-apache-age-driver` 寫讀 round-trip；失敗再小改 driver，不退回字串方案。
 
-### Q3 — Schema 上「允許的選項」存在哪？（進行中）
+### Q3 — Schema 上「允許的選項」存在哪？ ✅
+
+| 選項 | 做法 |
+|------|------|
+| **A. Property JSON 欄位（已選）** | `vertex_properties` / `edge_properties` 加 `enum_options`（json） |
+| B. 獨立關聯表 | `property_enum_options` |
+| C. 全域共用選項集 | 多 property 共用 |
+
+**決定：A。** 僅當 `age_property_type = ENUM` 時有意義；其他型別為 `null`／忽略。
+
+### Q4 — `enum_options` JSON 形狀？（進行中）
 
 見對話。
 
@@ -46,7 +56,8 @@
 |------|------|
 | 基線語意 | ✅ 多選 |
 | AGE 儲存格式 | ✅ agtype list of strings |
-| Schema 選項定義 | ⏳ |
+| Schema 選項定義 | ✅ property 上 `enum_options` JSON |
+| `enum_options` 形狀 | ⏳ |
 | Revision `value` 編碼 | ⏳ |
 | 空集合 vs 刪除屬性 | ⏳ |
 | 與 locale／BOOLEAN 關係 | ⏳ |
