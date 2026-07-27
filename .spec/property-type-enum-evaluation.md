@@ -58,9 +58,19 @@
 - `value` 在同一 property 內唯一
 - AGE／revision 比對只認 `value`；`label` 僅 schema／UI 顯示
 
-### Q5 — Revision `value` 如何編碼多選？（進行中）
+### Q5 — Revision `value` 如何編碼多選？ ✅（方向）／細化中
 
-見對話。
+| 選項 | 做法 |
+|------|------|
+| A. JSON 陣列塞進既有 text `value` | 一筆 action，`value = '["rock","jazz"]'` |
+| **B. 改 DB 結構（已選）** | 調整欄位型別或另開欄位／表 |
+| C. 多筆 revision action | 每個選中值一筆 |
+
+**決定：B（方向）。** 需再鎖定具體 schema 改法（Q5b）。
+
+### Q5b — `revision_actions` 具體怎麼改？（進行中）
+
+見對話。現況：`value` 為 `text nullable`（migration `2026_04_12_130031`）。
 
 ---
 
@@ -72,7 +82,7 @@
 | AGE 儲存格式 | ✅ agtype list of strings（option `value`） |
 | Schema 選項定義 | ✅ property 上 `enum_options` JSON |
 | `enum_options` 形狀 | ✅ `[{value, label}, …]` |
-| Revision `value` 編碼 | ⏳ |
+| Revision `value` 編碼 | ⏳ 改 DB（細化中） |
 | 空集合 vs 刪除屬性 | ⏳ |
 | 與 locale／BOOLEAN 關係 | ⏳ |
 
