@@ -101,17 +101,31 @@
 | C. 有資料整包鎖定 | 過嚴 |
 | D. 僅軟刪、無硬刪護欄 | 不足 |
 
-**決定：A + 停用。** `enum_options` 元素擴充為大致：
+**決定：A + 停用。** `enum_options` 元素：
 
 ```json
 {"value":"rock","label":"搖滾","active":true}
 ```
 
 - `active: true`（預設）：可新選
-- `active: false`：**未來不能再新增此值**（細節見 Q7b）
+- `active: false`：**未來不能再新增此值**（見 Q7b）
 - 硬刪 option 或改 `value` 字串：僅當 AGE 中無人使用該 value（擴充 data checker）
 
-### Q7b — 停用後，圖上「已經選過」的值怎麼辦？（進行中）
+### Q7b — 停用後，圖上「已經選過」的值怎麼辦？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 祖父條款（已選）** | 已在圖上的停用 value 可保留；不可新引入 |
+| B. 全面禁止停用 value | create/update 皆拒 |
+| C. 停用即掃圖清除 | 無 revision 審計，不採用 |
+
+**決定：A。** 驗證規則（update）：
+- 令 `incoming` = 修訂提出的 value 集合，`current` = 圖上現有 list 集合
+- 允許的元素 = `active` options ∪ (`current` ∩ inactive options)
+- `incoming` 必須 ⊆ 允許集合，且 `incoming` 非空
+- create：只允許 `active` options
+
+### Q8 — `ENUM` 能否搭配 property `locale`（多語系欄位）？（進行中）
 
 見對話。
 
@@ -124,11 +138,11 @@
 | 基線語意 | ✅ 多選 |
 | AGE 儲存格式 | ✅ agtype list of strings（option `value`） |
 | Schema 選項定義 | ✅ property 上 `enum_options` JSON |
-| `enum_options` 形狀 | ✅ `[{value, label, active}, …]`（`active` 預設 true） |
+| `enum_options` 形狀 | ✅ `[{value, label, active}, …]` |
 | Revision `value` 編碼 | ✅ `revision_actions.value` → **jsonb**（ENUM＝array） |
 | 空集合 vs 刪除屬性 | ✅ 禁止 `[]`；清空＝delete |
 | 選項變更 vs 既有資料 | ✅ 可停用；硬刪需無人使用 |
-| 停用後舊值語意 | ⏳ |
+| 停用後舊值語意 | ✅ 祖父條款（不可新引入） |
 | 與 locale／BOOLEAN 關係 | ⏳ |
 
 ---
