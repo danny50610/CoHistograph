@@ -44,7 +44,21 @@
 
 **決定：A。** 僅當 `age_property_type = ENUM` 時有意義；其他型別為 `null`／忽略。
 
-### Q4 — `enum_options` JSON 形狀？（進行中）
+### Q4 — `enum_options` JSON 形狀？ ✅
+
+| 選項 | 形狀 | AGE list 存什麼 |
+|------|------|-----------------|
+| A. 純字串陣列 | `["rock", "jazz"]` | 同字串 |
+| **B. value + label（已選）** | `[{"value":"rock","label":"搖滾"}, …]` | 只存 `value` |
+| C. value + 多語 labels | `value` + `labels:{…}` | 只存 `value` |
+
+**決定：B。** 約束（實作時寫進 Form Request）：
+- 至少 1 個 option
+- 每個 `value`、`label` 為非空字串
+- `value` 在同一 property 內唯一
+- AGE／revision 比對只認 `value`；`label` 僅 schema／UI 顯示
+
+### Q5 — Revision `value` 如何編碼多選？（進行中）
 
 見對話。
 
@@ -55,9 +69,9 @@
 | 項目 | 狀態 |
 |------|------|
 | 基線語意 | ✅ 多選 |
-| AGE 儲存格式 | ✅ agtype list of strings |
+| AGE 儲存格式 | ✅ agtype list of strings（option `value`） |
 | Schema 選項定義 | ✅ property 上 `enum_options` JSON |
-| `enum_options` 形狀 | ⏳ |
+| `enum_options` 形狀 | ✅ `[{value, label}, …]` |
 | Revision `value` 編碼 | ⏳ |
 | 空集合 vs 刪除屬性 | ⏳ |
 | 與 locale／BOOLEAN 關係 | ⏳ |
