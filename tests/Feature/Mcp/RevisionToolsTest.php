@@ -9,6 +9,7 @@ use App\Mcp\Tools\Revision\CreateRevisionTool;
 use App\Mcp\Tools\Revision\DeleteRevisionActionTool;
 use App\Mcp\Tools\Revision\DeleteRevisionTool;
 use App\Mcp\Tools\Revision\GetRevisionTool;
+use App\Mcp\Tools\Revision\ListRevisionActionsTool;
 use App\Mcp\Tools\Revision\MoveRevisionActionTool;
 use App\Mcp\Tools\Revision\ReopenRevisionTool;
 use App\Mcp\Tools\Revision\SearchRevisionsTool;
@@ -326,6 +327,338 @@ class RevisionToolsTest extends TestCase
 
             return true;
         });
+    }
+
+    public function test_list_revision_actions_returns_payload_and_denies_non_viewer(): void
+    {
+        $owner = User::factory()->createOne();
+        $other = User::factory()->createOne();
+        $vertexType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+
+        $revision = Revision::factory()->createOne([
+            'user_id' => $owner->id,
+            'status' => RevisionStatus::Draft,
+            'title' => '列出 actions',
+        ]);
+
+        CoHistographServer::actingAs($owner)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 0,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertOk();
+
+        $list = CoHistographServer::actingAs($owner)->tool(ListRevisionActionsTool::class, [
+            'revision_id' => $revision->id,
+        ]);
+        $list->assertOk();
+        $list->assertStructuredContent(function (AssertableJson $json) use ($revision, $vertexType) {
+            $json->where('revision.id', $revision->id)
+                ->where('actions.0.vertex_type_label', $vertexType->age_label_name)
+                ->etc();
+
+            return true;
+        });
+
+        CoHistographServer::actingAs($other)->tool(ListRevisionActionsTool::class, [
+            'revision_id' => $revision->id,
+        ])->assertHasErrors(['無權限查看此修訂']);
+
+        CoHistographServer::actingAs($other)->tool(GetRevisionTool::class, [
+            'revision_id' => $revision->id,
+        ])->assertHasErrors(['無權限查看此修訂']);
+    }
+
+    public function test_search_revisions_as_reviewer_can_filter_pending_of_others(): void
+    {
+        $reviewer = User::factory()->createOne();
+        $reviewer->givePermission('revision.review');
+        $owner = User::factory()->createOne();
+
+        Revision::factory()->createOne([
+            'user_id' => $owner->id,
+            'title' => '他人待審',
+            'status' => RevisionStatus::PendingReview,
+        ]);
+        Revision::factory()->createOne([
+            'user_id' => $owner->id,
+            'title' => '他人草稿不可見',
+            'status' => RevisionStatus::Draft,
+        ]);
+        Revision::factory()->createOne([
+            'user_id' => $reviewer->id,
+            'title' => '審核者草稿',
+            'status' => RevisionStatus::Draft,
+        ]);
+
+        $pendingOnly = CoHistographServer::actingAs($reviewer)->tool(SearchRevisionsTool::class, [
+            'status' => RevisionStatus::PendingReview->value,
+            'query' => '他人',
+        ]);
+        $pendingOnly->assertOk();
+        $pendingOnly->assertSee('他人待審');
+        $pendingOnly->assertDontSee('他人草稿不可見');
+
+        $ownDraft = CoHistographServer::actingAs($reviewer)->tool(SearchRevisionsTool::class, [
+            'status' => RevisionStatus::Draft->value,
+        ]);
+        $ownDraft->assertOk();
+        $ownDraft->assertSee('審核者草稿');
+        $ownDraft->assertDontSee('他人草稿不可見');
+    }
+
+    public function test_submit_returns_submitted_false_when_validation_fails(): void
+    {
+        $user = User::factory()->createOne();
+        $revision = Revision::factory()->createOne([
+            'user_id' => $user->id,
+            'status' => RevisionStatus::Draft,
+            'title' => '無效提交',
+        ]);
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 0,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => 'missing_vertex_type_zzzz',
+            ],
+        ])->assertOk();
+
+        $submit = CoHistographServer::actingAs($user)->tool(SubmitRevisionTool::class, [
+            'revision_id' => $revision->id,
+        ]);
+        $submit->assertOk();
+        $submit->assertStructuredContent(function (AssertableJson $json) {
+            $json->where('submitted', false)
+                ->where('revision.status', 'draft')
+                ->where('validation.is_valid', false)
+                ->etc();
+
+            return true;
+        });
+
+        $this->assertDatabaseHas('revisions', [
+            'id' => $revision->id,
+            'status' => RevisionStatus::Draft->value,
+        ]);
+    }
+
+    public function test_move_revision_action_requires_xor_and_reports_boundary_errors(): void
+    {
+        $user = User::factory()->createOne();
+        $vertexType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $revision = Revision::factory()->createOne([
+            'user_id' => $user->id,
+            'status' => RevisionStatus::Draft,
+            'title' => '移動邊界',
+        ]);
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 0,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertOk();
+
+        $actionId = $revision->actions()->firstOrFail()->id;
+
+        CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'action_id' => $actionId,
+        ])->assertHasErrors(['to_order 與 direction 必須二擇一']);
+
+        CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'action_id' => $actionId,
+            'to_order' => 0,
+            'direction' => 'up',
+        ])->assertHasErrors(['to_order 與 direction 必須二擇一']);
+
+        CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'action_id' => $actionId,
+            'direction' => 'up',
+        ])->assertHasErrors(['已經是第一筆']);
+
+        CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'action_id' => $actionId,
+            'direction' => 'down',
+        ])->assertHasErrors(['已經是最後一筆']);
+    }
+
+    public function test_mutating_tools_reject_non_draft_and_non_owner(): void
+    {
+        $owner = User::factory()->createOne();
+        $other = User::factory()->createOne();
+        $vertexType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+
+        $pending = Revision::factory()->createOne([
+            'user_id' => $owner->id,
+            'status' => RevisionStatus::PendingReview,
+            'title' => '待審不可改',
+            'last_validation_is_valid' => true,
+            'last_validation_summary' => '檢查通過',
+        ]);
+
+        $draft = Revision::factory()->createOne([
+            'user_id' => $owner->id,
+            'status' => RevisionStatus::Draft,
+            'title' => '草稿給他人',
+        ]);
+
+        CoHistographServer::actingAs($owner)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $draft->id,
+            'order' => 0,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertOk();
+        $actionId = $draft->actions()->firstOrFail()->id;
+
+        CoHistographServer::actingAs($owner)->tool(UpdateRevisionTool::class, [
+            'revision_id' => $pending->id,
+            'title' => '不該更新',
+        ])->assertHasErrors(['只有草稿']);
+
+        CoHistographServer::actingAs($owner)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $pending->id,
+            'order' => 0,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertHasErrors(['只有草稿']);
+
+        CoHistographServer::actingAs($owner)->tool(UpdateRevisionActionTool::class, [
+            'revision_id' => $pending->id,
+            'action_id' => $actionId,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertHasErrors(['只有草稿']);
+
+        CoHistographServer::actingAs($owner)->tool(DeleteRevisionActionTool::class, [
+            'revision_id' => $pending->id,
+            'action_id' => $actionId,
+        ])->assertHasErrors(['只有草稿']);
+
+        CoHistographServer::actingAs($owner)->tool(MoveRevisionActionTool::class, [
+            'revision_id' => $pending->id,
+            'action_id' => $actionId,
+            'direction' => 'up',
+        ])->assertHasErrors(['只有草稿']);
+
+        CoHistographServer::actingAs($owner)->tool(SubmitRevisionTool::class, [
+            'revision_id' => $pending->id,
+        ])->assertHasErrors(['只有草稿狀態的修訂可以提交審核']);
+
+        CoHistographServer::actingAs($owner)->tool(ValidateRevisionTool::class, [
+            'revision_id' => $pending->id,
+        ])->assertOk()->assertSee('檢查通過');
+
+        CoHistographServer::actingAs($other)->tool(SubmitRevisionTool::class, [
+            'revision_id' => $draft->id,
+        ])->assertHasErrors(['無權限提交此修訂']);
+
+        CoHistographServer::actingAs($other)->tool(MoveRevisionActionTool::class, [
+            'revision_id' => $draft->id,
+            'action_id' => $actionId,
+            'direction' => 'up',
+        ])->assertHasErrors(['無權限更新此修訂']);
+
+        CoHistographServer::actingAs($other)->tool(DeleteRevisionActionTool::class, [
+            'revision_id' => $draft->id,
+            'action_id' => $actionId,
+        ])->assertHasErrors(['無權限更新此修訂']);
+
+        CoHistographServer::actingAs($other)->tool(ReopenRevisionTool::class, [
+            'revision_id' => $pending->id,
+        ])->assertHasErrors(['無權限更新此修訂']);
+
+        CoHistographServer::actingAs($other)->tool(DeleteRevisionTool::class, [
+            'revision_id' => $draft->id,
+        ])->assertHasErrors(['無權限刪除此修訂']);
+    }
+
+    public function test_unauthenticated_revision_tools_are_rejected(): void
+    {
+        foreach ([
+            ListRevisionActionsTool::class,
+            ValidateRevisionTool::class,
+            ReopenRevisionTool::class,
+            DeleteRevisionTool::class,
+            SubmitRevisionTool::class,
+            GetRevisionTool::class,
+            UpdateRevisionTool::class,
+            AddRevisionActionTool::class,
+            UpdateRevisionActionTool::class,
+            DeleteRevisionActionTool::class,
+            MoveRevisionActionTool::class,
+            SearchRevisionsTool::class,
+        ] as $toolClass) {
+            CoHistographServer::tool($toolClass, [
+                'revision_id' => 1,
+                'action_id' => 1,
+                'title' => 'x',
+                'order' => 0,
+                'action' => ['action' => 'create_vertex'],
+                'direction' => 'up',
+            ])->assertHasErrors(['未授權']);
+        }
+    }
+
+    public function test_add_action_serializes_array_and_numeric_values(): void
+    {
+        $user = User::factory()->createOne();
+        $vertexType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $revision = Revision::factory()->createOne([
+            'user_id' => $user->id,
+            'status' => RevisionStatus::Draft,
+            'title' => '值型別',
+        ]);
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 0,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertOk();
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 1,
+            'action' => [
+                'action' => 'create_vertex_property',
+                'target_ref_order' => 0,
+                'age_property_name' => 'tags',
+                'value' => ['a', 'b'],
+            ],
+        ])->assertOk();
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 2,
+            'action' => [
+                'action' => 'create_vertex_property',
+                'target_ref_order' => 0,
+                'age_property_name' => 'count',
+                'value' => 42,
+            ],
+        ])->assertOk();
+
+        $actions = $revision->fresh()->actions()->orderBy('order')->get();
+        $this->assertSame('["a","b"]', $actions[1]->value);
+        $this->assertSame('42', $actions[2]->value);
     }
 
     private function graphLabel(): string

@@ -237,6 +237,199 @@ class GraphToolsTest extends TestCase
         ])->assertOk()->assertSee('人物');
     }
 
+    public function test_all_registered_tools_define_input_schemas(): void
+    {
+        $tools = (new \ReflectionClass(CoHistographServer::class))->getDefaultProperties()['tools'];
+        $factory = new \Illuminate\JsonSchema\JsonSchemaTypeFactory;
+
+        foreach ($tools as $toolClass) {
+            $schema = app($toolClass)->schema($factory);
+            $this->assertIsArray($schema);
+            $this->assertNotEmpty($schema, "{$toolClass} schema should not be empty");
+        }
+    }
+
+    public function test_search_vertex_types_includes_properties_and_pagination(): void
+    {
+        $user = User::factory()->createOne();
+        $first = VertexType::factory()->createOne([
+            'name' => 'AAA 類型',
+            'age_label_name' => $this->graphLabel('aaa'),
+        ]);
+        $second = VertexType::factory()->createOne([
+            'name' => 'BBB 類型',
+            'age_label_name' => $this->graphLabel('bbb'),
+        ]);
+        VertexProperty::factory()->createOne([
+            'vertex_type_id' => $second->id,
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'age_property_type' => PropertyType::String,
+        ]);
+
+        $response = CoHistographServer::actingAs($user)->tool(SearchVertexTypesTool::class, [
+            'query' => '類型',
+            'include_properties' => true,
+            'limit' => 1,
+            'offset' => 1,
+        ]);
+
+        $response->assertOk();
+        $response->assertStructuredContent(function (AssertableJson $json) use ($second) {
+            $json->where('total', 2)
+                ->where('vertex_types.0.id', $second->id)
+                ->where('vertex_types.0.properties.0.age_property_name', 'name')
+                ->etc();
+
+            return true;
+        });
+    }
+
+    public function test_search_edge_types_can_include_properties_and_omit_vertices(): void
+    {
+        $user = User::factory()->createOne();
+        $person = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel('person')]);
+        $event = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel('event')]);
+        $edgeType = EdgeType::factory()->createOne([
+            'name' => '出席',
+            'age_label_name' => $this->graphLabel('attended'),
+            'start_vertex_id' => $person->id,
+            'end_vertex_id' => $event->id,
+        ]);
+        EdgeProperty::factory()->createOne([
+            'edge_type_id' => $edgeType->id,
+            'name' => '角色',
+            'age_property_name' => 'role',
+            'age_property_type' => PropertyType::String,
+        ]);
+
+        $response = CoHistographServer::actingAs($user)->tool(SearchEdgeTypesTool::class, [
+            'query' => '出席',
+            'include_properties' => true,
+            'include_vertices' => false,
+        ]);
+
+        $response->assertOk();
+        $response->assertSee('role');
+        $response->assertDontSee($person->age_label_name);
+        $response->assertStructuredContent(function (AssertableJson $json) use ($edgeType) {
+            $json->where('total', 1)
+                ->where('edge_types.0.id', $edgeType->id)
+                ->where('edge_types.0.properties.0.age_property_name', 'role')
+                ->missing('edge_types.0.start_vertex')
+                ->etc();
+
+            return true;
+        });
+    }
+
+    public function test_search_vertices_lists_without_query_and_rejects_unknown_type(): void
+    {
+        $user = User::factory()->createOne();
+        $vertexType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel('event')]);
+        $ageId = $this->createAgeVertexWithProperties($vertexType->age_label_name, ['name' => '無查詢列出']);
+
+        $list = CoHistographServer::actingAs($user)->tool(SearchVerticesTool::class, [
+            'vertex_type_label' => $vertexType->age_label_name,
+        ]);
+        $list->assertOk();
+        $list->assertStructuredContent(function (AssertableJson $json) use ($ageId) {
+            $json->where('total', 1)->where('vertices.0.age_id', $ageId)->etc();
+
+            return true;
+        });
+
+        CoHistographServer::actingAs($user)->tool(SearchVerticesTool::class, [
+            'vertex_type_label' => 'missing_label_zzzz',
+        ])->assertHasErrors(['找不到 Vertex 類型']);
+    }
+
+    public function test_search_edges_validation_and_end_vertex_filter(): void
+    {
+        $user = User::factory()->createOne();
+        $person = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel('person')]);
+        $event = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel('event')]);
+        $edgeType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel('participated_in'),
+            'start_vertex_id' => $person->id,
+            'end_vertex_id' => $event->id,
+        ]);
+        EdgeProperty::factory()->createOne([
+            'edge_type_id' => $edgeType->id,
+            'age_property_name' => 'year',
+            'age_property_type' => PropertyType::Integer,
+        ]);
+
+        $personId = $this->createAgeVertexWithProperties($person->age_label_name, ['name' => '甲']);
+        $eventId = $this->createAgeVertexWithProperties($event->age_label_name, ['name' => '乙']);
+        $edgeId = $this->createAgeEdgeWithProperties($edgeType->age_label_name, $personId, $eventId, []);
+
+        CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [])
+            ->assertHasErrors(['至少需提供']);
+
+        CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [
+            'edge_type_label' => 'missing_edge_zzzz',
+        ])->assertHasErrors(['找不到 Edge 類型']);
+
+        CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [
+            'edge_type_label' => $edgeType->age_label_name,
+            'query' => '1911',
+            'property' => 'year',
+        ])->assertHasErrors(['不是 STRING 類型']);
+
+        $byEnd = CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [
+            'end_vertex_age_id' => $eventId,
+        ]);
+        $byEnd->assertOk();
+        $byEnd->assertStructuredContent(function (AssertableJson $json) use ($edgeId) {
+            $json->where('total', 1)->where('edges.0.age_id', $edgeId)->etc();
+
+            return true;
+        });
+    }
+
+    public function test_get_detail_not_found_and_incoming_neighbors(): void
+    {
+        $user = User::factory()->createOne();
+        $person = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel('person')]);
+        $event = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel('event')]);
+        $edgeType = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel('participated_in'),
+            'start_vertex_id' => $person->id,
+            'end_vertex_id' => $event->id,
+        ]);
+
+        $personId = $this->createAgeVertexWithProperties($person->age_label_name, ['name' => '丙']);
+        $eventId = $this->createAgeVertexWithProperties($event->age_label_name, ['name' => '丁']);
+        $edgeId = $this->createAgeEdgeWithProperties($edgeType->age_label_name, $personId, $eventId, []);
+
+        CoHistographServer::actingAs($user)->tool(GetVertexDetailTool::class, [
+            'age_id' => 999999999,
+        ])->assertHasErrors(['找不到頂點']);
+
+        CoHistographServer::actingAs($user)->tool(GetEdgeDetailTool::class, [
+            'age_id' => 999999999,
+        ])->assertHasErrors(['找不到邊']);
+
+        CoHistographServer::actingAs($user)->tool(ListVertexNeighborsTool::class, [
+            'age_id' => 999999999,
+        ])->assertHasErrors(['找不到頂點']);
+
+        $incoming = CoHistographServer::actingAs($user)->tool(ListVertexNeighborsTool::class, [
+            'age_id' => $eventId,
+            'direction' => 'incoming',
+        ]);
+        $incoming->assertOk();
+        $incoming->assertStructuredContent(function (AssertableJson $json) use ($edgeId, $personId) {
+            $json->where('neighbors.0.direction', 'incoming')
+                ->where('neighbors.0.edge.age_id', $edgeId)
+                ->where('neighbors.0.vertex.age_id', $personId)
+                ->etc();
+
+            return true;
+        });
+    }
+
     /**
      * @param  array<string, mixed>  $properties
      */
