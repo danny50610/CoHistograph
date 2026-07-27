@@ -90,9 +90,28 @@
 | B. 允許 `[]` 與 delete 並存 | 空 list ≠ 無 property |
 | C. `[]` 自動當 delete | update 隱藏成 REMOVE |
 
-**決定：A。** create/update 的 ENUM `value` 必須為**非空** JSON array；每個元素必須 ∈ 該 property 的 `enum_options[].value`。刪除屬性仍用 `delete_*_property` 且 `value = null`。
+**決定：A。** create/update 的 ENUM `value` 必須為**非空** JSON array；每個元素必須 ∈ 該 property 的**仍可選** options。刪除屬性仍用 `delete_*_property` 且 `value = null`。
 
-### Q7 — 既有圖資料下，能否改／刪 `enum_options`？（進行中）
+### Q7 — 既有圖資料下，能否改／刪 `enum_options`？ ✅
+
+| 選項 | 規則 |
+|------|------|
+| **A + 停用標記（已選）** | 可加 option、改 label；可將 option **標記為不在使用**；硬刪／更名 `value` 若圖上仍有成員使用則拒絕 |
+| B. 全開放 | 允許 orphan |
+| C. 有資料整包鎖定 | 過嚴 |
+| D. 僅軟刪、無硬刪護欄 | 不足 |
+
+**決定：A + 停用。** `enum_options` 元素擴充為大致：
+
+```json
+{"value":"rock","label":"搖滾","active":true}
+```
+
+- `active: true`（預設）：可新選
+- `active: false`：**未來不能再新增此值**（細節見 Q7b）
+- 硬刪 option 或改 `value` 字串：僅當 AGE 中無人使用該 value（擴充 data checker）
+
+### Q7b — 停用後，圖上「已經選過」的值怎麼辦？（進行中）
 
 見對話。
 
@@ -105,10 +124,11 @@
 | 基線語意 | ✅ 多選 |
 | AGE 儲存格式 | ✅ agtype list of strings（option `value`） |
 | Schema 選項定義 | ✅ property 上 `enum_options` JSON |
-| `enum_options` 形狀 | ✅ `[{value, label}, …]` |
+| `enum_options` 形狀 | ✅ `[{value, label, active}, …]`（`active` 預設 true） |
 | Revision `value` 編碼 | ✅ `revision_actions.value` → **jsonb**（ENUM＝array） |
 | 空集合 vs 刪除屬性 | ✅ 禁止 `[]`；清空＝delete |
-| 選項變更 vs 既有資料 | ⏳ |
+| 選項變更 vs 既有資料 | ✅ 可停用；硬刪需無人使用 |
+| 停用後舊值語意 | ⏳ |
 | 與 locale／BOOLEAN 關係 | ⏳ |
 
 ---
