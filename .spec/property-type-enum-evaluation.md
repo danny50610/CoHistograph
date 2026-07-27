@@ -58,7 +58,7 @@
 - `value` 在同一 property 內唯一
 - AGE／revision 比對只認 `value`；`label` 僅 schema／UI 顯示
 
-### Q5 — Revision `value` 如何編碼多選？ ✅（方向）／細化中
+### Q5 — Revision `value` 如何編碼多選？ ✅
 
 | 選項 | 做法 |
 |------|------|
@@ -66,11 +66,25 @@
 | **B. 改 DB 結構（已選）** | 調整欄位型別或另開欄位／表 |
 | C. 多筆 revision action | 每個選中值一筆 |
 
-**決定：B（方向）。** 需再鎖定具體 schema 改法（Q5b）。
+**決定：B → 細化為 B1。**
 
-### Q5b — `revision_actions` 具體怎麼改？（進行中）
+### Q5b — `revision_actions` 具體怎麼改？ ✅
 
-見對話。現況：`value` 為 `text nullable`（migration `2026_04_12_130031`）。
+| 選項 | Schema |
+|------|--------|
+| **B1. `value` → jsonb（已選）** | 單欄；純量＝JSON scalar，ENUM＝JSON array |
+| B2. text `value` + jsonb `values` | 雙欄互斥 |
+| B3. 子表 | 一列一個選中值 |
+
+**決定：B1。** 實作要點：
+- migration：`text` → `jsonb`；既有列以 `to_jsonb(value)`（或等價）轉成 JSON string
+- Eloquent：`value` 需能承載 scalar 與 array（自訂 cast 或 `AsArrayObject` 等價策略）
+- `PropertyValueCaster` / validator / apply：接受 `mixed`，不再一律 `(string) $action->value`
+- `actions_snapshot` 已是 jsonb，對齊後 ENUM 直接是 array
+
+### Q6 — 空陣列 `[]` 與「刪除屬性」如何區分？（進行中）
+
+見對話。
 
 ---
 
@@ -82,7 +96,7 @@
 | AGE 儲存格式 | ✅ agtype list of strings（option `value`） |
 | Schema 選項定義 | ✅ property 上 `enum_options` JSON |
 | `enum_options` 形狀 | ✅ `[{value, label}, …]` |
-| Revision `value` 編碼 | ⏳ 改 DB（細化中） |
+| Revision `value` 編碼 | ✅ `revision_actions.value` → **jsonb**（ENUM＝array） |
 | 空集合 vs 刪除屬性 | ⏳ |
 | 與 locale／BOOLEAN 關係 | ⏳ |
 
