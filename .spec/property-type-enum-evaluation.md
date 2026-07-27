@@ -24,7 +24,17 @@
 
 **決定：B。** v1 以多選為基線（非整數「剛好選一個」的單選型別）。
 
-### Q2 — AGE 多值如何儲存？（進行中）
+### Q2 — AGE 多值如何儲存？ ✅
+
+| 選項 | AGE 實際型別 | 例子 |
+|------|--------------|------|
+| **A. 原生 list（已選）** | agtype list | `['rock', 'jazz']` |
+| B. JSON 字串 | agtype string | `'["rock","jazz"]'` |
+| C. 逗號分隔 | agtype string | `'rock,jazz'` |
+
+**決定：A。** 實作前先 spike：`set(['v.prop' => ['a','b']])` 經現有 `laravel-apache-age-driver` 寫讀 round-trip；失敗再小改 driver，不退回字串方案。
+
+### Q3 — Schema 上「允許的選項」存在哪？（進行中）
 
 見對話。
 
@@ -35,7 +45,7 @@
 | 項目 | 狀態 |
 |------|------|
 | 基線語意 | ✅ 多選 |
-| AGE 儲存格式 | ⏳ |
+| AGE 儲存格式 | ✅ agtype list of strings |
 | Schema 選項定義 | ⏳ |
 | Revision `value` 編碼 | ⏳ |
 | 空集合 vs 刪除屬性 | ⏳ |
