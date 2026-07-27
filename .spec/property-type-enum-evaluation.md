@@ -143,11 +143,21 @@
 | B. 有序多重集 | 允許重複 | 保留使用者序 |
 | C. 有序唯一 | 拒絕重複 | 保留使用者序 |
 
-**決定：A。** create/update 若含重複 value → 驗證失敗（或文件定為自動去重；**推薦直接拒絕**以利 API 明確）。寫入 AGE 前依該 property `enum_options` 陣列順序排序，使集合相等 ⇒ list 相等。
+**決定：A。** create/update 若含重複 value → **驗證拒絕**。寫入 AGE 前依該 property `enum_options` 陣列順序排序，使集合相等 ⇒ list 相等。
 
-### Q10 — 與既有 `BOOLEAN` 的關係？（進行中）
+### Q10 — 與既有 `BOOLEAN` 的關係？ ✅
 
-見對話。
+| 選項 | 含義 |
+|------|------|
+| **A. 兩者並存（已選）** | BOOLEAN 純量；ENUM 為 string list + options |
+| B. 廢棄 BOOLEAN | 遷移成本高 |
+| C. BOOLEAN 當 ENUM 糖 | 底層扭曲 |
+
+**決定：A。** 二元旗標用 `BOOLEAN`；多標籤用 `ENUM`。不互相取代。
+
+### Q11 — Topic 過濾對 `ENUM` 開放哪些 operator？（進行中）
+
+見對話。（若 Topic 尚未實作，此題仍先鎖定，避免實作時另開平行字串表。）
 
 ---
 
@@ -165,7 +175,8 @@
 | 停用後舊值語意 | ✅ 祖父條款（不可新引入） |
 | locale | ✅ ENUM 不可設 locale |
 | list 去重／順序 | ✅ 拒重複；依 options 定義序正規化 |
-| 與 BOOLEAN 關係 | ⏳ |
+| 與 BOOLEAN 關係 | ✅ 並存，不取代 |
+| Topic operators | ⏳ |
 
 ---
 
