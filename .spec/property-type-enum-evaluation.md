@@ -78,11 +78,21 @@
 
 **決定：B1。** 實作要點：
 - migration：`text` → `jsonb`；既有列以 `to_jsonb(value)`（或等價）轉成 JSON string
-- Eloquent：`value` 需能承載 scalar 與 array（自訂 cast 或 `AsArrayObject` 等價策略）
+- Eloquent：`value` 需能承載 scalar 與 array（自訂 cast 或等價策略）
 - `PropertyValueCaster` / validator / apply：接受 `mixed`，不再一律 `(string) $action->value`
 - `actions_snapshot` 已是 jsonb，對齊後 ENUM 直接是 array
 
-### Q6 — 空陣列 `[]` 與「刪除屬性」如何區分？（進行中）
+### Q6 — 空陣列 `[]` 與「刪除屬性」如何區分？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 禁止 `[]`（已選）** | create/update 至少 1 個值；清空走 delete |
+| B. 允許 `[]` 與 delete 並存 | 空 list ≠ 無 property |
+| C. `[]` 自動當 delete | update 隱藏成 REMOVE |
+
+**決定：A。** create/update 的 ENUM `value` 必須為**非空** JSON array；每個元素必須 ∈ 該 property 的 `enum_options[].value`。刪除屬性仍用 `delete_*_property` 且 `value = null`。
+
+### Q7 — 既有圖資料下，能否改／刪 `enum_options`？（進行中）
 
 見對話。
 
@@ -97,7 +107,8 @@
 | Schema 選項定義 | ✅ property 上 `enum_options` JSON |
 | `enum_options` 形狀 | ✅ `[{value, label}, …]` |
 | Revision `value` 編碼 | ✅ `revision_actions.value` → **jsonb**（ENUM＝array） |
-| 空集合 vs 刪除屬性 | ⏳ |
+| 空集合 vs 刪除屬性 | ✅ 禁止 `[]`；清空＝delete |
+| 選項變更 vs 既有資料 | ⏳ |
 | 與 locale／BOOLEAN 關係 | ⏳ |
 
 ---
