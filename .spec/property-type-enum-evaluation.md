@@ -135,7 +135,17 @@
 
 **決定：A。** Form Request：`age_property_type = ENUM` 時拒絕非 null `locale`。多語顯示不靠 locale-property 複製 ENUM。
 
-### Q9 — 選取 list 是否允許重複？順序有無語意？（進行中）
+### Q9 — 選取 list 重複與順序？ ✅
+
+| 選項 | 重複 | 順序 |
+|------|------|------|
+| **A. 集合語意（已選）** | 拒絕重複 | 依 `enum_options` 定義序正規化 |
+| B. 有序多重集 | 允許重複 | 保留使用者序 |
+| C. 有序唯一 | 拒絕重複 | 保留使用者序 |
+
+**決定：A。** create/update 若含重複 value → 驗證失敗（或文件定為自動去重；**推薦直接拒絕**以利 API 明確）。寫入 AGE 前依該 property `enum_options` 陣列順序排序，使集合相等 ⇒ list 相等。
+
+### Q10 — 與既有 `BOOLEAN` 的關係？（進行中）
 
 見對話。
 
@@ -154,7 +164,7 @@
 | 選項變更 vs 既有資料 | ✅ 可停用；硬刪需無人使用 |
 | 停用後舊值語意 | ✅ 祖父條款（不可新引入） |
 | locale | ✅ ENUM 不可設 locale |
-| list 去重／順序 | ⏳ |
+| list 去重／順序 | ✅ 拒重複；依 options 定義序正規化 |
 | 與 BOOLEAN 關係 | ⏳ |
 
 ---
