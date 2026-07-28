@@ -24,7 +24,7 @@
 2. 「查看更多」連到專用頁 `/activity`（分頁，每頁 **20**）
 3. 統一列格式；以 **icon** 區分頂點／邊；以 **動作文案** 區分新增／修改／刪除
 4. 資料來源：已核准 Revision 的**全部** `revision_actions`（10 種 action）
-5. 核准套用時**回寫** AGE ID，並寫入 **`activity_snapshot`**（供刪除後仍能顯示名稱）
+5. 核准套用時**回寫** AGE ID，並寫入 **`content_snapshot`**（供刪除後仍能顯示名稱）
 6. 公開可讀（與現有 `/overview` 相同，無需登入）
 
 ### 非目標（v1）
@@ -45,7 +45,7 @@
 | 活動列（activity item） | 動態牆上的一列：對應一筆已核准的 `revision_actions` |
 | 核准時間 | 該 Revision 最新一筆 `revision_reviews.action = approved` 的 `created_at` |
 | 顯示名稱 | 經 `VertexDisplayNameResolver` 解析的 Vertex 標題 |
-| `activity_snapshot` | apply 當下寫入 action 的 JSON 快照，供 feed 顯示（刪除後仍可用） |
+| `content_snapshot` | apply 當下寫入 action 的 JSON 快照，供 feed 顯示（刪除後仍可用） |
 
 ---
 
@@ -174,7 +174,7 @@ Navbar：**不**新增獨立選單項。進入點只有 Overview 的「查看更
    - `create_edge`、`delete_edge`
    - `create_vertex_property`、`update_vertex_property`、`delete_vertex_property`
    - `create_edge_property`、`update_edge_property`、`delete_edge_property`
-3. `activity_snapshot` 非 null（見「核准時回寫與快照」）
+3. `content_snapshot` 非 null（見「核准時回寫與快照」）
 
 > 上線前的歷史核准列若無 snapshot，查詢時略過。
 
@@ -191,9 +191,9 @@ Overview 取前 10；`/activity` 依此排序分頁。
 由 `ActivityFeedService`（名稱可調整）負責：
 
 1. Join：`revision_actions` → `revisions` → 最新 `approved` review
-2. Filter：status、十種 action、`activity_snapshot` 非 null
+2. Filter：status、十種 action、`content_snapshot` 非 null
 3. Paginate / limit
-4. **顯示文案以 `activity_snapshot` 為準**（不必為歷史列重查 AGE）
+4. **顯示文案以 `content_snapshot` 為準**（不必為歷史列重查 AGE）
 5. 可選：對仍存在的 vertex id 檢查是否可連結（不存在則強制無連結 + `（已刪除）`）
 
 避免依賴即時 AGE 組主文案，以免刪除列空白、也避免 N+1。
@@ -204,7 +204,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 
 ---
 
-## 前置條件：核准時回寫 AGE ID 與 activity_snapshot
+## 前置條件：核准時回寫 AGE ID 與 content_snapshot
 
 ### 現況問題
 
@@ -218,7 +218,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
-| `activity_snapshot` | `jsonb` nullable | apply 成功後寫入；feed 顯示用 |
+| `content_snapshot` | `jsonb` nullable | apply 成功後寫入；feed 顯示用 |
 
 ### 回寫 AGE ID
 
@@ -232,7 +232,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 | `*_edge_property` | 若僅有 `target_ref_order`，回寫 `target_age_id` = 對應 edge id |
 | `delete_vertex`／`delete_edge` | 維持既有 target id（刪除前即可用） |
 
-### `activity_snapshot` 內容（建議 shape）
+### `content_snapshot` 內容（建議 shape）
 
 於**該 action 套用當下**寫入（刪除類須在 AGE delete **之前**解析名稱）：
 
@@ -304,7 +304,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 
 本功能上線**前**已核准的 action 可能沒有 id 回寫／snapshot。v1：
 
-- 查詢時略過 `activity_snapshot` 為 null 的列
+- 查詢時略過 `content_snapshot` 為 null 的列
 - **不做**一次性回填（除非另開任務）
 
 ---
@@ -330,7 +330,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 | 列 UI | Blade partial，例如 `resources/views/activity/partials/item.blade.php` |
 | 查詢 | `ActivityFeedService`；`HomeController@overview` 與 `ActivityController@index` 共用 |
 | Icon | Font Awesome 7（`layouts.app` 已引入） |
-| Apply 擴充 | `RevisionApplyService`：回寫 id + 寫 `activity_snapshot` |
+| Apply 擴充 | `RevisionApplyService`：回寫 id + 寫 `content_snapshot` |
 
 ### 控制器
 
@@ -363,7 +363,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 
 | ID | 案例 | 預期 |
 |----|------|------|
-| A01 | 核准 `create_vertex` | `target_age_id` 有值；`activity_snapshot` 含 type／primary |
+| A01 | 核准 `create_vertex` | `target_age_id` 有值；`content_snapshot` 含 type／primary |
 | A02 | 核准 `create_edge`（兩端 age id） | edge／start／end id 正確；snapshot 含兩端 display_name |
 | A03 | `create_vertex` + `create_edge`（ref_order） | edge 端點 age id 回寫；snapshot 可解析兩端 |
 | A04 | 核准 `delete_vertex` | 刪除前寫入 snapshot display_name；AGE 中頂點已不存在 |
@@ -400,7 +400,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 
 | ID | 案例 | 預期 |
 |----|------|------|
-| D01 | 歷史核准、無 `activity_snapshot` | 不出現在 feed |
+| D01 | 歷史核准、無 `content_snapshot` | 不出現在 feed |
 | D02 | 新增後又被另一 revision 刪除 | 新增列可降級無連結；刪除列依自己的 snapshot |
 | D03 | create 時尚無顯示名 | snapshot fallback `未命名（{type}）` |
 | D04 | 屬性 value 很長 | 截斷顯示 |
@@ -414,7 +414,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 - `/activity` 公開、每頁 20、同一列格式
 - icon 區分頂點／邊；動作文案區分新增／修改／刪除（含屬性）
 - 十種 revision action 核准後皆可出現在 feed
-- apply 回寫必要 AGE id，並寫入 `activity_snapshot`（刪除前完成名稱解析）
+- apply 回寫必要 AGE id，並寫入 `content_snapshot`（刪除前完成名稱解析）
 - 無 snapshot 的歷史列被略過；已刪除實體主文案可無連結
 
 ---
@@ -434,7 +434,7 @@ Overview 取前 10；`/activity` 依此排序分頁。
 | `/activity` 分頁 | 每頁 20 |
 | 篩選 | v1 不做 |
 | 時間 | 核准時間（approved review） |
-| 顯示資料 | 以 apply 時 `activity_snapshot` 為準 |
+| 顯示資料 | 以 apply 時 `content_snapshot` 為準 |
 | 公開 revision 詳情 | v1 不連 |
 | 貢獻者資訊 | v1 不顯示 |
 | Navbar | 不新增項目 |
