@@ -34,18 +34,30 @@ class EdgeTypeFactory extends Factory
      */
     public function create($attributes = [], ?Model $parent = null): Collection|Model
     {
-        $startVertexId = $attributes['start_vertex_id'] ?? null;
-        $endVertexId = $attributes['end_vertex_id'] ?? null;
-        /** @var list<array{start_vertex_id:int|string,end_vertex_id:int|string}>|null $vertexPairs */
-        $vertexPairs = $attributes['vertex_pairs'] ?? null;
-        unset($attributes['start_vertex_id'], $attributes['end_vertex_id'], $attributes['vertex_pairs']);
+        // Mirror Factory::create(): non-empty attributes become state, then create([]) is called.
+        // Extract endpoint hints only on the empty-attributes pass to avoid attaching pairs twice.
+        if ($attributes !== []) {
+            return $this->state($attributes)->create([], $parent);
+        }
 
-        $result = parent::create($attributes, $parent);
+        $expanded = $this->getExpandedAttributes($parent);
+        $startVertexId = $expanded['start_vertex_id'] ?? null;
+        $endVertexId = $expanded['end_vertex_id'] ?? null;
+        /** @var list<array{start_vertex_id:int|string,end_vertex_id:int|string}>|null $vertexPairs */
+        $vertexPairs = $expanded['vertex_pairs'] ?? null;
+
+        $result = parent::create([], $parent);
+
         $edgeTypes = $result instanceof Collection ? $result : collect([$result]);
 
         foreach ($edgeTypes as $edgeType) {
             /** @var EdgeType $edgeType */
-            $this->attachVertexPairs($edgeType, $startVertexId, $endVertexId, $vertexPairs);
+            $this->attachVertexPairs(
+                $edgeType,
+                $startVertexId,
+                $endVertexId,
+                is_array($vertexPairs) ? $vertexPairs : null,
+            );
         }
 
         return $result;
