@@ -52,29 +52,25 @@
             </div>
         </div>
 
-        <h2>Vertex</h2>
+        <h2>允許的起迄組合</h2>
         <div class="card mb-2">
             <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-md-2">
-                        起點
-                    </dt>
-                    <dd class="col-md-10">
-                        <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->startVertex]) }}">
-                            {{ $edgeType->startVertex->name}}</a>
-                        <span class=text-body-secondary>({{ $edgeType->startVertex->age_label_name }})</span>
-                    </dd>
-                </dl>
-                <dl class="row mb-0">
-                    <dt class="col-md-2">
-                        終點
-                    </dt>
-                    <dd class="col-md-10">
-                        <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->endVertex]) }}">
-                            {{ $edgeType->endVertex->name}}</a>
-                        <span class=text-body-secondary>({{ $edgeType->endVertex->age_label_name }})</span>
-                    </dd>
-                </dl>
+                @forelse ($edgeType->vertexPairs as $pair)
+                    <dl class="row mb-0">
+                        <dt class="col-md-2">組合</dt>
+                        <dd class="col-md-10">
+                            <a href="{{ route('graph-schema.vertex-type.show', [$pair->startVertex]) }}">
+                                {{ $pair->startVertex->name }}</a>
+                            <span class="text-body-secondary">({{ $pair->startVertex->age_label_name }})</span>
+                            →
+                            <a href="{{ route('graph-schema.vertex-type.show', [$pair->endVertex]) }}">
+                                {{ $pair->endVertex->name }}</a>
+                            <span class="text-body-secondary">({{ $pair->endVertex->age_label_name }})</span>
+                        </dd>
+                    </dl>
+                @empty
+                    <span>尚未定義起迄組合</span>
+                @endforelse
             </div>
         </div>
 

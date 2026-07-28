@@ -169,6 +169,47 @@ class RevisionSubmitValidationFailedTest extends TestCase
         $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
     }
 
+    public function test_create_edge_succeeds_when_edge_type_allows_multiple_end_vertex_types(): void
+    {
+        $user = User::factory()->createOne();
+        $supportAd = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $vtuber = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $group = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $supports = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'vertex_pairs' => [
+                ['start_vertex_id' => $supportAd->id, 'end_vertex_id' => $vtuber->id],
+                ['start_vertex_id' => $supportAd->id, 'end_vertex_id' => $group->id],
+            ],
+        ]);
+
+        $adId = $this->createAgeVertex($supportAd->age_label_name);
+        $vtuberId = $this->createAgeVertex($vtuber->age_label_name);
+        $groupId = $this->createAgeVertex($group->age_label_name);
+
+        $revision = $this->createDraftRevision($user, [
+            [
+                'action' => 'create_edge',
+                'edge_type_label' => $supports->age_label_name,
+                'start_vertex_age_id' => $adId,
+                'end_vertex_age_id' => $vtuberId,
+            ],
+            [
+                'action' => 'create_edge',
+                'edge_type_label' => $supports->age_label_name,
+                'start_vertex_age_id' => $adId,
+                'end_vertex_age_id' => $groupId,
+            ],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertRedirect(route('revisions.show', $revision))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
+    }
+
     /** F6: create_vertex_property 屬性名稱不屬於該頂點類型 */
     public function test_create_vertex_property_fails_when_property_not_in_vertex_type(): void
     {

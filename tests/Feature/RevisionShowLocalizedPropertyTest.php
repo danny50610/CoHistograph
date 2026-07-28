@@ -103,10 +103,13 @@ class RevisionShowLocalizedPropertyTest extends TestCase
             ->firstWhere('id', $edgeType->id);
 
         $this->assertNotNull($matched);
-        $this->assertSame('Artist', $matched['start_vertex']['name'] ?? null);
-        $this->assertSame('Track', $matched['end_vertex']['name'] ?? null);
+        $this->assertArrayHasKey('vertex_pairs', $matched);
+        $this->assertCount(1, $matched['vertex_pairs']);
+        $this->assertSame('Artist', $matched['vertex_pairs'][0]['start_vertex']['name'] ?? null);
+        $this->assertSame('Track', $matched['vertex_pairs'][0]['end_vertex']['name'] ?? null);
         $this->assertArrayNotHasKey('startVertex', $matched);
         $this->assertArrayNotHasKey('endVertex', $matched);
+        $this->assertArrayNotHasKey('vertexPairs', $matched);
     }
 
     public function test_edit_exposes_property_types_for_value_inputs(): void

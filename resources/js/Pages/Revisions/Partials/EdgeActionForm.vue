@@ -5,7 +5,7 @@
  * Props:
  *   modelValue          — local form object (v-model)
  *   actionType          — 'create_edge' | 'delete_edge'
- *   edgeTypes           — Array of EdgeType (with start_vertex, end_vertex)
+ *   edgeTypes           — Array of EdgeType (with vertex_pairs)
  *   createVertexActions — Array of actions with action === 'create_vertex'
  *   routeSearchVertices — Vertex search endpoint URL
  *   routeSearchEdges    — Edge search endpoint URL
@@ -28,44 +28,72 @@ function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
 }
 
+function formatPairSummary(edgeType) {
+    const pairs = edgeType?.vertex_pairs ?? [];
+    if (pairs.length === 0) {
+        return '? → ?';
+    }
+
+    return pairs
+        .map((pair) => `${pair.start_vertex?.name ?? '?'} → ${pair.end_vertex?.name ?? '?'}`)
+        .join(' / ');
+}
+
+function formatTypeLabels(vertices) {
+    const unique = [];
+    const seen = new Set();
+
+    for (const vertex of vertices) {
+        if (!vertex?.age_label_name || seen.has(vertex.age_label_name)) {
+            continue;
+        }
+        seen.add(vertex.age_label_name);
+        unique.push(vertex);
+    }
+
+    if (unique.length === 0) {
+        return null;
+    }
+
+    return unique.map((vertex) => `${vertex.name} (${vertex.age_label_name})`).join('、');
+}
+
 const selectedEdgeType = computed(() =>
     props.edgeTypes.find((et) => et.age_label_name === props.modelValue.edge_type_label) ?? null,
 );
 
 const startVertexTypeLabels = computed(() => {
-    const label = selectedEdgeType.value?.start_vertex?.age_label_name ?? null;
+    const labels = (selectedEdgeType.value?.vertex_pairs ?? [])
+        .map((pair) => pair.start_vertex?.age_label_name)
+        .filter((label) => typeof label === 'string' && label !== '');
 
-    return label ? [label] : null;
+    return labels.length > 0 ? [...new Set(labels)] : null;
 });
 
 const endVertexTypeLabels = computed(() => {
-    const label = selectedEdgeType.value?.end_vertex?.age_label_name ?? null;
+    const labels = (selectedEdgeType.value?.vertex_pairs ?? [])
+        .map((pair) => pair.end_vertex?.age_label_name)
+        .filter((label) => typeof label === 'string' && label !== '');
 
-    return label ? [label] : null;
+    return labels.length > 0 ? [...new Set(labels)] : null;
 });
 
 const startVertexTypeDisplay = computed(() => {
-    const vertex = selectedEdgeType.value?.start_vertex;
-    if (! vertex) {
-        return null;
-    }
+    const vertices = (selectedEdgeType.value?.vertex_pairs ?? []).map((pair) => pair.start_vertex);
 
-    return `${vertex.name} (${vertex.age_label_name})`;
+    return formatTypeLabels(vertices);
 });
 
 const endVertexTypeDisplay = computed(() => {
-    const vertex = selectedEdgeType.value?.end_vertex;
-    if (! vertex) {
-        return null;
-    }
+    const vertices = (selectedEdgeType.value?.vertex_pairs ?? []).map((pair) => pair.end_vertex);
 
-    return `${vertex.name} (${vertex.age_label_name})`;
+    return formatTypeLabels(vertices);
 });
 
 const edgeTypeOptions = computed(() =>
     (props.edgeTypes ?? []).map((et) => ({
         value: et.age_label_name,
-        label: `${et.name} (${et.start_vertex?.name ?? '?'} → ${et.end_vertex?.name ?? '?'})`,
+        label: `${et.name} (${formatPairSummary(et)})`,
     })),
 );
 
@@ -135,7 +163,7 @@ function onEndRefOrderChange(value) {
                     :key="et.id"
                     :value="et.age_label_name"
                 >
-                    {{ et.name }} ({{ et.start_vertex?.name }} → {{ et.end_vertex?.name }})
+                    {{ et.name }} ({{ formatPairSummary(et) }})
                 </option>
             </select>
             <div class="form-text text-secondary">請先選擇 Edge 類型，再搜尋起迄 Vertex</div>
@@ -174,7 +202,7 @@ function onEndRefOrderChange(value) {
                 require-type
                 locked-type-placeholder="— 請先選擇 Edge 類型 —"
                 locked-type-pending-hint="請先選擇 Edge 類型，起始 Vertex 類型才會確定"
-                locked-type-hint="搜尋僅限此 Vertex 類型"
+                locked-type-hint="搜尋僅限允許的 Vertex 類型"
                 placeholder="搜尋起始 Vertex 名稱或 ID…"
                 @update:model-value="onStartVertexIdUpdate"
             />
@@ -213,7 +241,7 @@ function onEndRefOrderChange(value) {
                 require-type
                 locked-type-placeholder="— 請先選擇 Edge 類型 —"
                 locked-type-pending-hint="請先選擇 Edge 類型，終止 Vertex 類型才會確定"
-                locked-type-hint="搜尋僅限此 Vertex 類型"
+                locked-type-hint="搜尋僅限允許的 Vertex 類型"
                 placeholder="搜尋終止 Vertex 名稱或 ID…"
                 @update:model-value="onEndVertexIdUpdate"
             />

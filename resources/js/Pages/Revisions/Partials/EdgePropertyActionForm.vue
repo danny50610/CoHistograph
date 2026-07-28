@@ -27,10 +27,19 @@ const emit = defineEmits(['update:modelValue']);
 const selectedTypeLabel = ref(null);
 
 const edgeTypeOptions = computed(() =>
-    (props.edgeTypes ?? []).map((et) => ({
-        value: et.age_label_name,
-        label: `${et.name} (${et.start_vertex?.name ?? '?'} → ${et.end_vertex?.name ?? '?'})`,
-    })),
+    (props.edgeTypes ?? []).map((et) => {
+        const pairs = et.vertex_pairs ?? [];
+        const summary = pairs.length === 0
+            ? '? → ?'
+            : pairs
+                .map((pair) => `${pair.start_vertex?.name ?? '?'} → ${pair.end_vertex?.name ?? '?'}`)
+                .join(' / ');
+
+        return {
+            value: et.age_label_name,
+            label: `${et.name} (${summary})`,
+        };
+    }),
 );
 
 function update(field, value) {

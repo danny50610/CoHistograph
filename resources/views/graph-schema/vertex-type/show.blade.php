@@ -67,46 +67,56 @@
         <h2>連入 Edge</h2>
         <div class="card mb-2">
             <div class="card-body">
-                @forelse ($vertexType->endEdgeTypes as $edgeType)
-                    <dl class="row mb-0">
-                        <dt class="col-md-2">
-                            <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
-                                {{ $edgeType->reverse_name == '' ? $edgeType->name : $edgeType->reverse_name }}</a>
-                            <span class=text-body-secondary>({{ $edgeType->age_label_name }})</span>
-                        </dt>
-                        <dd class="col-md-10 mb-0">
-                            ←
-                            <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->startVertex]) }}">
-                                {{ $edgeType->startVertex->name}}
-                            </a>
-                        </dd>
-                    </dl>
-                @empty
+                @php $hasIncoming = false; @endphp
+                @foreach ($vertexType->endEdgeTypes as $edgeType)
+                    @foreach ($edgeType->vertexPairs->where('end_vertex_id', $vertexType->id) as $pair)
+                        @php $hasIncoming = true; @endphp
+                        <dl class="row mb-0">
+                            <dt class="col-md-2">
+                                <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
+                                    {{ $edgeType->reverse_name == '' ? $edgeType->name : $edgeType->reverse_name }}</a>
+                                <span class="text-body-secondary">({{ $edgeType->age_label_name }})</span>
+                            </dt>
+                            <dd class="col-md-10 mb-0">
+                                ←
+                                <a href="{{ route('graph-schema.vertex-type.show', [$pair->startVertex]) }}">
+                                    {{ $pair->startVertex->name }}
+                                </a>
+                            </dd>
+                        </dl>
+                    @endforeach
+                @endforeach
+                @unless ($hasIncoming)
                     <span>沒有任何連入 Edge</span>
-                @endforelse
+                @endunless
             </div>
         </div>
 
         <h2>連出 Edge</h2>
         <div class="card mb-2">
             <div class="card-body">
-                @forelse ($vertexType->startEdgeTypes as $edgeType)
-                    <dl class="row mb-0">
-                        <dt class="col-md-2">
-                            <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
-                                {{ $edgeType->name }}</a>
-                            <span class=text-body-secondary>({{ $edgeType->age_label_name }})</span>
-                        </dt>
-                        <dd class="col-md-10 mb-0">
-                            →
-                            <a href="{{ route('graph-schema.vertex-type.show', [$edgeType->endVertex]) }}">
-                                {{ $edgeType->endVertex->name}}
-                            </a>
-                        </dd>
-                    </dl>
-                @empty
+                @php $hasOutgoing = false; @endphp
+                @foreach ($vertexType->startEdgeTypes as $edgeType)
+                    @foreach ($edgeType->vertexPairs->where('start_vertex_id', $vertexType->id) as $pair)
+                        @php $hasOutgoing = true; @endphp
+                        <dl class="row mb-0">
+                            <dt class="col-md-2">
+                                <a href="{{ route('graph-schema.edge-type.show', [$edgeType]) }}">
+                                    {{ $edgeType->name }}</a>
+                                <span class="text-body-secondary">({{ $edgeType->age_label_name }})</span>
+                            </dt>
+                            <dd class="col-md-10 mb-0">
+                                →
+                                <a href="{{ route('graph-schema.vertex-type.show', [$pair->endVertex]) }}">
+                                    {{ $pair->endVertex->name }}
+                                </a>
+                            </dd>
+                        </dl>
+                    @endforeach
+                @endforeach
+                @unless ($hasOutgoing)
                     <span>沒有任何連出 Edge</span>
-                @endforelse
+                @endunless
             </div>
         </div>
     </div>
