@@ -5,15 +5,20 @@ namespace Database\Factories;
 use App\Models\EdgeType;
 use App\Models\EdgeTypeVertexPair;
 use App\Models\VertexType;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\EdgeType>
  */
 class EdgeTypeFactory extends Factory
 {
+    /**
+     * Pending endpoint hints keyed by spl_object_id of the unsaved EdgeType.
+     *
+     * @var array<int, array{start_vertex_id:mixed,end_vertex_id:mixed,vertex_pairs:mixed}>
+     */
+    private static array $pendingEndpoints = [];
+
     /**
      * Define the model's default state.
      *
@@ -29,38 +34,38 @@ class EdgeTypeFactory extends Factory
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
-    public function create($attributes = [], ?Model $parent = null): Collection|Model
+    public function configure(): static
     {
-        // Mirror Factory::create(): non-empty attributes become state, then create([]) is called.
-        // Extract endpoint hints only on the empty-attributes pass to avoid attaching pairs twice.
-        if ($attributes !== []) {
-            return $this->state($attributes)->create([], $parent);
-        }
+        return $this
+            ->afterMaking(function (EdgeType $edgeType): void {
+                $attributes = $edgeType->getAttributes();
 
-        $expanded = $this->getExpandedAttributes($parent);
-        $startVertexId = $expanded['start_vertex_id'] ?? null;
-        $endVertexId = $expanded['end_vertex_id'] ?? null;
-        /** @var list<array{start_vertex_id:int|string,end_vertex_id:int|string}>|null $vertexPairs */
-        $vertexPairs = $expanded['vertex_pairs'] ?? null;
+                self::$pendingEndpoints[spl_object_id($edgeType)] = [
+                    'start_vertex_id' => $attributes['start_vertex_id'] ?? null,
+                    'end_vertex_id' => $attributes['end_vertex_id'] ?? null,
+                    'vertex_pairs' => $attributes['vertex_pairs'] ?? null,
+                ];
 
-        $result = parent::create([], $parent);
+                $edgeType->offsetUnset('start_vertex_id');
+                $edgeType->offsetUnset('end_vertex_id');
+                $edgeType->offsetUnset('vertex_pairs');
+            })
+            ->afterCreating(function (EdgeType $edgeType): void {
+                $objectId = spl_object_id($edgeType);
+                $pending = self::$pendingEndpoints[$objectId] ?? [
+                    'start_vertex_id' => null,
+                    'end_vertex_id' => null,
+                    'vertex_pairs' => null,
+                ];
+                unset(self::$pendingEndpoints[$objectId]);
 
-        $edgeTypes = $result instanceof Collection ? $result : collect([$result]);
-
-        foreach ($edgeTypes as $edgeType) {
-            /** @var EdgeType $edgeType */
-            $this->attachVertexPairs(
-                $edgeType,
-                $startVertexId,
-                $endVertexId,
-                is_array($vertexPairs) ? $vertexPairs : null,
-            );
-        }
-
-        return $result;
+                $this->attachVertexPairs(
+                    $edgeType,
+                    $pending['start_vertex_id'],
+                    $pending['end_vertex_id'],
+                    is_array($pending['vertex_pairs']) ? $pending['vertex_pairs'] : null,
+                );
+            });
     }
 
     /**
