@@ -30,7 +30,7 @@ class SystemConfigService
         }
 
         $validator = Validator::make(
-            is_array($row->value) ? $row->value : [],
+            $row->value,
             $class::rules(),
         );
 
