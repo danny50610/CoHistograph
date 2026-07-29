@@ -252,7 +252,7 @@ function onEndRefOrderChange(value) {
     <template v-if="actionType === 'delete_edge'">
         <div class="mb-3">
             <label class="col-form-label fw-semibold">目標 Edge</label>
-            <div class="form-text mb-1">搜尋並刪除圖資料庫中的既有邊（不會刪除 Edge 類型／schema）。先選類型：</div>
+            <div class="form-text mb-1">搜尋既有 Edge（先選類型）：</div>
             <AgeEntitySearch
                 :model-value="modelValue.target_age_id"
                 :search-url="routeSearchEdges"

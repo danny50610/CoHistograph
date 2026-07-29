@@ -78,8 +78,8 @@ const typeGroups = [
     {
         label: 'Edge 操作',
         types: [
-            { value: 'create_edge', label: '新增 Edge', desc: '在圖資料中新增一條邊（依 Edge 類型與起迄 Vertex）' },
-            { value: 'delete_edge', label: '刪除 Edge', desc: '刪除圖資料中的一條既有邊（不是刪除 Edge 類型）' },
+            { value: 'create_edge', label: '新增 Edge', desc: '在指定 EdgeType 下新增一條 Edge' },
+            { value: 'delete_edge', label: '刪除 Edge', desc: '刪除一條既有 Edge' },
         ],
     },
     {
