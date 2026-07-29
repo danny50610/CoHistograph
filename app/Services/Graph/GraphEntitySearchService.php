@@ -20,7 +20,7 @@ class GraphEntitySearchService
 
     /**
      * @param  list<string>|null  $typeLabels
-     * @return list<array{id:int,display_name:string,type_label:string,type_name:string}>
+     * @return list<array{id:string,display_name:string,type_label:string,type_name:string}>
      */
     public function searchVertices(string $query = '', ?array $typeLabels = null, int $limit = 20): array
     {
@@ -54,7 +54,8 @@ class GraphEntitySearchService
                 }
 
                 $results[] = [
-                    'id' => $id,
+                    // String avoids JS Number precision loss for AGE graphids.
+                    'id' => (string) $id,
                     'display_name' => $displayName !== '' ? $displayName : "(ID: {$id})",
                     'type_label' => $vertexType->age_label_name,
                     'type_name' => $vertexType->name,
@@ -70,7 +71,7 @@ class GraphEntitySearchService
     }
 
     /**
-     * @return array{id:int,display_name:string,type_label:string,type_name:string}|null
+     * @return array{id:string,display_name:string,type_label:string,type_name:string}|null
      */
     public function findVertex(int $id): ?array
     {
@@ -101,7 +102,7 @@ class GraphEntitySearchService
         );
 
         return [
-            'id' => (int) $vertex->id,
+            'id' => (string) ((int) $vertex->id),
             'display_name' => $displayName !== '' ? $displayName : "(ID: {$id})",
             'type_label' => $vertexType->age_label_name,
             'type_name' => $vertexType->name,
@@ -110,7 +111,7 @@ class GraphEntitySearchService
 
     /**
      * @param  list<string>|null  $typeLabels
-     * @return list<array{id:int,display_name:string,type_label:string,type_name:string,start_vertex_id:int,end_vertex_id:int}>
+     * @return list<array{id:string,display_name:string,type_label:string,type_name:string,start_vertex_id:string,end_vertex_id:string}>
      */
     public function searchEdges(string $query = '', ?array $typeLabels = null, int $limit = 20): array
     {
@@ -159,12 +160,13 @@ class GraphEntitySearchService
                 }
 
                 $results[] = [
-                    'id' => $id,
+                    // String avoids JS Number precision loss for AGE graphids.
+                    'id' => (string) $id,
                     'display_name' => $displayName,
                     'type_label' => $edgeType->age_label_name,
                     'type_name' => $edgeType->name,
-                    'start_vertex_id' => (int) $start->id,
-                    'end_vertex_id' => (int) $end->id,
+                    'start_vertex_id' => (string) ((int) $start->id),
+                    'end_vertex_id' => (string) ((int) $end->id),
                 ];
 
                 if (count($results) >= $limit) {
@@ -177,7 +179,7 @@ class GraphEntitySearchService
     }
 
     /**
-     * @return array{id:int,display_name:string,type_label:string,type_name:string,start_vertex_id:int,end_vertex_id:int}|null
+     * @return array{id:string,display_name:string,type_label:string,type_name:string,start_vertex_id:string,end_vertex_id:string}|null
      */
     public function findEdge(int $id): ?array
     {
@@ -224,12 +226,12 @@ class GraphEntitySearchService
         $endLabel = $endName !== '' ? $endName : 'ID:'.((int) $end->id);
 
         return [
-            'id' => (int) $edge->id,
+            'id' => (string) ((int) $edge->id),
             'display_name' => "{$startLabel} → {$endLabel}",
             'type_label' => $edgeType->age_label_name,
             'type_name' => $edgeType->name,
-            'start_vertex_id' => (int) $start->id,
-            'end_vertex_id' => (int) $end->id,
+            'start_vertex_id' => (string) ((int) $start->id),
+            'end_vertex_id' => (string) ((int) $end->id),
         ];
     }
 

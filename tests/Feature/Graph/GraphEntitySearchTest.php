@@ -49,11 +49,12 @@ class GraphEntitySearchTest extends TestCase
         $response = $this->getJson(route('graph.search.vertices', ['q' => '李白']));
 
         $response->assertOk()
-            ->assertJsonPath('data.0.id', $liBaiId)
+            ->assertJsonPath('data.0.id', (string) $liBaiId)
             ->assertJsonPath('data.0.display_name', '李白')
             ->assertJsonPath('data.0.type_label', $vertexType->age_label_name)
             ->assertJsonPath('data.0.type_name', '人物');
 
+        $this->assertIsString($response->json('data.0.id'));
         $this->assertCount(1, $response->json('data'));
     }
 
@@ -73,7 +74,7 @@ class GraphEntitySearchTest extends TestCase
 
         $this->getJson(route('graph.search.vertices', ['id' => $vertexId]))
             ->assertOk()
-            ->assertJsonPath('data.0.id', $vertexId)
+            ->assertJsonPath('data.0.id', (string) $vertexId)
             ->assertJsonPath('data.0.display_name', '王維');
     }
 
@@ -108,7 +109,7 @@ class GraphEntitySearchTest extends TestCase
         ]));
 
         $response->assertOk()
-            ->assertJsonPath('data.0.id', $personId);
+            ->assertJsonPath('data.0.id', (string) $personId);
 
         $this->assertCount(1, $response->json('data'));
     }
@@ -149,11 +150,11 @@ class GraphEntitySearchTest extends TestCase
         $response = $this->getJson(route('graph.search.edges', ['q' => '白居易']));
 
         $response->assertOk()
-            ->assertJsonPath('data.0.id', $edgeId)
+            ->assertJsonPath('data.0.id', (string) $edgeId)
             ->assertJsonPath('data.0.display_name', '白居易 → 曲江宴會')
             ->assertJsonPath('data.0.type_name', '參加')
-            ->assertJsonPath('data.0.start_vertex_id', $personId)
-            ->assertJsonPath('data.0.end_vertex_id', $eventId);
+            ->assertJsonPath('data.0.start_vertex_id', (string) $personId)
+            ->assertJsonPath('data.0.end_vertex_id', (string) $eventId);
     }
 
     public function test_can_resolve_edge_by_id(): void
@@ -190,7 +191,7 @@ class GraphEntitySearchTest extends TestCase
 
         $this->getJson(route('graph.search.edges', ['id' => $edgeId]))
             ->assertOk()
-            ->assertJsonPath('data.0.id', $edgeId)
+            ->assertJsonPath('data.0.id', (string) $edgeId)
             ->assertJsonPath('data.0.display_name', '蘇軾 → 赤壁遊');
     }
 

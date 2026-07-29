@@ -256,7 +256,7 @@ function onEdgeTypeChange(value) {
 
 function onStartVertexIdUpdate(value) {
     const next = { ...props.modelValue, start_vertex_age_id: value };
-    if (value !== null && value !== undefined) {
+    if (value !== null && value !== undefined && value !== '') {
         next.start_vertex_ref_order = null;
     } else {
         selectedStartTypeLabel.value = null;
@@ -266,7 +266,7 @@ function onStartVertexIdUpdate(value) {
 
 function onEndVertexIdUpdate(value) {
     const next = { ...props.modelValue, end_vertex_age_id: value };
-    if (value !== null && value !== undefined) {
+    if (value !== null && value !== undefined && value !== '') {
         next.end_vertex_ref_order = null;
     } else {
         selectedEndTypeLabel.value = null;
@@ -275,39 +275,11 @@ function onEndVertexIdUpdate(value) {
 }
 
 function onStartVertexSelected(item) {
-    const typeLabel = item?.type_label ?? null;
-    selectedStartTypeLabel.value = typeLabel;
-
-    let next = {
-        ...props.modelValue,
-        start_vertex_age_id: item?.id ?? null,
-        start_vertex_ref_order: null,
-    };
-
-    if (selectedEndTypeLabel.value && ! isPairAllowed(typeLabel, selectedEndTypeLabel.value)) {
-        selectedEndTypeLabel.value = null;
-        next = clearEndSelection(next);
-    }
-
-    emit('update:modelValue', next);
+    selectedStartTypeLabel.value = item?.type_label ?? null;
 }
 
 function onEndVertexSelected(item) {
-    const typeLabel = item?.type_label ?? null;
-    selectedEndTypeLabel.value = typeLabel;
-
-    let next = {
-        ...props.modelValue,
-        end_vertex_age_id: item?.id ?? null,
-        end_vertex_ref_order: null,
-    };
-
-    if (selectedStartTypeLabel.value && ! isPairAllowed(selectedStartTypeLabel.value, typeLabel)) {
-        selectedStartTypeLabel.value = null;
-        next = clearStartSelection(next);
-    }
-
-    emit('update:modelValue', next);
+    selectedEndTypeLabel.value = item?.type_label ?? null;
 }
 
 function onStartVertexCleared() {
