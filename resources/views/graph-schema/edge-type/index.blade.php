@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Edge Type - Graph Schema 管理')
+@section('title', 'Edge 類型 - Graph Schema 管理')
 
 @section('content')
     <div class="container">
         @include('graph-schema.buttons', ['type' => 'edge'])
 
-        <h1>Graph Schema - Edge Type 管理</h1>
+        <h1>Graph Schema - Edge 類型管理</h1>
 
         @permission('graph-schema.manage')
             <a href="{{ route('graph-schema.edge-type.create') }}" class="btn btn-primary mb-2">
@@ -27,7 +27,7 @@
         @empty
             <div class="card">
                 <div class="card-body">
-                    目前沒有 Edge Type
+                    目前沒有 Edge 類型
                 </div>
             </div>
         @endforelse

@@ -153,7 +153,7 @@ class RevisionActionValidator
 
         $edgeType = $this->graphManager->getEdgeTypeByLabel()[$edgeLabel] ?? null;
         if ($edgeType === null) {
-            $this->addActionError($result, $order, 'EDGE_TYPE_NOT_FOUND', "找不到 Edge Type: {$edgeLabel}");
+            $this->addActionError($result, $order, 'EDGE_TYPE_NOT_FOUND', "找不到 Edge 類型: {$edgeLabel}");
 
             return;
         }
@@ -189,7 +189,7 @@ class RevisionActionValidator
                 $result,
                 $order,
                 'EDGE_VERTEX_TYPE_MISMATCH',
-                '起訖 Vertex 類型不符合 Edge Type 定義',
+                '起訖 Vertex 類型不符合 Edge 類型定義',
                 [
                     'allowed_pairs' => $allowedPairs,
                     'actual_start' => $actualStart,

@@ -17,11 +17,11 @@
     }
 @endphp
 
-@section('title', $methodText . ' Edge Type')
+@section('title', $methodText . ' Edge 類型')
 
 @section('content')
     <div class="container">
-        <h1>{{ $methodText }} Edge Type</h1>
+        <h1>{{ $methodText }} Edge 類型</h1>
         <div class="card">
             <div class="card-body">
                 <form role="form" method="POST"

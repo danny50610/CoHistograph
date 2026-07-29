@@ -122,7 +122,7 @@ class VertexTypeController extends Controller
     public function destroy(VertexType $vertexType)
     {
         if ($vertexType->startEdgeTypes()->exists() || $vertexType->endEdgeTypes()->exists()) {
-            return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有 Edge Type 關聯");
+            return redirect()->back()->with('warning', "無法刪除，因為 Vertex「{$vertexType->name}」還有 Edge 類型關聯");
         }
 
         if ($vertexType->properties()->exists()) {

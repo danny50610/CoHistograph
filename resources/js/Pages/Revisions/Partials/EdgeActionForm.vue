@@ -150,7 +150,7 @@ function onEndRefOrderChange(value) {
     <template v-if="actionType === 'create_edge'">
         <!-- Edge type -->
         <div class="mb-3">
-            <label class="col-form-label fw-semibold">Edge Type</label>
+            <label class="col-form-label fw-semibold">Edge 類型</label>
             <select
                 class="form-select"
                 :value="modelValue.edge_type_label"
@@ -166,7 +166,7 @@ function onEndRefOrderChange(value) {
                     {{ et.name }} ({{ formatPairSummary(et) }})
                 </option>
             </select>
-            <div class="form-text text-secondary">請先選擇 Edge Type，再搜尋起迄 Vertex</div>
+            <div class="form-text text-secondary">請先選擇 Edge 類型，再搜尋起迄 Vertex</div>
         </div>
 
         <!-- Start vertex -->
@@ -200,8 +200,8 @@ function onEndRefOrderChange(value) {
                 :locked-type-display="startVertexTypeDisplay"
                 show-locked-type
                 require-type
-                locked-type-placeholder="— 請先選擇 Edge Type —"
-                locked-type-pending-hint="請先選擇 Edge Type，起始 Vertex 類型才會確定"
+                locked-type-placeholder="— 請先選擇 Edge 類型 —"
+                locked-type-pending-hint="請先選擇 Edge 類型，起始 Vertex 類型才會確定"
                 locked-type-hint="搜尋僅限允許的 Vertex 類型"
                 placeholder="搜尋起始 Vertex 名稱或 ID…"
                 @update:model-value="onStartVertexIdUpdate"
@@ -239,8 +239,8 @@ function onEndRefOrderChange(value) {
                 :locked-type-display="endVertexTypeDisplay"
                 show-locked-type
                 require-type
-                locked-type-placeholder="— 請先選擇 Edge Type —"
-                locked-type-pending-hint="請先選擇 Edge Type，終止 Vertex 類型才會確定"
+                locked-type-placeholder="— 請先選擇 Edge 類型 —"
+                locked-type-pending-hint="請先選擇 Edge 類型，終止 Vertex 類型才會確定"
                 locked-type-hint="搜尋僅限允許的 Vertex 類型"
                 placeholder="搜尋終止 Vertex 名稱或 ID…"
                 @update:model-value="onEndVertexIdUpdate"
@@ -252,14 +252,14 @@ function onEndRefOrderChange(value) {
     <template v-if="actionType === 'delete_edge'">
         <div class="mb-3">
             <label class="col-form-label fw-semibold">目標 Edge</label>
-            <div class="form-text mb-1">搜尋並刪除圖資料庫中的既有邊（不會刪除 Edge Type／schema）。先選類型：</div>
+            <div class="form-text mb-1">搜尋並刪除圖資料庫中的既有邊（不會刪除 Edge 類型／schema）。先選類型：</div>
             <AgeEntitySearch
                 :model-value="modelValue.target_age_id"
                 :search-url="routeSearchEdges"
                 entity-kind="edge"
                 :type-options="edgeTypeOptions"
                 require-type
-                type-placeholder="— 請先選擇 Edge Type —"
+                type-placeholder="— 請先選擇 Edge 類型 —"
                 placeholder="搜尋起點／終點名稱或 ID…"
                 required
                 @update:model-value="update('target_age_id', $event)"

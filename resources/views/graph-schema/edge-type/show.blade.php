@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', $edgeType->name . ' - Edge Type - Graph Schema 管理')
+@section('title', $edgeType->name . ' - Edge 類型 - Graph Schema 管理')
 
 @section('content')
     <div class="container">
         <a href="{{ route('graph-schema.edge-type.index') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> 返回</a>
 
-        <h1>Graph Schema - Edge Type - {{ $edgeType->name }}</h1>
+        <h1>Graph Schema - Edge 類型 - {{ $edgeType->name }}</h1>
 
         @permission('graph-schema.manage')
         <div class="mb-2">
-            {{ html()->form('DELETE', route('graph-schema.edge-type.destroy', [$edgeType]))->style('display: inline')->attribute('onSubmit', "return confirm('確定要刪除此 Edge Type 嗎？這會移除 schema 定義，不會透過 Revision 刪除圖上的 Edge 資料。');")->open() }}
-            <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 刪除 Edge Type</button>
+            {{ html()->form('DELETE', route('graph-schema.edge-type.destroy', [$edgeType]))->style('display: inline')->attribute('onSubmit', "return confirm('確定要刪除此 Edge 類型嗎？這會移除 schema 定義，不會透過 Revision 刪除圖上的 Edge 資料。');")->open() }}
+            <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 刪除 Edge 類型</button>
             {{ html()->form()->close() }}
         </div>
         @endpermission
