@@ -210,6 +210,53 @@ class RevisionSubmitValidationFailedTest extends TestCase
         $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::PendingReview->value]);
     }
 
+    public function test_create_edge_fails_when_endpoints_are_invalid_cross_product_of_vertex_pairs(): void
+    {
+        $user = User::factory()->createOne();
+        $advertisement = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $vtuber = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $agency = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $group = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+        $supports = EdgeType::factory()->createOne([
+            'age_label_name' => $this->graphLabel(),
+            'vertex_pairs' => [
+                ['start_vertex_id' => $advertisement->id, 'end_vertex_id' => $vtuber->id],
+                ['start_vertex_id' => $agency->id, 'end_vertex_id' => $group->id],
+            ],
+        ]);
+
+        $advertisementId = $this->createAgeVertex($advertisement->age_label_name);
+        $groupId = $this->createAgeVertex($group->age_label_name);
+
+        $revision = $this->createDraftRevision($user, [
+            [
+                'action' => 'create_edge',
+                'edge_type_label' => $supports->age_label_name,
+                // Valid starts/ends individually, but not an allowed pair.
+                'start_vertex_age_id' => $advertisementId,
+                'end_vertex_age_id' => $groupId,
+            ],
+        ]);
+
+        $this->actAs($user)
+            ->post(route('revisions.submit', $revision))
+            ->assertSessionHas('revision_action_error_details', function (array $details) use ($advertisement, $group): bool {
+                $errors = $details[0] ?? [];
+                $codes = array_column($errors, 'code');
+                if (! in_array('EDGE_VERTEX_TYPE_MISMATCH', $codes, true)) {
+                    return false;
+                }
+
+                $mismatch = collect($errors)->firstWhere('code', 'EDGE_VERTEX_TYPE_MISMATCH');
+
+                return ($mismatch['meta']['actual_start'] ?? null) === $advertisement->age_label_name
+                    && ($mismatch['meta']['actual_end'] ?? null) === $group->age_label_name
+                    && count($mismatch['meta']['allowed_pairs'] ?? []) === 2;
+            });
+
+        $this->assertDatabaseHas('revisions', ['id' => $revision->id, 'status' => RevisionStatus::Draft->value]);
+    }
+
     /** F6: create_vertex_property 屬性名稱不屬於該頂點類型 */
     public function test_create_vertex_property_fails_when_property_not_in_vertex_type(): void
     {

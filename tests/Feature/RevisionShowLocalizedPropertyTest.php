@@ -112,6 +112,42 @@ class RevisionShowLocalizedPropertyTest extends TestCase
         $this->assertArrayNotHasKey('vertexPairs', $matched);
     }
 
+    public function test_edit_includes_multiple_vertex_pairs_for_edge_types(): void
+    {
+        $user = User::factory()->create();
+        $advertisement = VertexType::factory()->create(['name' => 'Advertisement']);
+        $vtuber = VertexType::factory()->create(['name' => 'VTuber']);
+        $group = VertexType::factory()->create(['name' => 'Group']);
+        $edgeType = EdgeType::factory()->create([
+            'name' => 'supports',
+            'vertex_pairs' => [
+                ['start_vertex_id' => $advertisement->id, 'end_vertex_id' => $vtuber->id],
+                ['start_vertex_id' => $advertisement->id, 'end_vertex_id' => $group->id],
+            ],
+        ]);
+
+        $revision = Revision::query()->create([
+            'title' => 'Draft with multi-pair edge types',
+            'description' => '',
+            'status' => RevisionStatus::Draft,
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('revisions.edit', $revision))
+            ->assertOk();
+
+        $matched = collect($response->inertiaProps('edgeTypes'))
+            ->firstWhere('id', $edgeType->id);
+
+        $this->assertNotNull($matched);
+        $this->assertCount(2, $matched['vertex_pairs']);
+        $ends = collect($matched['vertex_pairs'])
+            ->map(fn (array $pair): ?string => $pair['end_vertex']['name'] ?? null)
+            ->all();
+        $this->assertEqualsCanonicalizing(['VTuber', 'Group'], $ends);
+    }
+
     public function test_edit_exposes_property_types_for_value_inputs(): void
     {
         $user = User::factory()->create();

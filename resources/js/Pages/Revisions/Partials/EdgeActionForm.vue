@@ -10,7 +10,7 @@
  *   routeSearchVertices — Vertex search endpoint URL
  *   routeSearchEdges    — Edge search endpoint URL
  */
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AgeEntitySearch from './AgeEntitySearch.vue';
 
 const props = defineProps({
@@ -23,6 +23,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+/** Resolved type labels for currently chosen start/end vertices (search or ref). */
+const selectedStartTypeLabel = ref(null);
+const selectedEndTypeLabel = ref(null);
 
 function update(field, value) {
     emit('update:modelValue', { ...props.modelValue, [field]: value });
@@ -39,17 +43,23 @@ function formatPairSummary(edgeType) {
         .join(' / ');
 }
 
-function formatTypeLabels(vertices) {
+function uniqueVerticesByLabel(vertices) {
     const unique = [];
     const seen = new Set();
 
     for (const vertex of vertices) {
-        if (!vertex?.age_label_name || seen.has(vertex.age_label_name)) {
+        if (! vertex?.age_label_name || seen.has(vertex.age_label_name)) {
             continue;
         }
         seen.add(vertex.age_label_name);
         unique.push(vertex);
     }
+
+    return unique;
+}
+
+function formatTypeLabels(vertices) {
+    const unique = uniqueVerticesByLabel(vertices);
 
     if (unique.length === 0) {
         return null;
@@ -58,36 +68,102 @@ function formatTypeLabels(vertices) {
     return unique.map((vertex) => `${vertex.name} (${vertex.age_label_name})`).join('、');
 }
 
+function pairList(edgeType) {
+    return edgeType?.vertex_pairs ?? [];
+}
+
+function labelsFromPairs(pairs, side) {
+    const key = side === 'start' ? 'start_vertex' : 'end_vertex';
+
+    return [...new Set(
+        pairs
+            .map((pair) => pair[key]?.age_label_name)
+            .filter((label) => typeof label === 'string' && label !== ''),
+    )];
+}
+
+function verticesFromPairs(pairs, side) {
+    const key = side === 'start' ? 'start_vertex' : 'end_vertex';
+
+    return pairs.map((pair) => pair[key]);
+}
+
+function pairsCompatibleWithEnd(pairs, endLabel) {
+    if (! endLabel) {
+        return pairs;
+    }
+
+    return pairs.filter((pair) => pair.end_vertex?.age_label_name === endLabel);
+}
+
+function pairsCompatibleWithStart(pairs, startLabel) {
+    if (! startLabel) {
+        return pairs;
+    }
+
+    return pairs.filter((pair) => pair.start_vertex?.age_label_name === startLabel);
+}
+
 const selectedEdgeType = computed(() =>
     props.edgeTypes.find((et) => et.age_label_name === props.modelValue.edge_type_label) ?? null,
 );
 
-const startVertexTypeLabels = computed(() => {
-    const labels = (selectedEdgeType.value?.vertex_pairs ?? [])
-        .map((pair) => pair.start_vertex?.age_label_name)
-        .filter((label) => typeof label === 'string' && label !== '');
+const allowedStartPairs = computed(() =>
+    pairsCompatibleWithEnd(pairList(selectedEdgeType.value), selectedEndTypeLabel.value),
+);
 
-    return labels.length > 0 ? [...new Set(labels)] : null;
+const allowedEndPairs = computed(() =>
+    pairsCompatibleWithStart(pairList(selectedEdgeType.value), selectedStartTypeLabel.value),
+);
+
+const startVertexTypeLabels = computed(() => {
+    if (! selectedEdgeType.value) {
+        return null;
+    }
+
+    const labels = labelsFromPairs(allowedStartPairs.value, 'start');
+
+    return labels.length > 0 ? labels : null;
 });
 
 const endVertexTypeLabels = computed(() => {
-    const labels = (selectedEdgeType.value?.vertex_pairs ?? [])
-        .map((pair) => pair.end_vertex?.age_label_name)
-        .filter((label) => typeof label === 'string' && label !== '');
+    if (! selectedEdgeType.value) {
+        return null;
+    }
 
-    return labels.length > 0 ? [...new Set(labels)] : null;
+    const labels = labelsFromPairs(allowedEndPairs.value, 'end');
+
+    return labels.length > 0 ? labels : null;
 });
 
-const startVertexTypeDisplay = computed(() => {
-    const vertices = (selectedEdgeType.value?.vertex_pairs ?? []).map((pair) => pair.start_vertex);
+const startVertexTypeDisplay = computed(() =>
+    formatTypeLabels(verticesFromPairs(allowedStartPairs.value, 'start')),
+);
 
-    return formatTypeLabels(vertices);
+const endVertexTypeDisplay = computed(() =>
+    formatTypeLabels(verticesFromPairs(allowedEndPairs.value, 'end')),
+);
+
+const startCreateVertexActions = computed(() => {
+    const allowed = startVertexTypeLabels.value;
+    if (! allowed) {
+        return [];
+    }
+
+    return (props.createVertexActions ?? []).filter(
+        (action) => allowed.includes(action.vertex_type_label),
+    );
 });
 
-const endVertexTypeDisplay = computed(() => {
-    const vertices = (selectedEdgeType.value?.vertex_pairs ?? []).map((pair) => pair.end_vertex);
+const endCreateVertexActions = computed(() => {
+    const allowed = endVertexTypeLabels.value;
+    if (! allowed) {
+        return [];
+    }
 
-    return formatTypeLabels(vertices);
+    return (props.createVertexActions ?? []).filter(
+        (action) => allowed.includes(action.vertex_type_label),
+    );
 });
 
 const edgeTypeOptions = computed(() =>
@@ -97,12 +173,84 @@ const edgeTypeOptions = computed(() =>
     })),
 );
 
+function resolveRefTypeLabel(refOrder) {
+    if (refOrder === null || refOrder === undefined) {
+        return null;
+    }
+
+    const action = (props.createVertexActions ?? []).find((item) => item.order === refOrder);
+
+    return action?.vertex_type_label ?? null;
+}
+
+function isPairAllowed(startLabel, endLabel) {
+    if (! startLabel || ! endLabel || ! selectedEdgeType.value) {
+        return true;
+    }
+
+    return pairList(selectedEdgeType.value).some(
+        (pair) => pair.start_vertex?.age_label_name === startLabel
+            && pair.end_vertex?.age_label_name === endLabel,
+    );
+}
+
+function clearEndSelection(base) {
+    return {
+        ...base,
+        end_vertex_age_id: null,
+        end_vertex_ref_order: null,
+    };
+}
+
+function clearStartSelection(base) {
+    return {
+        ...base,
+        start_vertex_age_id: null,
+        start_vertex_ref_order: null,
+    };
+}
+
+watch(
+    () => props.modelValue?.edge_type_label,
+    () => {
+        selectedStartTypeLabel.value = resolveRefTypeLabel(props.modelValue?.start_vertex_ref_order);
+        selectedEndTypeLabel.value = resolveRefTypeLabel(props.modelValue?.end_vertex_ref_order);
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.modelValue?.start_vertex_ref_order,
+    (refOrder) => {
+        if (refOrder !== null && refOrder !== undefined) {
+            selectedStartTypeLabel.value = resolveRefTypeLabel(refOrder);
+        } else if (props.modelValue?.start_vertex_age_id === null || props.modelValue?.start_vertex_age_id === undefined) {
+            selectedStartTypeLabel.value = null;
+        }
+    },
+);
+
+watch(
+    () => props.modelValue?.end_vertex_ref_order,
+    (refOrder) => {
+        if (refOrder !== null && refOrder !== undefined) {
+            selectedEndTypeLabel.value = resolveRefTypeLabel(refOrder);
+        } else if (props.modelValue?.end_vertex_age_id === null || props.modelValue?.end_vertex_age_id === undefined) {
+            selectedEndTypeLabel.value = null;
+        }
+    },
+);
+
 function onEdgeTypeChange(value) {
+    selectedStartTypeLabel.value = null;
+    selectedEndTypeLabel.value = null;
     emit('update:modelValue', {
         ...props.modelValue,
         edge_type_label: value || null,
         start_vertex_age_id: null,
         end_vertex_age_id: null,
+        start_vertex_ref_order: null,
+        end_vertex_ref_order: null,
     });
 }
 
@@ -110,6 +258,8 @@ function onStartVertexIdUpdate(value) {
     const next = { ...props.modelValue, start_vertex_age_id: value };
     if (value !== null && value !== undefined) {
         next.start_vertex_ref_order = null;
+    } else {
+        selectedStartTypeLabel.value = null;
     }
     emit('update:modelValue', next);
 }
@@ -118,29 +268,95 @@ function onEndVertexIdUpdate(value) {
     const next = { ...props.modelValue, end_vertex_age_id: value };
     if (value !== null && value !== undefined) {
         next.end_vertex_ref_order = null;
+    } else {
+        selectedEndTypeLabel.value = null;
     }
     emit('update:modelValue', next);
 }
 
-function onStartRefOrderChange(value) {
-    const next = {
+function onStartVertexSelected(item) {
+    const typeLabel = item?.type_label ?? null;
+    selectedStartTypeLabel.value = typeLabel;
+
+    let next = {
         ...props.modelValue,
-        start_vertex_ref_order: value !== '' ? parseInt(value, 10) : null,
+        start_vertex_age_id: item?.id ?? null,
+        start_vertex_ref_order: null,
+    };
+
+    if (selectedEndTypeLabel.value && ! isPairAllowed(typeLabel, selectedEndTypeLabel.value)) {
+        selectedEndTypeLabel.value = null;
+        next = clearEndSelection(next);
+    }
+
+    emit('update:modelValue', next);
+}
+
+function onEndVertexSelected(item) {
+    const typeLabel = item?.type_label ?? null;
+    selectedEndTypeLabel.value = typeLabel;
+
+    let next = {
+        ...props.modelValue,
+        end_vertex_age_id: item?.id ?? null,
+        end_vertex_ref_order: null,
+    };
+
+    if (selectedStartTypeLabel.value && ! isPairAllowed(selectedStartTypeLabel.value, typeLabel)) {
+        selectedStartTypeLabel.value = null;
+        next = clearStartSelection(next);
+    }
+
+    emit('update:modelValue', next);
+}
+
+function onStartVertexCleared() {
+    selectedStartTypeLabel.value = null;
+}
+
+function onEndVertexCleared() {
+    selectedEndTypeLabel.value = null;
+}
+
+function onStartRefOrderChange(value) {
+    const refOrder = value !== '' ? parseInt(value, 10) : null;
+    const typeLabel = resolveRefTypeLabel(refOrder);
+    selectedStartTypeLabel.value = typeLabel;
+
+    let next = {
+        ...props.modelValue,
+        start_vertex_ref_order: refOrder,
     };
     if (value !== '') {
         next.start_vertex_age_id = null;
     }
+
+    if (selectedEndTypeLabel.value && ! isPairAllowed(typeLabel, selectedEndTypeLabel.value)) {
+        selectedEndTypeLabel.value = null;
+        next = clearEndSelection(next);
+    }
+
     emit('update:modelValue', next);
 }
 
 function onEndRefOrderChange(value) {
-    const next = {
+    const refOrder = value !== '' ? parseInt(value, 10) : null;
+    const typeLabel = resolveRefTypeLabel(refOrder);
+    selectedEndTypeLabel.value = typeLabel;
+
+    let next = {
         ...props.modelValue,
-        end_vertex_ref_order: value !== '' ? parseInt(value, 10) : null,
+        end_vertex_ref_order: refOrder,
     };
     if (value !== '') {
         next.end_vertex_age_id = null;
     }
+
+    if (selectedStartTypeLabel.value && ! isPairAllowed(selectedStartTypeLabel.value, typeLabel)) {
+        selectedStartTypeLabel.value = null;
+        next = clearStartSelection(next);
+    }
+
     emit('update:modelValue', next);
 }
 </script>
@@ -166,13 +382,13 @@ function onEndRefOrderChange(value) {
                     {{ et.name }} ({{ formatPairSummary(et) }})
                 </option>
             </select>
-            <div class="form-text text-secondary">請先選擇 Edge 類型，再搜尋起迄 Vertex</div>
+            <div class="form-text text-secondary">請先選擇 Edge 類型，再搜尋起迄 Vertex（僅允許已定義的起迄組合）</div>
         </div>
 
         <!-- Start vertex -->
         <div class="mb-3">
             <label class="col-form-label fw-semibold">起始 Vertex</label>
-            <template v-if="createVertexActions.length > 0">
+            <template v-if="startCreateVertexActions.length > 0">
                 <div class="mb-2">
                     <div class="form-text mb-1">指向本修訂內的新增 Vertex 操作：</div>
                     <select
@@ -182,7 +398,7 @@ function onEndRefOrderChange(value) {
                     >
                         <option value="">— 不選擇 —</option>
                         <option
-                            v-for="a in createVertexActions"
+                            v-for="a in startCreateVertexActions"
                             :key="a.order"
                             :value="String(a.order)"
                         >
@@ -202,16 +418,18 @@ function onEndRefOrderChange(value) {
                 require-type
                 locked-type-placeholder="— 請先選擇 Edge 類型 —"
                 locked-type-pending-hint="請先選擇 Edge 類型，起始 Vertex 類型才會確定"
-                locked-type-hint="搜尋僅限允許的 Vertex 類型"
+                locked-type-hint="搜尋僅限目前允許的起點類型（依已選終點／Edge 類型 pair）"
                 placeholder="搜尋起始 Vertex 名稱或 ID…"
                 @update:model-value="onStartVertexIdUpdate"
+                @select="onStartVertexSelected"
+                @clear="onStartVertexCleared"
             />
         </div>
 
         <!-- End vertex -->
         <div class="mb-3">
             <label class="col-form-label fw-semibold">終止 Vertex</label>
-            <template v-if="createVertexActions.length > 0">
+            <template v-if="endCreateVertexActions.length > 0">
                 <div class="mb-2">
                     <div class="form-text mb-1">指向本修訂內的新增 Vertex 操作：</div>
                     <select
@@ -221,7 +439,7 @@ function onEndRefOrderChange(value) {
                     >
                         <option value="">— 不選擇 —</option>
                         <option
-                            v-for="a in createVertexActions"
+                            v-for="a in endCreateVertexActions"
                             :key="a.order"
                             :value="String(a.order)"
                         >
@@ -241,9 +459,11 @@ function onEndRefOrderChange(value) {
                 require-type
                 locked-type-placeholder="— 請先選擇 Edge 類型 —"
                 locked-type-pending-hint="請先選擇 Edge 類型，終止 Vertex 類型才會確定"
-                locked-type-hint="搜尋僅限允許的 Vertex 類型"
+                locked-type-hint="搜尋僅限目前允許的終點類型（依已選起點／Edge 類型 pair）"
                 placeholder="搜尋終止 Vertex 名稱或 ID…"
                 @update:model-value="onEndVertexIdUpdate"
+                @select="onEndVertexSelected"
+                @clear="onEndVertexCleared"
             />
         </div>
     </template>
