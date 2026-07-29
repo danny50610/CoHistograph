@@ -89,7 +89,7 @@ class EdgeTypeController extends Controller
         $edgeType->syncVertexPairs($validated['vertex_pairs']);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])
-            ->with('global', "Edge「{$edgeType->name}」建立完成");
+            ->with('global', "Edge 類型「{$edgeType->name}」建立完成");
     }
 
     public function edit(EdgeType $edgeType)
@@ -136,13 +136,13 @@ class EdgeTypeController extends Controller
         $edgeType->syncVertexPairs($validated['vertex_pairs']);
 
         return redirect()->route('graph-schema.edge-type.show', [$edgeType])
-            ->with('global', "Edge「{$edgeType->name}」更新完成");
+            ->with('global', "Edge 類型「{$edgeType->name}」更新完成");
     }
 
     public function destroy(EdgeType $edgeType)
     {
         if ($edgeType->properties()->exists()) {
-            return redirect()->back()->with('warning', "無法刪除，因為 Edge「{$edgeType->name}」還有屬性");
+            return redirect()->back()->with('warning', "無法刪除，因為 Edge 類型「{$edgeType->name}」還有屬性");
         }
 
         if ($this->hasAgeGraphData($edgeType)) {
@@ -152,7 +152,7 @@ class EdgeTypeController extends Controller
         $edgeType->delete();
 
         return redirect()->route('graph-schema.edge-type.index')
-            ->with('global', "Edge「{$edgeType->name}」刪除完成");
+            ->with('global', "Edge 類型「{$edgeType->name}」刪除完成");
     }
 
     /**

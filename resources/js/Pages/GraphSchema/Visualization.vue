@@ -214,8 +214,8 @@ onUnmounted(() => {
     <div class="container-fluid">
         <div class="d-flex mb-3">
             <div class="btn-group me-2">
-                <a class="btn btn-outline-primary" :href="routeVertexTypeIndex">Vertex</a>
-                <a class="btn btn-outline-primary" :href="routeEdgeTypeIndex">Edge</a>
+                <a class="btn btn-outline-primary" :href="routeVertexTypeIndex">Vertex 類型</a>
+                <a class="btn btn-outline-primary" :href="routeEdgeTypeIndex">Edge 類型</a>
             </div>
             <div class="btn-group">
                 <a class="btn btn-outline-primary active" :href="routeVisualization">視覺化</a>
