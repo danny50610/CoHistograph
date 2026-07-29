@@ -437,6 +437,116 @@ class EdgeTypeTest extends TestCase
         $this->assertModelExists($edgeType);
     }
 
+    public function test_destroy_ignores_graph_edges_for_other_vertex_pairs_with_same_label(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'pair_scope_start_vt']);
+        $ownedEndVertex = VertexType::factory()->create(['age_label_name' => 'pair_scope_owned_end_vt']);
+        $otherEndVertex = VertexType::factory()->create(['age_label_name' => 'pair_scope_other_end_vt']);
+        $edgeType = EdgeType::factory()->create([
+            'age_label_name' => 'pair_scope_edge_et',
+            'vertex_pairs' => [['start_vertex_id' => $startVertex->id, 'end_vertex_id' => $ownedEndVertex->id]],
+        ]);
+
+        // Same edge label, but endpoints are not this Edge Type's allowed pair.
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($startVertex, $otherEndVertex, $edgeType) {
+                return $builder->createNode('a', $startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withCreateNode('b', $otherEndVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->delete("/graph-schema/edge-type/{$edgeType->id}")
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors()
+            ->assertSessionMissing('warning');
+
+        $this->assertModelMissing($edgeType);
+    }
+
+    public function test_update_fail_when_removing_vertex_pair_that_has_graph_data(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'remove_pair_start_vt']);
+        $usedEndVertex = VertexType::factory()->create(['age_label_name' => 'remove_pair_used_end_vt']);
+        $unusedEndVertex = VertexType::factory()->create(['age_label_name' => 'remove_pair_unused_end_vt']);
+        $edgeType = EdgeType::factory()->create([
+            'name' => 'supports',
+            'age_label_name' => 'supports_remove_pair_et',
+            'vertex_pairs' => [
+                ['start_vertex_id' => $startVertex->id, 'end_vertex_id' => $usedEndVertex->id],
+                ['start_vertex_id' => $startVertex->id, 'end_vertex_id' => $unusedEndVertex->id],
+            ],
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($startVertex, $usedEndVertex, $edgeType) {
+                return $builder->createNode('a', $startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withCreateNode('b', $usedEndVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}", [
+                'name' => $edgeType->name,
+                'age_label_name' => $edgeType->age_label_name,
+                'description' => $edgeType->description,
+                'vertex_pairs' => [
+                    ['start_vertex_id' => $startVertex->id, 'end_vertex_id' => $unusedEndVertex->id],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['vertex_pairs']);
+
+        $this->assertTrue(
+            $edgeType->fresh()->vertexPairs->contains(
+                fn ($pair): bool => $pair->start_vertex_id === $startVertex->id
+                    && $pair->end_vertex_id === $usedEndVertex->id
+            )
+        );
+    }
+
+    public function test_update_success_when_removing_unused_vertex_pair_while_other_pair_has_graph_data(): void
+    {
+        $startVertex = VertexType::factory()->create(['age_label_name' => 'keep_pair_start_vt']);
+        $usedEndVertex = VertexType::factory()->create(['age_label_name' => 'keep_pair_used_end_vt']);
+        $unusedEndVertex = VertexType::factory()->create(['age_label_name' => 'keep_pair_unused_end_vt']);
+        $edgeType = EdgeType::factory()->create([
+            'name' => 'supports_keep',
+            'age_label_name' => 'supports_keep_pair_et',
+            'vertex_pairs' => [
+                ['start_vertex_id' => $startVertex->id, 'end_vertex_id' => $usedEndVertex->id],
+                ['start_vertex_id' => $startVertex->id, 'end_vertex_id' => $unusedEndVertex->id],
+            ],
+        ]);
+
+        DB::connection(config('cohistograph.app.graph.connection-name'))
+            ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($startVertex, $usedEndVertex, $edgeType) {
+                return $builder->createNode('a', $startVertex->age_label_name)
+                    ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withCreateNode('b', $usedEndVertex->age_label_name)
+                    ->setAs(['e']);
+            })->get();
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}", [
+                'name' => $edgeType->name,
+                'age_label_name' => $edgeType->age_label_name,
+                'description' => $edgeType->description,
+                'vertex_pairs' => [
+                    ['start_vertex_id' => $startVertex->id, 'end_vertex_id' => $usedEndVertex->id],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $pairs = $edgeType->fresh()->vertexPairs;
+        $this->assertCount(1, $pairs);
+        $this->assertSame($startVertex->id, $pairs->first()->start_vertex_id);
+        $this->assertSame($usedEndVertex->id, $pairs->first()->end_vertex_id);
+    }
+
     public function test_update_fail_when_age_label_name_changes_and_graph_data_exists(): void
     {
         $startVertex = VertexType::factory()->create(['age_label_name' => 'lock_edge_start_vt']);
