@@ -40,6 +40,9 @@ class MenuService
                     'revision.review' => function (\Lavary\Menu\Item $adminMenu) {
                         $adminMenu->add('修訂審核', ['route' => 'admin.revisions.index'])->active('admin/revisions*');
                     },
+                    'system-config.manage' => function (\Lavary\Menu\Item $adminMenu) {
+                        $adminMenu->add('首頁設定', ['route' => 'admin.system-config.homepage.edit'])->active('admin/system-config*');
+                    },
                 ];
                 foreach ($adminPermissions as $permission => $callback) {
                     if ($user->hasPermission($permission)) {

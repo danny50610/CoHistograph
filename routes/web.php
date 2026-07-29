@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\HomepageConfigController;
 use App\Http\Controllers\Admin\RevisionReviewController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\RevisionController;
@@ -53,6 +54,9 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::get('revisions/{revision}', [RevisionReviewController::class, 'show'])->name('revisions.show');
         Route::post('revisions/{revision}/approve', [RevisionReviewController::class, 'approve'])->name('revisions.approve');
         Route::post('revisions/{revision}/reject', [RevisionReviewController::class, 'reject'])->name('revisions.reject');
+
+        Route::get('system-config/homepage', [HomepageConfigController::class, 'edit'])->name('system-config.homepage.edit');
+        Route::put('system-config/homepage', [HomepageConfigController::class, 'update'])->name('system-config.homepage.update');
     });
 
     Route::resource('user', UserController::class)->except(['create', 'store']);
