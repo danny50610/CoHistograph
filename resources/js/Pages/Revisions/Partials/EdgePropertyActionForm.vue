@@ -195,7 +195,7 @@ function onTargetRefOrderChange(value) {
             entity-kind="edge"
             :type-options="edgeTypeOptions"
             require-type
-            type-placeholder="— 請先選擇 Edge 類型 —"
+            type-placeholder="— 請先選擇 Edge Type —"
             placeholder="搜尋起點／終點名稱或 ID…"
             @update:model-value="onExistingEdgeIdUpdate"
             @select="onExistingEdgeSelected"
