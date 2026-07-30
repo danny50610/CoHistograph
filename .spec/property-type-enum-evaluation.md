@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q23 已鎖定（G1–G4 完成）；進行 G5（Q24）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -287,7 +287,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G1 | **`value`→jsonb 後，既有純量怎麼存** | ✅ **B1**：原生 scalar；遷移盡力轉；讀取兼容 string｜native |
 | G2 | **圖資料顯示（Vertex／Edge show）** | ✅ **A**：labels「、」；未知 value → raw |
 | G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | ✅ **A**：與審核頁相同（共用 presenter） |
-| G4 | **option `value` 字元規則** | 是否限 `[a-z0-9_]+`、可否空白／Unicode？影響 Cypher／Topic／輸入驗證 |
+| G4 | **option `value` 字元規則** | ✅ **A**：`^[a-z0-9_]+$`，1–64；不查保留字 |
 | G5 | **可否把所有 option 都停用（active 全 false）** | 仍 ≥1 列，但 0 個可新選；create 永遠失敗，只剩祖父 update |
 
 ### 中（有明確預設可推，但未明示鎖定）
@@ -381,7 +381,27 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：A。** 共用 presenter；舊值即時讀 AGE（Q17）；同一頁可批次查圖。編輯列表摘要列（`Edit.vue` 一行 title）仍可用 Q16 labels；**卡片內文／詳情**用三行 diff。
 
-### Q23 — G4：option `value` 字元規則？（進行中）
+### Q22 — G3：作者修訂頁是否也顯示三行 diff？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 與審核頁相同（已選）** | edit／show action-card 皆現有／新增／移除 |
+| B. 僅審核頁三行 | 作者只看摘要 |
+| C. 唯讀詳情才三行 | 折衷 |
+
+**決定：A。** 共用 presenter；舊值即時讀 AGE（Q17）；同一頁可批次查圖。編輯列表摘要列（`Edit.vue` 一行 title）仍可用 Q16 labels；**卡片內文／詳情**用三行 diff。
+
+### Q23 — G4：option `value` 字元規則？ ✅
+
+| 選項 | 規則 |
+|------|------|
+| **A. 同 age_property_name（已選）** | `^[a-z0-9_]+$`，長度 1–64 |
+| B. 任意非空白 Unicode | |
+| C. 另允許 `-` | |
+
+**決定：A。** Form Request 驗證每個 `enum_options[].value`；**不**套 Cypher 保留字檢查（value 不是 property 名）。`label`：非空字串，允許 Unicode，建議另定合理上限（如 64／128，實作時可跟 name 欄對齊）。
+
+### Q24 — G5：可否將所有 option 都停用？（進行中）
 
 見對話。
 
