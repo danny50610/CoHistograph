@@ -135,4 +135,71 @@ class EnumOptionsTest extends TestCase
 
         (new PropertyValueCaster)->toStorage('rock', PropertyType::Enum);
     }
+
+    #[Test]
+    public function normalize_trims_and_defaults_active(): void
+    {
+        $this->assertSame([], EnumOptions::normalize(null));
+        $this->assertSame(
+            [
+                ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                ['value' => 'jazz', 'label' => '爵士', 'active' => false],
+            ],
+            EnumOptions::normalize([
+                ['value' => ' rock ', 'label' => ' 搖滾 '],
+                ['value' => 'jazz', 'label' => '爵士', 'active' => '0'],
+            ]),
+        );
+    }
+
+    #[Test]
+    public function normalize_rejects_non_array_option(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        EnumOptions::normalize(['rock']);
+    }
+
+    #[Test]
+    public function is_valid_option_value_and_requires_enum_options(): void
+    {
+        $this->assertTrue(EnumOptions::isValidOptionValue('rock'));
+        $this->assertTrue(EnumOptions::isValidOptionValue('a+b-c_1'));
+        $this->assertFalse(EnumOptions::isValidOptionValue(''));
+        $this->assertFalse(EnumOptions::isValidOptionValue('Rock'));
+        $this->assertFalse(EnumOptions::isValidOptionValue('has space'));
+        $this->assertTrue(EnumOptions::requiresEnumOptions(PropertyType::Enum));
+        $this->assertFalse(EnumOptions::requiresEnumOptions(PropertyType::String));
+    }
+
+    #[Test]
+    public function values_active_values_and_empty_schema_labels(): void
+    {
+        $options = $this->sampleOptions();
+
+        $this->assertSame(['rock', 'jazz', 'pop'], EnumOptions::values($options));
+        $this->assertSame(['rock', 'pop'], EnumOptions::activeValues($options));
+        $this->assertSame('', EnumOptions::formatSchemaLabels(null));
+        $this->assertSame('', EnumOptions::formatSchemaLabels([]));
+    }
+
+    #[Test]
+    public function caster_from_storage_normalizes_enum_lists(): void
+    {
+        $caster = new PropertyValueCaster;
+
+        $this->assertSame(['rock', 'jazz'], $caster->fromStorage(['rock', '', 'jazz', 1], PropertyType::Enum));
+        $this->assertSame([], $caster->fromStorage('rock', PropertyType::Enum));
+        $this->assertNull($caster->fromStorage(null, PropertyType::Enum));
+    }
+
+    #[Test]
+    public function validate_schema_selection_limits_rejects_out_of_range(): void
+    {
+        $options = $this->sampleOptions();
+
+        $this->assertNotEmpty(EnumOptions::validateSchemaSelectionLimits($options, 0, null));
+        $this->assertNotEmpty(EnumOptions::validateSchemaSelectionLimits($options, 1, 0));
+        $this->assertNotEmpty(EnumOptions::validateSchemaSelectionLimits($options, 1, 256));
+    }
 }
