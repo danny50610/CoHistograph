@@ -135,7 +135,21 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 修訂頁（`PropertyValueInput`）不在本節；該處為 **multi-select**，選項來自 schema 的 `enum_options`（active 可選；inactive 僅若已在圖上才顯示為已選且不可新勾）。
 
-### Q12 — 選項編輯器 UI 形態？（進行中）
+### Q12 — 選項編輯器 UI 形態？ ✅
+
+| 選項 | 形態 |
+|------|------|
+| **A. 動態列編輯器（已選）** | 新增列；每列 value／label／active／刪除；上移下移＝定義序 |
+| B. JSON textarea | 手寫 JSON |
+| C. 獨立 Options 子頁 | 另頁維護 |
+
+**決定：A。**  
+- Vertex／Edge 共用 `graph-schema/partials/property-enum-options-fields.blade.php`
+- 表單欄位名：`enum_options[i][value]`、`enum_options[i][label]`、`enum_options[i][active]`
+- 列順序＝`enum_options` 陣列順序（寫入 AGE 正規化依此序）
+- `age_property_type` change 時用 JS 顯示／隱藏此區，並在選 ENUM 時把 locale 設為空且 disabled
+
+### Q13 — 建立後能否更改 `age_property_type`（含改成／改離 ENUM）？（進行中）
 
 見對話。
 
