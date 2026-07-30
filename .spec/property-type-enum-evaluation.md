@@ -285,7 +285,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | # | 主題 | 為何還沒定 |
 |---|------|------------|
 | G1 | **`value`→jsonb 後，既有純量怎麼存** | ✅ **B1**：原生 scalar；遷移盡力轉；讀取兼容 string｜native |
-| G2 | **圖資料顯示（Vertex／Edge show）** | `formatForDisplay`／`LocalizedPropertyGrouper` 對 list 尚未定：顯示 labels「、」？還是 raw values？ |
+| G2 | **圖資料顯示（Vertex／Edge show）** | ✅ **A**：labels「、」；未知 value → raw |
 | G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | Q18 只鎖審核 `action-card`；使用者自己的 revision show／edit 卡片要不要同一套「現有／新增／移除」？ |
 | G4 | **option `value` 字元規則** | 是否限 `[a-z0-9_]+`、可否空白／Unicode？影響 Cypher／Topic／輸入驗證 |
 | G5 | **可否把所有 option 都停用（active 全 false）** | 仍 ≥1 列，但 0 個可新選；create 永遠失敗，只剩祖父 update |
@@ -335,7 +335,33 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 - **讀取／caster／validator**：兼容歷史 JSON string 與原生 scalar（再交給既有轉型邏輯）
 - ENUM 一律 array（元素為 string）
 
-### Q21 — G2：圖資料頁（Vertex／Edge show）ENUM 怎麼顯示？（進行中）
+### Q20 — G1：`value`→jsonb 後純量如何存放？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| A. 一律 JSON string | 含數字／布林 |
+| **B1. 原生 scalar + 盡力遷移（已選）** | INTEGER／FLOAT／BOOLEAN 用 number／bool；舊資料能轉就轉 |
+| B2. 僅新寫入原生、舊留 string | 永久雙軌寫入策略不同 |
+| C. 雙軌並行無遷移策略 | 否決 |
+
+**決定：B1。**
+
+- **新寫入**：依 `PropertyType` 寫入原生 JSON（int／float／bool／string／ENUM array）
+- **遷移**：`text`→`jsonb` 後，能依 action 的 property／schema 推得 INTEGER／FLOAT／BOOLEAN 者轉成原生；推不到或非該型別 → 留 JSON string
+- **讀取／caster／validator**：兼容歷史 JSON string 與原生 scalar（再交給既有轉型邏輯）
+- ENUM 一律 array（元素為 string）
+
+### Q21 — G2：圖資料頁 ENUM 怎麼顯示？ ✅
+
+| 選項 | 顯示 |
+|------|------|
+| **A. labels + 頓號（已選）** | `搖滾、爵士` |
+| B. values + 逗號 | `rock, jazz` |
+| C. labels 且停用加標記 | `爵士（已停用）` |
+
+**決定：A。** `formatForDisplay`／Vertex·Edge show：依 `enum_options` 轉 label，定義序、「、」連接；未知 value → raw。與 Q16 一致。
+
+### Q22 — G3：作者修訂詳情／編輯頁是否也顯示三行 diff？（進行中）
 
 見對話。
 
