@@ -52,7 +52,7 @@
             </div>
         </div>
 
-        <h2>允許的起迄組合</h2>
+        <h2>起迄組合</h2>
         <div class="card mb-2">
             <div class="card-body">
                 @forelse ($edgeType->vertexPairs as $pair)
