@@ -10,6 +10,7 @@ return [
                 'role.manage',
                 'graph-schema.manage',
                 'revision.review',
+                'system-config.manage',
                 'faq.manage',
             ],
         ],
@@ -30,6 +31,10 @@ return [
         'revision.review' => [
             'display_name' => '審核修訂',
             'description' => '審核、接受或退回使用者提交的修訂',
+        ],
+        'system-config.manage' => [
+            'display_name' => '管理系統設定',
+            'description' => '修改首頁文字等系統設定',
         ],
         'faq.manage' => [
             'display_name' => '管理常見問題',

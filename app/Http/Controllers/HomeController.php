@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\VertexType;
+use App\Services\SystemConfigService;
 use App\Support\VertexDisplayNameResolver;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -11,13 +12,16 @@ class HomeController extends Controller
 {
     public function __construct(
         private VertexDisplayNameResolver $displayNameResolver,
+        private SystemConfigService $systemConfigService,
     ) {}
 
     public const AUTHENTICATED_REDIRECT = '/overview';
 
     public function index()
     {
-        return view('index');
+        $homepage = $this->systemConfigService->homepage();
+
+        return view('index', compact('homepage'));
     }
 
     public function overview()
