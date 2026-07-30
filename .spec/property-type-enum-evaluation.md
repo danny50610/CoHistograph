@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：決策樹主幹已鎖定（Q1–Q11）；Schema UI 進行中（Q12…）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：決策樹主幹已鎖定（Q1–Q12）；Schema UI 剩餘 Q13…。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -149,9 +149,25 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 - 列順序＝`enum_options` 陣列順序（寫入 AGE 正規化依此序）
 - `age_property_type` change 時用 JS 顯示／隱藏此區，並在選 ENUM 時把 locale 設為空且 disabled
 
-### Q13 — 建立後能否更改 `age_property_type`（含改成／改離 ENUM）？（進行中）
+### Q13 — 建立後能否更改 `age_property_type`？ ✅
 
-見對話。
+| 選項 | 規則 |
+|------|------|
+| **A. 有資料就鎖 type（已選）** | 有 AGE 資料 ⇒ type 唯讀；無資料可改，改離 ENUM 則 `enum_options = null` |
+| B. 永遠可改 | 易不一致 |
+| C. 建立後永不改 type | 過嚴 |
+
+**決定：A。** 與現有「有資料鎖 age_property_name」同一 checker。ENUM **內部** options 增刪停用仍走 Q7，不受 type 鎖影響。
+
+### Schema UI 鎖定摘要
+
+| 項目 | 決定 |
+|------|------|
+| 選項編輯 | ✅ 動態列；共用 partial |
+| locale | ✅ 選 ENUM 時強制非多語系 |
+| type 變更 | ✅ 有圖資料則鎖 type |
+| 詳情 | ✅ 列出 value／label／active |
+| 修訂填值 | 另頁 multi-select（非本節表單） |
 
 ---
 
