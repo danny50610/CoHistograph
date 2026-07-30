@@ -136,7 +136,7 @@ class RevisionApplyService
         $vertexId = $this->resolveVertexId($action);
         $propertyName = (string) $action->age_property_name;
         $property = $this->resolveVertexProperty($action, $vertexId);
-        $value = $this->castPropertyValue((string) $action->value, $property->age_property_type);
+        $value = $this->castPropertyValue($action->value, $property->age_property_type, $property->enum_options);
 
         $this->graphConnection()->apacheAgeCypher($this->graphName, function (Builder $builder) use ($vertexId, $propertyName, $value) {
             return $builder
@@ -166,7 +166,7 @@ class RevisionApplyService
         $edgeId = $this->resolveEdgeId($action);
         $propertyName = (string) $action->age_property_name;
         $property = $this->resolveEdgeProperty($action, $edgeId);
-        $value = $this->castPropertyValue((string) $action->value, $property->age_property_type);
+        $value = $this->castPropertyValue($action->value, $property->age_property_type, $property->enum_options);
 
         $this->graphConnection()->apacheAgeCypher($this->graphName, function (Builder $builder) use ($edgeId, $propertyName, $value) {
             return $builder
@@ -305,9 +305,12 @@ class RevisionApplyService
         return $this->graphManager->loadAgeEdgeState($edgeId)['type_label'];
     }
 
-    private function castPropertyValue(string $value, PropertyType $propertyType): mixed
+    /**
+     * @param  list<array{value: string, label: string, active: bool}>|null  $enumOptions
+     */
+    private function castPropertyValue(mixed $value, PropertyType $propertyType, ?array $enumOptions = null): mixed
     {
-        return $this->propertyValueCaster->toStorage($value, $propertyType);
+        return $this->propertyValueCaster->toStorage($value, $propertyType, $enumOptions);
     }
 
     private function graphConnection(): PostgresConnection

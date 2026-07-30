@@ -12,7 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class RevisionService
 {
-    public function __construct(private RevisionValidationService $revisionValidationService) {}
+    public function __construct(
+        private RevisionValidationService $revisionValidationService,
+        private \App\Support\RevisionActionValueNormalizer $actionValueNormalizer,
+    ) {}
 
     public function create(User $user, array $data): Revision
     {
@@ -47,7 +50,7 @@ class RevisionService
                     'end_vertex_age_id' => $actionData['end_vertex_age_id'] ?? null,
                     'end_vertex_ref_order' => $actionData['end_vertex_ref_order'] ?? null,
                     'age_property_name' => $actionData['age_property_name'] ?? null,
-                    'value' => $actionData['value'] ?? null,
+                    'value' => $this->actionValueNormalizer->normalize($actionData),
                 ]);
             }
         });
@@ -106,7 +109,7 @@ class RevisionService
                     'end_vertex_age_id' => $actionData['end_vertex_age_id'] ?? null,
                     'end_vertex_ref_order' => $actionData['end_vertex_ref_order'] ?? null,
                     'age_property_name' => $actionData['age_property_name'] ?? null,
-                    'value' => $actionData['value'] ?? null,
+                    'value' => $this->actionValueNormalizer->normalize($actionData),
                 ]);
             });
 

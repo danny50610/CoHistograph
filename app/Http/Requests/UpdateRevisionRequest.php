@@ -29,7 +29,9 @@ class UpdateRevisionRequest extends FormRequest
             'actions.*.end_vertex_age_id' => ['nullable', 'numeric'],
             'actions.*.end_vertex_ref_order' => ['nullable', 'integer'],
             'actions.*.age_property_name' => ['nullable', 'string', 'max:64'],
-            'actions.*.value' => ['nullable', 'string'],
+            // Scalars (string/number/bool) or ENUM string arrays; deeper checks in RevisionValidationService.
+            'actions.*.value' => ['nullable'],
+            'actions.*.value.*' => ['string'],
         ];
     }
 

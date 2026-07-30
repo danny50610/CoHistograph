@@ -18,12 +18,12 @@ use App\Models\RevisionAction;
 class RevisionActionResolver
 {
     /**
-     * @var array<string, array{exists:bool,type_label:string,properties:array<string,bool>}>
+     * @var array<string, array{exists:bool,type_label:string,properties:array<string,bool>,property_values?:array<string, mixed>}>
      */
     private array $vertexStates = [];
 
     /**
-     * @var array<string, array{exists:bool,type_label:string,start_key:string,end_key:string,properties:array<string,bool>}>
+     * @var array<string, array{exists:bool,type_label:string,start_key:string,end_key:string,properties:array<string,bool>,property_values?:array<string, mixed>}>
      */
     private array $edgeStates = [];
 
@@ -127,6 +127,10 @@ class RevisionActionResolver
         }
 
         $this->vertexStates[$key]['properties'][$propertyName] = $exists;
+
+        if (! $exists) {
+            unset($this->vertexStates[$key]['property_values'][$propertyName]);
+        }
     }
 
     public function setEdgePropertyExists(string $key, string $propertyName, bool $exists): void
@@ -136,6 +140,40 @@ class RevisionActionResolver
         }
 
         $this->edgeStates[$key]['properties'][$propertyName] = $exists;
+
+        if (! $exists) {
+            unset($this->edgeStates[$key]['property_values'][$propertyName]);
+        }
+    }
+
+    public function getVertexPropertyValue(string $key, string $propertyName): mixed
+    {
+        return $this->vertexStates[$key]['property_values'][$propertyName] ?? null;
+    }
+
+    public function getEdgePropertyValue(string $key, string $propertyName): mixed
+    {
+        return $this->edgeStates[$key]['property_values'][$propertyName] ?? null;
+    }
+
+    public function setVertexPropertyValue(string $key, string $propertyName, mixed $value): void
+    {
+        if (! isset($this->vertexStates[$key])) {
+            return;
+        }
+
+        $this->vertexStates[$key]['properties'][$propertyName] = true;
+        $this->vertexStates[$key]['property_values'][$propertyName] = $value;
+    }
+
+    public function setEdgePropertyValue(string $key, string $propertyName, mixed $value): void
+    {
+        if (! isset($this->edgeStates[$key])) {
+            return;
+        }
+
+        $this->edgeStates[$key]['properties'][$propertyName] = true;
+        $this->edgeStates[$key]['property_values'][$propertyName] = $value;
     }
 
     public function markVertexDeleted(string $key): void

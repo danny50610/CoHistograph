@@ -29,6 +29,9 @@ class PropertyTypeTest extends TestCase
         $this->assertSame('DATE', PropertyType::Date->value);
         $this->assertSame('MONTH_DAY', PropertyType::MonthDay->value);
         $this->assertSame('TIMESTAMPTZ', PropertyType::Timestamptz->value);
-        $this->assertCount(7, PropertyType::cases());
+        $this->assertSame('ENUM', PropertyType::Enum->value);
+        $this->assertCount(8, PropertyType::cases());
+        $this->assertFalse(PropertyType::Enum->allowsLocale());
+        $this->assertTrue(PropertyType::String->allowsLocale());
     }
 }

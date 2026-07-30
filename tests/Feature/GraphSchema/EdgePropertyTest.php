@@ -49,6 +49,198 @@ class EdgePropertyTest extends TestCase
         $this->assertEquals(PropertyType::String, $property->age_property_type);
     }
 
+    public function test_store_enum_property_success(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => 'Roles',
+                'description' => '',
+                'age_property_name' => 'roles',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'lead', 'label' => '主唱', 'active' => '1'],
+                    ['value' => 'guest', 'label' => '客串', 'active' => '0'],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property = EdgeProperty::where('age_property_name', 'roles')->firstOrFail();
+        $this->assertEquals(PropertyType::Enum, $property->age_property_type);
+        $this->assertNull($property->locale);
+        $this->assertSame(
+            [
+                ['value' => 'lead', 'label' => '主唱', 'active' => true],
+                ['value' => 'guest', 'label' => '客串', 'active' => false],
+            ],
+            $property->enum_options,
+        );
+        $this->assertSame(1, $property->min_selections);
+        $this->assertNull($property->max_selections);
+    }
+
+    public function test_store_enum_with_selection_limits(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => 'Roles',
+                'description' => '',
+                'age_property_name' => 'roles',
+                'age_property_type' => PropertyType::Enum->value,
+                'min_selections' => 2,
+                'max_selections' => 3,
+                'enum_options' => [
+                    ['value' => 'lead', 'label' => '主唱', 'active' => true],
+                    ['value' => 'guest', 'label' => '客串', 'active' => true],
+                    ['value' => 'producer', 'label' => '製作', 'active' => true],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property = EdgeProperty::where('age_property_name', 'roles')->firstOrFail();
+        $this->assertSame(2, $property->min_selections);
+        $this->assertSame(3, $property->max_selections);
+    }
+
+    public function test_store_enum_rejects_when_active_options_below_min(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => 'Roles',
+                'description' => '',
+                'age_property_name' => 'roles',
+                'age_property_type' => PropertyType::Enum->value,
+                'min_selections' => 2,
+                'enum_options' => [
+                    ['value' => 'lead', 'label' => '主唱', 'active' => true],
+                    ['value' => 'guest', 'label' => '客串', 'active' => false],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['enum_options']);
+    }
+
+    public function test_store_enum_rejects_locale(): void
+    {
+        $edgeType = EdgeType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/edge-type/{$edgeType->id}/edge-property", [
+                'name' => 'Roles',
+                'description' => '',
+                'locale' => 'zh_tw',
+                'base_age_property_name' => 'roles',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'lead', 'label' => '主唱', 'active' => true],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['locale']);
+    }
+
+    public function test_update_enum_options_success(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('edgePropertyHasData')->andReturn(false);
+            $mock->shouldReceive('edgePropertyEnumValueInUse')->andReturn(false);
+            $mock->shouldReceive('usedEdgeEnumValues')->andReturn([]);
+        });
+
+        $edgeType = EdgeType::factory()->create();
+        $property = EdgeProperty::factory()->for($edgeType)->enum()->create([
+            'name' => 'Roles',
+            'age_property_name' => 'roles',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$property->id}", [
+                'name' => 'Roles',
+                'description' => '',
+                'age_property_name' => 'roles',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'lead', 'label' => '主唱人', 'active' => true],
+                    ['value' => 'guest', 'label' => '客串', 'active' => true],
+                    ['value' => 'producer', 'label' => '製作', 'active' => true],
+                ],
+                'min_selections' => 1,
+                'max_selections' => 2,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property->refresh();
+        $this->assertCount(3, $property->enum_options);
+        $this->assertSame('主唱人', $property->enum_options[0]['label']);
+        $this->assertSame(1, $property->min_selections);
+        $this->assertSame(2, $property->max_selections);
+    }
+
+    public function test_update_rejects_removing_enum_value_in_use(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('edgePropertyHasData')->andReturn(false);
+            $mock->shouldReceive('edgePropertyEnumValueInUse')
+                ->andReturnUsing(fn (EdgeType $edgeType, EdgeProperty $property, string $value): bool => $value === 'jazz');
+            $mock->shouldReceive('usedEdgeEnumValues')->andReturn(['jazz']);
+        });
+
+        $edgeType = EdgeType::factory()->create();
+        $property = EdgeProperty::factory()->for($edgeType)->enum([
+            ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+            ['value' => 'jazz', 'label' => '爵士', 'active' => true],
+        ])->create([
+            'name' => 'Roles',
+            'age_property_name' => 'roles',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/edge-type/{$edgeType->id}/edge-property/{$property->id}", [
+                'name' => 'Roles',
+                'description' => '',
+                'age_property_name' => 'roles',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                ],
+                'min_selections' => 1,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['enum_options']);
+    }
+
+    public function test_edge_type_show_lists_enum_option_labels(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('edgePropertyHasData')->andReturn(false);
+            $mock->shouldReceive('usedEdgeEnumValues')->andReturn([]);
+        });
+
+        $edgeType = EdgeType::factory()->create();
+        EdgeProperty::factory()->for($edgeType)->enum([
+            ['value' => 'lead', 'label' => '主唱', 'active' => true],
+            ['value' => 'guest', 'label' => '客串', 'active' => false],
+        ])->create([
+            'name' => 'Roles',
+            'age_property_name' => 'roles',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('graph-schema.edge-type.show', $edgeType))
+            ->assertOk()
+            ->assertSee('ENUM')
+            ->assertSee('主唱')
+            ->assertSee('客串（已停用）');
+    }
+
     public function test_store_fail_when_name_not_unique_within_edge_type()
     {
         $edgeType = EdgeType::factory()->create();

@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $age_property_name
  * @property \App\Enums\PropertyType $age_property_type
  * @property string|null $locale
+ * @property list<array{value: string, label: string, active: bool}>|null $enum_options
+ * @property int|null $min_selections
+ * @property int|null $max_selections
  */
 class VertexProperty extends Model
 {
@@ -25,12 +28,18 @@ class VertexProperty extends Model
         'age_property_name',
         'age_property_type',
         'locale',
+        'enum_options',
+        'min_selections',
+        'max_selections',
     ];
 
     protected function casts(): array
     {
         return [
             'age_property_type' => PropertyType::class,
+            'enum_options' => 'array',
+            'min_selections' => 'integer',
+            'max_selections' => 'integer',
         ];
     }
 
