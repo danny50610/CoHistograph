@@ -173,7 +173,7 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 ---
 
-## 修訂 UI：PropertyValueInput multi-select（進行中）
+## 修訂 UI：PropertyValueInput 與審核差異（進行中）
 
 現況：
 - `PropertyValueInput.vue` 依 `propertyType` 切換；`modelValue` 為 **string｜number｜null**，emit 字串
