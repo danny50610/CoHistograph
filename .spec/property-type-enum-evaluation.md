@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q22 已鎖定（G1–G3 完成）；進行 G4（Q23）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -272,7 +272,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | 摘要（編輯列表） | ✅ labels「、」 |
 | modelValue | ✅ `string[]` + `enumOptions` |
 | 審核舊值 | ✅ 即時讀 AGE |
-| 審核／作者 diff | ✅ 現有／新增／移除三行（G3） |
+| 審核 diff | ✅ 現有／新增／移除三行 |
 
 ---
 
@@ -286,7 +286,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 |---|------|------------|
 | G1 | **`value`→jsonb 後，既有純量怎麼存** | ✅ **B1**：原生 scalar；遷移盡力轉；讀取兼容 string｜native |
 | G2 | **圖資料顯示（Vertex／Edge show）** | ✅ **A**：labels「、」；未知 value → raw |
-| G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | Q18 只鎖審核 `action-card`；使用者自己的 revision show／edit 卡片要不要同一套「現有／新增／移除」？ |
+| G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | ✅ **A**：與審核頁相同（共用 presenter） |
 | G4 | **option `value` 字元規則** | 是否限 `[a-z0-9_]+`、可否空白／Unicode？影響 Cypher／Topic／輸入驗證 |
 | G5 | **可否把所有 option 都停用（active 全 false）** | 仍 ≥1 列，但 0 個可新選；create 永遠失敗，只剩祖父 update |
 
@@ -361,7 +361,27 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：A。** `formatForDisplay`／Vertex·Edge show：依 `enum_options` 轉 label，定義序、「、」連接；未知 value → raw。與 Q16 一致。
 
-### Q22 — G3：作者修訂詳情／編輯頁是否也顯示三行 diff？（進行中）
+### Q21 — G2：圖資料頁 ENUM 怎麼顯示？ ✅
+
+| 選項 | 顯示 |
+|------|------|
+| **A. labels + 頓號（已選）** | `搖滾、爵士` |
+| B. values + 逗號 | `rock, jazz` |
+| C. labels 且停用加標記 | `爵士（已停用）` |
+
+**決定：A。** `formatForDisplay`／Vertex·Edge show：依 `enum_options` 轉 label，定義序、「、」連接；未知 value → raw。與 Q16 一致。
+
+### Q22 — G3：作者修訂頁是否也顯示三行 diff？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 與審核頁相同（已選）** | edit／show action-card 皆現有／新增／移除 |
+| B. 僅審核頁三行 | 作者只看摘要 |
+| C. 唯讀詳情才三行 | 折衷 |
+
+**決定：A。** 共用 presenter；舊值即時讀 AGE（Q17）；同一頁可批次查圖。編輯列表摘要列（`Edit.vue` 一行 title）仍可用 Q16 labels；**卡片內文／詳情**用三行 diff。
+
+### Q23 — G4：option `value` 字元規則？（進行中）
 
 見對話。
 
