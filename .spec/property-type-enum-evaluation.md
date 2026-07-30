@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q30 已鎖定；進行 G11（Q31）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -298,7 +298,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G7 | value 大小寫是否敏感 | ✅ **A**：嚴格小寫，不自動轉換 |
 | G8 | 圖上出現不在 `enum_options` 的 orphan value | ✅ **A**：當祖父（可留／可拿，不可新引入） |
 | G9 | Schema Visualization／列表是否展示 options | ✅ **A**：不顯示（僅 ENUM badge） |
-| G10 | list 成員「是否被使用」AGE 查詢語意 | spike：`X IN prop`／UNWIND；失敗則硬刪護欄策略 |
+| G10 | list 成員「是否被使用」AGE 查詢語意 | ✅ **A**：Cypher `$v IN prop` LIMIT 1；與 list spike 一併驗證 |
 | G11 | 同修訂 `create_vertex` ref 目標的審核 diff | Q17 已提「視為 ∅」；需否在 UI 明示「新建對象、無現有值」 |
 | G12 | MCP／對外讀取 ENUM | 回 value list 或 value+label |
 
@@ -488,7 +488,27 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：A。** Visualization／型別列表維持現況；options 只在 property **詳情／編輯**頁維護與檢視。
 
-### Q30 — G10：硬刪 option 時「圖上是否使用中」怎麼查？（進行中）
+### Q29 — G9：Schema Visualization／列表是否展示 options？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 不顯示 options（已選）** | 僅 type badge `ENUM`；不列 value／label、不顯示個數 |
+| B. 展開 active labels | |
+| C. 展開全部含停用 | |
+
+**決定：A。** Visualization／型別列表維持現況；options 只在 property **詳情／編輯**頁維護與檢視。
+
+### Q30 — G10：硬刪 option 時「是否使用中」怎麼查？ ✅
+
+| 選項 | 做法 |
+|------|------|
+| **A. Cypher 成員查詢（已選）** | `$v IN prop`（或等價）`LIMIT 1` |
+| B. 全拉回 PHP 比對 | |
+| C. 禁止硬刪、只能停用 | |
+
+**決定：A。** 擴充 `AgePropertyDataChecker`（或並列方法）查該 VertexType／EdgeType label 下，是否有任一實體的 ENUM list **含該 value**。與 AGE list spike 一併驗證；若環境不支援再評估退 B（實作 PR 記錄）。
+
+### Q31 — G11：同修訂新建 ref 目標的審核／作者 diff 文案？（進行中）
 
 見對話。
 
