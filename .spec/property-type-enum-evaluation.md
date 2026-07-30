@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q29 已鎖定；進行 G10（Q30）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -297,7 +297,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G6 | label 是否允許重複 | ✅ **B**：同一 property 內 label 唯一（trim 後精確比對） |
 | G7 | value 大小寫是否敏感 | ✅ **A**：嚴格小寫，不自動轉換 |
 | G8 | 圖上出現不在 `enum_options` 的 orphan value | ✅ **A**：當祖父（可留／可拿，不可新引入） |
-| G9 | Schema Visualization／列表是否展示 options | 僅 type badge vs 展開 options |
+| G9 | Schema Visualization／列表是否展示 options | ✅ **A**：不顯示（僅 ENUM badge） |
 | G10 | list 成員「是否被使用」AGE 查詢語意 | spike：`X IN prop`／UNWIND；失敗則硬刪護欄策略 |
 | G11 | 同修訂 `create_vertex` ref 目標的審核 diff | Q17 已提「視為 ∅」；需否在 UI 明示「新建對象、無現有值」 |
 | G12 | MCP／對外讀取 ENUM | 回 value list 或 value+label |
@@ -465,7 +465,30 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 - 驗證：`allowed = active values ∪ (current ∩ (inactive ∪ orphan))`；不可把不在 current 的 orphan 新加進去  
 - UI checkbox：orphan 出現在「額外列」（不在 enum_options 定義序內、附在末尾），納入 `eligibleInactive` 同類的 session eligible 集合以便復原
 
-### Q29 — G9：Schema Visualization／列表是否展示 options？（進行中）
+### Q28 — G8：圖上 orphan value（不在 enum_options）？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 當祖父（已選）** | 可保留／移除，不可新引入其他 orphan |
+| B. 強制清掉 | update 必須移除 |
+| C. 只讀警告且拒含 orphan 的 update | |
+
+**決定：A。**  
+- 顯示：raw value（無 label）；審核／資料頁可標「未知選項」但不阻擋  
+- 驗證：`allowed = active values ∪ (current ∩ (inactive ∪ orphan))`；不可把不在 current 的 orphan 新加進去  
+- UI checkbox：orphan 出現在「額外列」（不在 enum_options 定義序內、附在末尾），納入 session eligible 以便復原
+
+### Q29 — G9：Schema Visualization／列表是否展示 options？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 不顯示 options（已選）** | 僅 type badge `ENUM`；不列 value／label、不顯示個數 |
+| B. 展開 active labels | |
+| C. 展開全部含停用 | |
+
+**決定：A。** Visualization／型別列表維持現況；options 只在 property **詳情／編輯**頁維護與檢視。
+
+### Q30 — G10：硬刪 option 時「圖上是否使用中」怎麼查？（進行中）
 
 見對話。
 
