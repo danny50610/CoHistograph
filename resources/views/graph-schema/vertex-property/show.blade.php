@@ -41,6 +41,12 @@
                     <dd class="col-md-10">{{ $vertexProperty->age_property_type }}</dd>
 
                     @if ($vertexProperty->age_property_type === \App\Enums\PropertyType::Enum)
+                        <dt class="col-md-2">最少／最多選取</dt>
+                        <dd class="col-md-10">
+                            最少 {{ $vertexProperty->min_selections ?? 1 }}；
+                            最多 {{ $vertexProperty->max_selections === null ? '不限' : $vertexProperty->max_selections }}
+                        </dd>
+
                         <dt class="col-md-2">ENUM 選項</dt>
                         <dd class="col-md-10">
                             <div class="table-responsive">

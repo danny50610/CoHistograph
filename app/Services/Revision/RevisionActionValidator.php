@@ -315,6 +315,8 @@ class RevisionActionValidator
                 \App\Support\EnumOptions::normalize(is_array($property->enum_options) ? $property->enum_options : null),
                 $currentOnGraph,
                 $isCreate,
+                $property->min_selections,
+                $property->max_selections,
             );
 
             if ($errors !== []) {
@@ -429,6 +431,8 @@ class RevisionActionValidator
                 \App\Support\EnumOptions::normalize(is_array($property->enum_options) ? $property->enum_options : null),
                 $currentOnGraph,
                 $isCreate,
+                $property->min_selections,
+                $property->max_selections,
             );
 
             if ($errors !== []) {

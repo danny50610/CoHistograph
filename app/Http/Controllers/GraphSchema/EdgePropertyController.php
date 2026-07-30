@@ -41,6 +41,7 @@ class EdgePropertyController extends Controller
             'age_property_type' => $validated['age_property_type'],
             'locale' => $isEnum ? null : ($validated['locale'] ?? null),
             'enum_options' => $request->enumOptionsForStorage(),
+            ...$request->enumSelectionLimitsForStorage(),
         ]);
         $edgeProperty->edgeType()->associate($edgeType);
         $edgeProperty->save();
@@ -80,6 +81,7 @@ class EdgePropertyController extends Controller
             'description' => $validated['description'] ?? '',
             'age_property_type' => $type,
             'enum_options' => $type === PropertyType::Enum ? $request->enumOptionsForStorage() : null,
+            ...$request->enumSelectionLimitsForStorage(),
         ];
 
         if ($type === PropertyType::Enum) {

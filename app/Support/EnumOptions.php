@@ -18,6 +18,14 @@ class EnumOptions
 
     public const LABEL_MAX_LENGTH = 128;
 
+    /** Application-layer minimum for min_selections (keeps Q6: empty list forbidden). */
+    public const SELECTION_COUNT_MIN = 1;
+
+    /** 8-bit unsigned upper bound. */
+    public const SELECTION_COUNT_MAX = 255;
+
+    public const DEFAULT_MIN_SELECTIONS = 1;
+
     /**
      * @param  array<int, mixed>|null  $options
      * @return list<EnumOption>
@@ -128,8 +136,11 @@ class EnumOptions
         array $options,
         array $currentOnGraph = [],
         bool $isCreate = false,
+        ?int $minSelections = self::DEFAULT_MIN_SELECTIONS,
+        ?int $maxSelections = null,
     ): array {
         $errors = [];
+        $min = $minSelections ?? self::DEFAULT_MIN_SELECTIONS;
 
         if ($selected === []) {
             $errors[] = 'ENUM 屬性值不可為空；若要清空請使用刪除屬性操作。';
@@ -139,6 +150,16 @@ class EnumOptions
 
         if (count($selected) !== count(array_unique($selected))) {
             $errors[] = 'ENUM 屬性值不可重複。';
+        }
+
+        $count = count(array_unique($selected));
+
+        if ($count < $min) {
+            $errors[] = "ENUM 屬性至少須選擇 {$min} 個選項。";
+        }
+
+        if ($maxSelections !== null && $count > $maxSelections) {
+            $errors[] = "ENUM 屬性最多只能選擇 {$maxSelections} 個選項。";
         }
 
         $defined = self::values($options);
@@ -178,6 +199,42 @@ class EnumOptions
         }
 
         return array_values(array_unique($errors));
+    }
+
+    /**
+     * Schema-time checks for min/max vs active option count (does not read AGE).
+     *
+     * @param  list<EnumOption>  $options
+     * @return list<string>
+     */
+    public static function validateSchemaSelectionLimits(
+        array $options,
+        int $minSelections,
+        ?int $maxSelections,
+    ): array {
+        $errors = [];
+
+        if ($minSelections < self::SELECTION_COUNT_MIN || $minSelections > self::SELECTION_COUNT_MAX) {
+            $errors[] = '最少選取數必須介於 '.self::SELECTION_COUNT_MIN.'–'.self::SELECTION_COUNT_MAX.'。';
+        }
+
+        if ($maxSelections !== null) {
+            if ($maxSelections < self::SELECTION_COUNT_MIN || $maxSelections > self::SELECTION_COUNT_MAX) {
+                $errors[] = '最多選取數必須介於 '.self::SELECTION_COUNT_MIN.'–'.self::SELECTION_COUNT_MAX.'。';
+            }
+
+            if ($maxSelections < $minSelections) {
+                $errors[] = '最多選取數不可小於最少選取數。';
+            }
+        }
+
+        $activeCount = count(self::activeValues($options));
+
+        if ($activeCount < $minSelections) {
+            $errors[] = "啟用中的選項不足：目前 {$activeCount} 個，但最少須選取 {$minSelections} 個。";
+        }
+
+        return $errors;
     }
 
     public static function isValidOptionValue(string $value): bool

@@ -45,6 +45,47 @@ class EnumOptionsTest extends TestCase
     }
 
     #[Test]
+    public function validate_selected_enforces_min_and_max_counts(): void
+    {
+        $options = $this->sampleOptions();
+
+        $this->assertNotEmpty(EnumOptions::validateSelected(
+            ['rock'],
+            $options,
+            [],
+            true,
+            minSelections: 2,
+            maxSelections: null,
+        ));
+        $this->assertSame([], EnumOptions::validateSelected(
+            ['rock', 'pop'],
+            $options,
+            [],
+            true,
+            minSelections: 2,
+            maxSelections: 2,
+        ));
+        $this->assertNotEmpty(EnumOptions::validateSelected(
+            ['rock', 'pop', 'jazz'],
+            $options,
+            ['jazz'],
+            false,
+            minSelections: 1,
+            maxSelections: 2,
+        ));
+    }
+
+    #[Test]
+    public function validate_schema_selection_limits_requires_enough_active_options(): void
+    {
+        $options = $this->sampleOptions();
+
+        $this->assertSame([], EnumOptions::validateSchemaSelectionLimits($options, 2, null));
+        $this->assertNotEmpty(EnumOptions::validateSchemaSelectionLimits($options, 3, null));
+        $this->assertNotEmpty(EnumOptions::validateSchemaSelectionLimits($options, 2, 1));
+    }
+
+    #[Test]
     public function sort_and_format_labels_follow_definition_order(): void
     {
         $options = $this->sampleOptions();

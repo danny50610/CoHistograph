@@ -36,29 +36,29 @@ class UpdateVertexPropertyRequest extends FormRequest
         $this->agePropertyNameLocked = app(AgePropertyDataChecker::class)
             ->vertexPropertyHasData($vertexType, $vertexProperty);
 
-        if ($this->agePropertyNameLocked) {
-            return;
-        }
+        if (! $this->agePropertyNameLocked) {
+            $locale = $vertexProperty->locale;
 
-        $locale = $vertexProperty->locale;
-
-        if ($locale !== null) {
-            if (! $this->filled('base_age_property_name')) {
+            if ($locale !== null) {
+                if (! $this->filled('base_age_property_name')) {
+                    $this->merge([
+                        'base_age_property_name' => LocalizedPropertyName::baseName($vertexProperty),
+                    ]);
+                }
+            } elseif (! $this->filled('age_property_name')) {
                 $this->merge([
-                    'base_age_property_name' => LocalizedPropertyName::baseName($vertexProperty),
+                    'age_property_name' => $vertexProperty->age_property_name,
                 ]);
             }
-        } elseif (! $this->filled('age_property_name')) {
+
             $this->merge([
-                'age_property_name' => $vertexProperty->age_property_name,
+                'resolved_age_property_name' => $locale
+                    ? $this->input('base_age_property_name').'_'.$locale
+                    : $this->input('age_property_name'),
             ]);
         }
 
-        $this->merge([
-            'resolved_age_property_name' => $locale
-                ? $this->input('base_age_property_name').'_'.$locale
-                : $this->input('age_property_name'),
-        ]);
+        $this->prepareEnumSelectionLimits();
     }
 
     /**

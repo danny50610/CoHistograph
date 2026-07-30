@@ -33,11 +33,15 @@ trait ValidatesEnumOptionsOnUpdate
                     'enum_options.*.value' => ['required', 'string', 'max:'.EnumOptions::VALUE_MAX_LENGTH, 'regex:'.EnumOptions::VALUE_PATTERN],
                     'enum_options.*.label' => ['required', 'string', 'max:'.EnumOptions::LABEL_MAX_LENGTH],
                     'enum_options.*.active' => ['sometimes', 'boolean'],
+                    'min_selections' => ['required', 'integer', 'min:'.EnumOptions::SELECTION_COUNT_MIN, 'max:'.EnumOptions::SELECTION_COUNT_MAX],
+                    'max_selections' => ['nullable', 'integer', 'min:'.EnumOptions::SELECTION_COUNT_MIN, 'max:'.EnumOptions::SELECTION_COUNT_MAX],
                 ]);
             }
 
             return array_merge($rules, [
                 'enum_options' => ['prohibited'],
+                'min_selections' => ['prohibited'],
+                'max_selections' => ['prohibited'],
             ]);
         }
 
@@ -47,6 +51,8 @@ trait ValidatesEnumOptionsOnUpdate
 
         return [
             'enum_options' => ['prohibited'],
+            'min_selections' => ['prohibited'],
+            'max_selections' => ['prohibited'],
         ];
     }
 

@@ -18,6 +18,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    minSelections: {
+        type: Number,
+        default: 1,
+    },
+    maxSelections: {
+        type: Number,
+        default: null,
+    },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -150,6 +158,10 @@ function toggleEnumValue(value, checked) {
     const next = new Set(selectedEnumValues.value);
 
     if (checked) {
+        if (props.maxSelections !== null && next.size >= props.maxSelections) {
+            return;
+        }
+
         next.add(value);
     } else {
         next.delete(value);
@@ -160,6 +172,24 @@ function toggleEnumValue(value, checked) {
         .filter((v) => next.has(v));
 
     emit('update:modelValue', ordered.length ? ordered : null);
+}
+
+const atMaxSelections = computed(
+    () =>
+        props.maxSelections !== null &&
+        selectedEnumValues.value.length >= props.maxSelections,
+);
+
+function isEnumCheckboxDisabled(row) {
+    if (!row.eligible) {
+        return true;
+    }
+
+    if (atMaxSelections.value && !selectedEnumValues.value.includes(row.value)) {
+        return true;
+    }
+
+    return false;
 }
 
 const monthDayParts = computed(() => {
@@ -258,8 +288,15 @@ const hint = computed(() => {
             return '日期時間需指定時區偏移，儲存為 ISO-8601';
         case 'STRING':
             return '文字';
-        case 'ENUM':
-            return '可複選；清空請改用刪除屬性操作。已停用選項僅能保留／移除既有值。';
+        case 'ENUM': {
+            const min = props.minSelections ?? 1;
+            const maxPart =
+                props.maxSelections === null || props.maxSelections === undefined
+                    ? '不限'
+                    : String(props.maxSelections);
+
+            return `可複選（最少 ${min}、最多 ${maxPart}）；清空請改用刪除屬性操作。已停用選項僅能保留／移除既有值。`;
+        }
         default:
             return '請先選擇屬性';
     }
@@ -290,7 +327,7 @@ const noActiveEnumOptions = computed(
                     type="checkbox"
                     :value="row.value"
                     :checked="selectedEnumValues.includes(row.value)"
-                    :disabled="!row.eligible"
+                    :disabled="isEnumCheckboxDisabled(row)"
                     @change="toggleEnumValue(row.value, $event.target.checked)"
                 >
                 <label class="form-check-label" :for="`enum-opt-${row.value}`">

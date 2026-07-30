@@ -122,4 +122,86 @@ class RevisionEnumPropertyValidationTest extends TestCase
 
         $this->assertFalse($result->isValid());
     }
+
+    public function test_create_vertex_property_rejects_below_min_selections(): void
+    {
+        $user = User::factory()->create();
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'person_enum_'.uniqid()]);
+        $property = VertexProperty::factory()->for($vertexType)->enum([
+            ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+            ['value' => 'jazz', 'label' => '爵士', 'active' => true],
+            ['value' => 'pop', 'label' => '流行', 'active' => true],
+        ])->create([
+            'age_property_name' => 'genres',
+            'min_selections' => 2,
+            'max_selections' => null,
+        ]);
+
+        $revision = Revision::create([
+            'title' => 'ENUM below min',
+            'status' => RevisionStatus::Draft,
+            'user_id' => $user->id,
+        ]);
+
+        $revision->actions()->createMany([
+            [
+                'order' => 0,
+                'action' => RevisionActionType::CreateVertex,
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+            [
+                'order' => 1,
+                'action' => RevisionActionType::CreateVertexProperty,
+                'target_ref_order' => 0,
+                'age_property_name' => $property->age_property_name,
+                'value' => ['rock'],
+            ],
+        ]);
+
+        $result = app(RevisionValidationService::class)->validate($revision->fresh('actions'));
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotEmpty($result->actionMessages()[1] ?? []);
+    }
+
+    public function test_create_vertex_property_rejects_above_max_selections(): void
+    {
+        $user = User::factory()->create();
+        $vertexType = VertexType::factory()->create(['age_label_name' => 'person_enum_'.uniqid()]);
+        $property = VertexProperty::factory()->for($vertexType)->enum([
+            ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+            ['value' => 'jazz', 'label' => '爵士', 'active' => true],
+            ['value' => 'pop', 'label' => '流行', 'active' => true],
+        ])->create([
+            'age_property_name' => 'genres',
+            'min_selections' => 1,
+            'max_selections' => 2,
+        ]);
+
+        $revision = Revision::create([
+            'title' => 'ENUM above max',
+            'status' => RevisionStatus::Draft,
+            'user_id' => $user->id,
+        ]);
+
+        $revision->actions()->createMany([
+            [
+                'order' => 0,
+                'action' => RevisionActionType::CreateVertex,
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+            [
+                'order' => 1,
+                'action' => RevisionActionType::CreateVertexProperty,
+                'target_ref_order' => 0,
+                'age_property_name' => $property->age_property_name,
+                'value' => ['rock', 'jazz', 'pop'],
+            ],
+        ]);
+
+        $result = app(RevisionValidationService::class)->validate($revision->fresh('actions'));
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotEmpty($result->actionMessages()[1] ?? []);
+    }
 }

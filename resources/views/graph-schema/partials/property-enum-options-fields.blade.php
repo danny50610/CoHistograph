@@ -6,11 +6,58 @@
     $usedEnumValues = $usedEnumValues ?? [];
     $propertyType = old('age_property_type', $property->age_property_type->value ?? '');
     $isEnum = $propertyType === \App\Enums\PropertyType::Enum->value;
+    $minSelections = old('min_selections', $property?->min_selections ?? \App\Support\EnumOptions::DEFAULT_MIN_SELECTIONS);
+    $maxSelections = old('max_selections', $property?->max_selections);
 @endphp
 
 <fieldset id="enum-options-fields" class="row mb-3" @if (! $isEnum) hidden disabled @endif>
     <legend class="col-md-2 col-form-label pt-0">ENUM 選項</legend>
     <div class="col-md-10">
+        <div class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label" for="min_selections">最少選取數</label>
+                <input
+                    id="min_selections"
+                    type="number"
+                    name="min_selections"
+                    value="{{ $minSelections }}"
+                    class="form-control @if ($errors->has('min_selections')) is-invalid @endif"
+                    min="1"
+                    max="255"
+                    required
+                >
+                @if ($errors->has('min_selections'))
+                    <div class="invalid-feedback">
+                        @foreach ($errors->get('min_selections') as $message)
+                            {{ $message }}
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="max_selections">最多選取數</label>
+                <input
+                    id="max_selections"
+                    type="number"
+                    name="max_selections"
+                    value="{{ $maxSelections }}"
+                    class="form-control @if ($errors->has('max_selections')) is-invalid @endif"
+                    min="1"
+                    max="255"
+                    placeholder="不限"
+                >
+                @if ($errors->has('max_selections'))
+                    <div class="invalid-feedback">
+                        @foreach ($errors->get('max_selections') as $message)
+                            {{ $message }}
+                        @endforeach
+                    </div>
+                @else
+                    <div class="form-text">留空＝不限上限</div>
+                @endif
+            </div>
+        </div>
+
         <div class="row g-2 mb-1 d-none d-md-flex text-body-secondary small">
             <div class="col-md-3">Value</div>
             <div class="col-md-4">Label</div>
@@ -111,7 +158,7 @@
         @endif
 
         <button type="button" id="add-enum-option" class="btn btn-outline-secondary btn-sm">新增選項</button>
-        <div class="form-text">Value 僅限小寫 a-z、0-9、底線（_）、加號（+）與減號（-），共 1–64 字元。</div>
+        <div class="form-text">Value 僅限小寫 a-z、0-9、底線（_）、加號（+）與減號（-），共 1–64 字元。啟用選項數須 ≥ 最少選取數。</div>
     </div>
 </fieldset>
 

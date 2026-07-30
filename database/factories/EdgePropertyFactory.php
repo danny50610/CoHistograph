@@ -35,6 +35,8 @@ class EdgePropertyFactory extends Factory
             ]),
             'locale' => null,
             'enum_options' => null,
+            'min_selections' => null,
+            'max_selections' => null,
         ];
     }
 
@@ -50,6 +52,8 @@ class EdgePropertyFactory extends Factory
                 ['value' => 'rock', 'label' => '搖滾', 'active' => true],
                 ['value' => 'jazz', 'label' => '爵士', 'active' => true],
             ],
+            'min_selections' => 1,
+            'max_selections' => null,
         ]);
     }
 }

@@ -570,7 +570,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 ## 評估結論：已收斂，進入實作
 
-## 後續增量：ENUM 選取數量上下限（進行中）
+## 後續增量：ENUM 選取數量上下限（已實作）
 
 ### Q34 — min／max 約束語意？ ✅
 
@@ -619,7 +619,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 - 驗證：`min_selections` ∈ 1–255（保留 Q6，不開放 min=0）；`max_selections` 若有值則 ∈ 1–255 且 `min_selections ≤ max_selections`  
 - （0 僅 theoretically 在 DB 型別範圍內；應用層不接受 min=0）
 
-### ENUM min／max 增量決策已收斂（Q34–Q38）。實作時加欄位、schema／修訂驗證與 UI。
+### ENUM min／max 增量決策已收斂（Q34–Q38）。已實作欄位、schema／修訂驗證與 UI。
 
 ---
 

@@ -17,5 +17,7 @@ trait ResolvesLocalizedAgePropertyName
                 ? $this->input('base_age_property_name').'_'.$locale
                 : $this->input('age_property_name'),
         ]);
+
+        $this->prepareEnumSelectionLimits();
     }
 }

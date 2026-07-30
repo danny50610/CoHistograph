@@ -41,6 +41,12 @@
                     <dd class="col-md-10">{{ $edgeProperty->age_property_type }}</dd>
 
                     @if ($edgeProperty->age_property_type === \App\Enums\PropertyType::Enum)
+                        <dt class="col-md-2">最少／最多選取</dt>
+                        <dd class="col-md-10">
+                            最少 {{ $edgeProperty->min_selections ?? 1 }}；
+                            最多 {{ $edgeProperty->max_selections === null ? '不限' : $edgeProperty->max_selections }}
+                        </dd>
+
                         <dt class="col-md-2">ENUM 選項</dt>
                         <dd class="col-md-10">
                             <div class="table-responsive">

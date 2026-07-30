@@ -44,9 +44,10 @@
 ## ENUM
 
 - Schema：`vertex_properties`／`edge_properties.enum_options` JSON：`[{value, label, active}, …]`
-- AGE：list of option `value`；禁止空陣列（清空＝delete property）
+- Schema：`min_selections`（預設 1）／`max_selections`（null＝不限）；要求 `|active| ≥ min`；不掃 AGE 既有值
+- AGE：list of option `value`；禁止空陣列（清空＝delete property）；修訂時 `min ≤ |selected| ≤ max`
 - 不可設 `locale`；停用選項採祖父條款
-- 修訂 UI：`PropertyValueInput` checkbox 多選；摘要／資料頁以 labels「、」顯示
+- 修訂 UI：`PropertyValueInput` checkbox 多選（達 max 時 disable 未勾項）；摘要／資料頁以 labels「、」顯示
 
 ## Apache AGE driver 是否需要修改？
 
