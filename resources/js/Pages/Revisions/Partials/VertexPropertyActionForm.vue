@@ -77,6 +77,9 @@ const selectedProperty = computed(() =>
 );
 
 const selectedPropertyType = computed(() => selectedProperty.value?.age_property_type ?? null);
+const selectedEnumOptions = computed(() => selectedProperty.value?.enum_options ?? []);
+const selectedMinSelections = computed(() => selectedProperty.value?.min_selections ?? 1);
+const selectedMaxSelections = computed(() => selectedProperty.value?.max_selections ?? null);
 
 const isCreate = computed(() => props.actionType === 'create_vertex_property');
 const isUpdate = computed(() => props.actionType === 'update_vertex_property');
@@ -225,6 +228,9 @@ function onTargetRefOrderChange(value) {
         <PropertyValueInput
             :model-value="modelValue.value"
             :property-type="selectedPropertyType"
+            :enum-options="selectedEnumOptions"
+            :min-selections="selectedMinSelections"
+            :max-selections="selectedMaxSelections"
             @update:model-value="update('value', $event)"
         />
     </div>

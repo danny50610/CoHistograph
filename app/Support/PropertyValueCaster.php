@@ -25,8 +25,32 @@ class PropertyValueCaster
      */
     private const TIMESTAMPTZ_PATTERN = '/^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:?\d{2})$/';
 
-    public function matchesType(string $value, PropertyType $propertyType): bool
+    /**
+     * Structural type check. ENUM grandfather / option rules are enforced elsewhere.
+     */
+    public function matchesType(mixed $value, PropertyType $propertyType): bool
     {
+        if ($propertyType === PropertyType::Enum) {
+            return $this->isEnumListShape($value);
+        }
+
+        if (is_bool($value)) {
+            return $propertyType === PropertyType::Boolean;
+        }
+
+        if (is_int($value)) {
+            return $propertyType === PropertyType::Integer || $propertyType === PropertyType::Float;
+        }
+
+        if (is_float($value)) {
+            return $propertyType === PropertyType::Float;
+        }
+
+        if (! is_string($value)) {
+            return false;
+        }
+
+        // ENUM is handled above; remaining cases are scalar string inputs.
         return match ($propertyType) {
             PropertyType::Integer => preg_match('/^-?\d+$/', $value) === 1,
             PropertyType::Float => preg_match('/^-?(?:\d+|\d*\.\d+)$/', $value) === 1,
@@ -39,24 +63,57 @@ class PropertyValueCaster
     }
 
     /**
-     * Convert a revision/input string into the PHP/AGE storage value.
+     * Convert a revision/input value into the PHP/AGE storage value.
      *
      * DATE / MONTH_DAY / TIMESTAMPTZ stay as normalized strings in AGE (agtype string).
+     * ENUM becomes a sorted list of option value strings when $enumOptions is provided.
+     *
+     * @param  list<array{value: string, label: string, active: bool}>|null  $enumOptions
+     * @return int|float|bool|string|list<string>
      */
-    public function toStorage(string $value, PropertyType $propertyType): int|float|bool|string
+    public function toStorage(mixed $value, PropertyType $propertyType, ?array $enumOptions = null): int|float|bool|string|array
     {
         if (! $this->matchesType($value, $propertyType)) {
-            throw new InvalidArgumentException("Value [{$value}] does not match property type [{$propertyType->value}].");
+            $display = is_scalar($value) || $value === null
+                ? var_export($value, true)
+                : get_debug_type($value);
+
+            throw new InvalidArgumentException("Value [{$display}] does not match property type [{$propertyType->value}].");
         }
 
+        if ($propertyType === PropertyType::Enum) {
+            /** @var list<string> $selected */
+            $selected = array_values(array_map(
+                static fn (mixed $item): string => (string) $item,
+                is_array($value) ? $value : [],
+            ));
+
+            if ($enumOptions !== null) {
+                return EnumOptions::sortSelectedByDefinition($selected, $enumOptions);
+            }
+
+            return $selected;
+        }
+
+        if (is_bool($value) || is_int($value) || is_float($value)) {
+            return match ($propertyType) {
+                PropertyType::Integer => (int) $value,
+                PropertyType::Float => (float) $value,
+                PropertyType::Boolean => (bool) $value,
+                default => throw new InvalidArgumentException("Unexpected native value for [{$propertyType->value}]."),
+            };
+        }
+
+        $stringValue = (string) $value;
+
         return match ($propertyType) {
-            PropertyType::Integer => (int) $value,
-            PropertyType::Float => (float) $value,
-            PropertyType::Boolean => strtolower($value) === 'true',
-            PropertyType::String => $value,
-            PropertyType::Date => $value,
-            PropertyType::MonthDay => $value,
-            PropertyType::Timestamptz => $this->normalizeTimestamptz($value),
+            PropertyType::Integer => (int) $stringValue,
+            PropertyType::Float => (float) $stringValue,
+            PropertyType::Boolean => strtolower($stringValue) === 'true',
+            PropertyType::String => $stringValue,
+            PropertyType::Date => $stringValue,
+            PropertyType::MonthDay => $stringValue,
+            PropertyType::Timestamptz => $this->normalizeTimestamptz($stringValue),
         };
     }
 
@@ -66,6 +123,7 @@ class PropertyValueCaster
      * DATE → CarbonImmutable (date-only, midnight UTC)
      * MONTH_DAY → CarbonImmutable (sentinel year 2000, midnight UTC)
      * TIMESTAMPTZ → CarbonImmutable (timezone preserved from stored offset)
+     * ENUM → list<string>
      */
     public function fromStorage(mixed $value, PropertyType $propertyType): mixed
     {
@@ -81,13 +139,23 @@ class PropertyValueCaster
             PropertyType::Date => $this->parseDate($value),
             PropertyType::MonthDay => $this->parseMonthDay($value),
             PropertyType::Timestamptz => $this->parseTimestamptz($value),
+            PropertyType::Enum => $this->normalizeEnumFromStorage($value),
         };
     }
 
-    public function formatForDisplay(mixed $value, PropertyType $propertyType): string
+    /**
+     * @param  list<array{value: string, label: string, active: bool}>|null  $enumOptions
+     */
+    public function formatForDisplay(mixed $value, PropertyType $propertyType, ?array $enumOptions = null): string
     {
         if ($value === null) {
             return '';
+        }
+
+        if ($propertyType === PropertyType::Enum) {
+            $values = $this->normalizeEnumFromStorage($value);
+
+            return EnumOptions::formatLabels($values, $enumOptions ?? []);
         }
 
         if ($value instanceof DateTimeInterface) {
@@ -101,7 +169,50 @@ class PropertyValueCaster
             };
         }
 
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
         return (string) $value;
+    }
+
+    private function isEnumListShape(mixed $value): bool
+    {
+        if (! is_array($value) || $value === []) {
+            return false;
+        }
+
+        if (array_is_list($value) === false) {
+            return false;
+        }
+
+        foreach ($value as $item) {
+            if (! is_string($item) || $item === '') {
+                return false;
+            }
+        }
+
+        return count($value) === count(array_unique($value));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeEnumFromStorage(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $values = [];
+
+        foreach ($value as $item) {
+            if (is_string($item) && $item !== '') {
+                $values[] = $item;
+            }
+        }
+
+        return $values;
     }
 
     private function isValidDate(string $value): bool

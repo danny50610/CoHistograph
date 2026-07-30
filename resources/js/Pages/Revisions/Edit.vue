@@ -21,13 +21,13 @@ const form = useForm({
     actions: props.revision.actions.map((a, i) => ({
         order: i,
         action: a.action,
-        target_age_id: a.target_age_id ?? null,
+        target_age_id: a.target_age_id != null ? String(a.target_age_id) : null,
         target_ref_order: a.target_ref_order ?? null,
         vertex_type_label: a.vertex_type_label ?? null,
         edge_type_label: a.edge_type_label ?? null,
-        start_vertex_age_id: a.start_vertex_age_id ?? null,
+        start_vertex_age_id: a.start_vertex_age_id != null ? String(a.start_vertex_age_id) : null,
         start_vertex_ref_order: a.start_vertex_ref_order ?? null,
-        end_vertex_age_id: a.end_vertex_age_id ?? null,
+        end_vertex_age_id: a.end_vertex_age_id != null ? String(a.end_vertex_age_id) : null,
         end_vertex_ref_order: a.end_vertex_ref_order ?? null,
         age_property_name: a.age_property_name ?? null,
         value: a.value ?? null,
@@ -194,6 +194,62 @@ const actionLabels = {
     delete_edge_property: '刪除 Edge 屬性',
 };
 
+function formatEnumLabels(values, enumOptions) {
+    if (!Array.isArray(values) || values.length === 0) {
+        return '—';
+    }
+
+    const map = Object.fromEntries((enumOptions ?? []).map((o) => [o.value, o.label]));
+    const order = (enumOptions ?? []).map((o) => o.value);
+    const known = [];
+    const unknown = [];
+
+    for (const value of values) {
+        if (order.includes(value)) {
+            known.push(value);
+        } else {
+            unknown.push(value);
+        }
+    }
+
+    known.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+    return [...known, ...unknown].map((v) => map[v] ?? v).join('、');
+}
+
+function findProperty(action) {
+    const name = action.age_property_name;
+    if (!name) {
+        return null;
+    }
+
+    const isEdge = String(action.action).includes('edge_property');
+    const types = isEdge ? props.edgeTypes : props.vertexTypes;
+
+    for (const type of types ?? []) {
+        const property = (type.properties ?? []).find((p) => p.age_property_name === name);
+        if (property) {
+            return property;
+        }
+    }
+
+    return null;
+}
+
+function formatActionValue(action) {
+    const property = findProperty(action);
+
+    if (property?.age_property_type === 'ENUM') {
+        return formatEnumLabels(action.value, property.enum_options ?? []);
+    }
+
+    if (Array.isArray(action.value)) {
+        return action.value.join(', ');
+    }
+
+    return action.value ?? '—';
+}
+
 function actionSummary(a) {
     const t = (v) => v ?? '—';
     const refOrId = (ref, id) =>
@@ -219,15 +275,15 @@ function actionSummary(a) {
         case 'delete_edge':
             return `刪除 Edge：${refOrId(a.target_ref_order, a.target_age_id)}`;
         case 'create_vertex_property':
-            return `新增 Vertex 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${t(a.value)}`;
+            return `新增 Vertex 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${formatActionValue(a)}`;
         case 'update_vertex_property':
-            return `修改 Vertex 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${t(a.value)}`;
+            return `修改 Vertex 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${formatActionValue(a)}`;
         case 'delete_vertex_property':
             return `刪除 Vertex 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)}`;
         case 'create_edge_property':
-            return `新增 Edge 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${t(a.value)}`;
+            return `新增 Edge 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${formatActionValue(a)}`;
         case 'update_edge_property':
-            return `修改 Edge 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${t(a.value)}`;
+            return `修改 Edge 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)} = ${formatActionValue(a)}`;
         case 'delete_edge_property':
             return `刪除 Edge 屬性：${refOrId(a.target_ref_order, a.target_age_id)}.${t(a.age_property_name)}`;
         default:

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\GraphSchema;
 
 use App\Enums\PropertyType;
+use App\Http\Requests\GraphSchema\Concerns\ValidatesEnumOptionsOnUpdate;
 use App\Models\EdgeProperty;
 use App\Models\EdgeType;
 use App\Rules\GraphSchema\AgePropertyName;
@@ -12,9 +13,12 @@ use App\Support\AgePropertyDataChecker;
 use App\Support\LocalizedPropertyName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateEdgePropertyRequest extends FormRequest
 {
+    use ValidatesEnumOptionsOnUpdate;
+
     private bool $agePropertyNameLocked = true;
 
     public function authorize(): bool
@@ -32,29 +36,29 @@ class UpdateEdgePropertyRequest extends FormRequest
         $this->agePropertyNameLocked = app(AgePropertyDataChecker::class)
             ->edgePropertyHasData($edgeType, $edgeProperty);
 
-        if ($this->agePropertyNameLocked) {
-            return;
-        }
+        if (! $this->agePropertyNameLocked) {
+            $locale = $edgeProperty->locale;
 
-        $locale = $edgeProperty->locale;
-
-        if ($locale !== null) {
-            if (! $this->filled('base_age_property_name')) {
+            if ($locale !== null) {
+                if (! $this->filled('base_age_property_name')) {
+                    $this->merge([
+                        'base_age_property_name' => LocalizedPropertyName::baseName($edgeProperty),
+                    ]);
+                }
+            } elseif (! $this->filled('age_property_name')) {
                 $this->merge([
-                    'base_age_property_name' => LocalizedPropertyName::baseName($edgeProperty),
+                    'age_property_name' => $edgeProperty->age_property_name,
                 ]);
             }
-        } elseif (! $this->filled('age_property_name')) {
+
             $this->merge([
-                'age_property_name' => $edgeProperty->age_property_name,
+                'resolved_age_property_name' => $locale
+                    ? $this->input('base_age_property_name').'_'.$locale
+                    : $this->input('age_property_name'),
             ]);
         }
 
-        $this->merge([
-            'resolved_age_property_name' => $locale
-                ? $this->input('base_age_property_name').'_'.$locale
-                : $this->input('age_property_name'),
-        ]);
+        $this->prepareEnumSelectionLimits();
     }
 
     /**
@@ -79,6 +83,11 @@ class UpdateEdgePropertyRequest extends FormRequest
             'age_property_type' => ['required', 'string', Rule::enum(PropertyType::class)],
             'locale' => ['prohibited'],
         ];
+
+        $rules = array_merge(
+            $rules,
+            $this->enumOptionsUpdateRules($this->agePropertyNameLocked, $edgeProperty->age_property_type),
+        );
 
         if ($this->agePropertyNameLocked) {
             $rules['age_property_name'] = ['prohibited'];
@@ -117,6 +126,21 @@ class UpdateEdgePropertyRequest extends FormRequest
         ];
 
         return $rules;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        /** @var EdgeType $edgeType */
+        $edgeType = $this->route('edge_type');
+        /** @var EdgeProperty $edgeProperty */
+        $edgeProperty = $this->route('edge_property');
+
+        $this->withEnumOptionsUpdateValidator(
+            $validator,
+            static fn () => $edgeProperty,
+            $this->resolveEdgeEnumValueInUseChecker($edgeType, $edgeProperty),
+            $this->agePropertyNameLocked,
+        );
     }
 
     public function agePropertyNameLocked(): bool

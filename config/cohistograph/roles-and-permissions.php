@@ -11,6 +11,7 @@ return [
                 'graph-schema.manage',
                 'revision.review',
                 'system-config.manage',
+                'faq.manage',
             ],
         ],
     ],
@@ -34,6 +35,10 @@ return [
         'system-config.manage' => [
             'display_name' => '管理系統設定',
             'description' => '修改首頁文字等系統設定',
+        ],
+        'faq.manage' => [
+            'display_name' => '管理常見問題',
+            'description' => '新增、修改、刪除網站常見問題',
         ],
     ],
 ];
