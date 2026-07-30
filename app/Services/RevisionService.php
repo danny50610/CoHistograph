@@ -13,7 +13,10 @@ use InvalidArgumentException;
 
 class RevisionService
 {
-    public function __construct(private RevisionValidationService $revisionValidationService) {}
+    public function __construct(
+        private RevisionValidationService $revisionValidationService,
+        private \App\Support\RevisionActionValueNormalizer $actionValueNormalizer,
+    ) {}
 
     public function create(User $user, array $data): Revision
     {
@@ -285,13 +288,6 @@ class RevisionService
      */
     private function actionAttributes(array $actionData, int $order): array
     {
-        $value = $actionData['value'] ?? null;
-        if (is_array($value) || is_object($value)) {
-            $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        } elseif ($value !== null && ! is_string($value)) {
-            $value = (string) $value;
-        }
-
         return [
             'order' => $order,
             'action' => $actionData['action'],
@@ -304,7 +300,7 @@ class RevisionService
             'end_vertex_age_id' => $actionData['end_vertex_age_id'] ?? null,
             'end_vertex_ref_order' => $actionData['end_vertex_ref_order'] ?? null,
             'age_property_name' => $actionData['age_property_name'] ?? null,
-            'value' => $value,
+            'value' => $this->actionValueNormalizer->normalize($actionData),
         ];
     }
 

@@ -117,18 +117,20 @@ class SimulateGraphDataSeeder extends Seeder
             'description' => '',
             'age_label_name' => 'member',
         ]);
-        $this->groupMemberEdge->startVertex()->associate($this->vTuber);
-        $this->groupMemberEdge->endVertex()->associate($this->group);
         $this->groupMemberEdge->save();
+        $this->groupMemberEdge->syncVertexPairs([
+            ['start_vertex_id' => $this->vTuber->id, 'end_vertex_id' => $this->group->id],
+        ]);
 
         $this->vocalEdge = new EdgeType([
             'name' => '主唱(VTuber)',
             'description' => '',
             'age_label_name' => 'vocal',
         ]);
-        $this->vocalEdge->startVertex()->associate($this->vTuber);
-        $this->vocalEdge->endVertex()->associate($this->song);
         $this->vocalEdge->save();
+        $this->vocalEdge->syncVertexPairs([
+            ['start_vertex_id' => $this->vTuber->id, 'end_vertex_id' => $this->song->id],
+        ]);
 
         $this->vocalEdgePropertyOrder = new EdgeProperty([
             'name' => '顯示順序',
@@ -174,9 +176,10 @@ class SimulateGraphDataSeeder extends Seeder
             'description' => '',
             'age_label_name' => 'group_vocal',
         ]);
-        $this->groupVocalEdge->startVertex()->associate($this->group);
-        $this->groupVocalEdge->endVertex()->associate($this->song);
         $this->groupVocalEdge->save();
+        $this->groupVocalEdge->syncVertexPairs([
+            ['start_vertex_id' => $this->group->id, 'end_vertex_id' => $this->song->id],
+        ]);
 
         $this->hasYoutubeVideoEdge = new EdgeType([
             'name' => 'Youtube 影片',
@@ -184,9 +187,10 @@ class SimulateGraphDataSeeder extends Seeder
             'description' => '',
             'age_label_name' => 'has_youtube_video',
         ]);
-        $this->hasYoutubeVideoEdge->startVertex()->associate($this->song);
-        $this->hasYoutubeVideoEdge->endVertex()->associate($this->youtubeVideo);
         $this->hasYoutubeVideoEdge->save();
+        $this->hasYoutubeVideoEdge->syncVertexPairs([
+            ['start_vertex_id' => $this->song->id, 'end_vertex_id' => $this->youtubeVideo->id],
+        ]);
     }
 
     protected function createGraphData()

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VertexType extends Model
@@ -25,16 +26,18 @@ class VertexType extends Model
         return $this->hasMany(VertexProperty::class);
     }
 
-    /** @return HasMany<EdgeType, $this> */
-    public function startEdgeTypes(): HasMany
+    /** @return BelongsToMany<EdgeType, $this> */
+    public function startEdgeTypes(): BelongsToMany
     {
-        return $this->hasMany(EdgeType::class, 'start_vertex_id');
+        return $this->belongsToMany(EdgeType::class, 'edge_type_vertex_pairs', 'start_vertex_id', 'edge_type_id')
+            ->distinct();
     }
 
-    /** @return HasMany<EdgeType, $this> */
-    public function endEdgeTypes(): HasMany
+    /** @return BelongsToMany<EdgeType, $this> */
+    public function endEdgeTypes(): BelongsToMany
     {
-        return $this->hasMany(EdgeType::class, 'end_vertex_id');
+        return $this->belongsToMany(EdgeType::class, 'edge_type_vertex_pairs', 'end_vertex_id', 'edge_type_id')
+            ->distinct();
     }
 
     protected function childRouteBindingRelationshipName($childType)

@@ -47,6 +47,253 @@ class VertexPropertyTest extends TestCase
         $this->assertEquals(PropertyType::String, $property->age_property_type);
     }
 
+    public function test_store_enum_property_success(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => '1'],
+                    ['value' => 'jazz', 'label' => '爵士', 'active' => '0'],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property = VertexProperty::where('age_property_name', 'genres')->firstOrFail();
+        $this->assertEquals(PropertyType::Enum, $property->age_property_type);
+        $this->assertNull($property->locale);
+        $this->assertSame(
+            [
+                ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                ['value' => 'jazz', 'label' => '爵士', 'active' => false],
+            ],
+            $property->enum_options,
+        );
+        $this->assertSame(1, $property->min_selections);
+        $this->assertNull($property->max_selections);
+    }
+
+    public function test_store_enum_with_selection_limits(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'min_selections' => 2,
+                'max_selections' => 3,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                    ['value' => 'jazz', 'label' => '爵士', 'active' => true],
+                    ['value' => 'pop', 'label' => '流行', 'active' => true],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property = VertexProperty::where('age_property_name', 'genres')->firstOrFail();
+        $this->assertSame(2, $property->min_selections);
+        $this->assertSame(3, $property->max_selections);
+    }
+
+    public function test_store_enum_rejects_when_active_options_below_min(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'min_selections' => 2,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                    ['value' => 'jazz', 'label' => '爵士', 'active' => false],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['enum_options']);
+    }
+
+    public function test_store_enum_rejects_max_less_than_min(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'min_selections' => 3,
+                'max_selections' => 2,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                    ['value' => 'jazz', 'label' => '爵士', 'active' => true],
+                    ['value' => 'pop', 'label' => '流行', 'active' => true],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['max_selections']);
+    }
+
+    public function test_store_enum_rejects_locale(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Genres',
+                'description' => '',
+                'locale' => 'zh_tw',
+                'base_age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['locale']);
+    }
+
+    public function test_update_enum_options_success(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('vertexPropertyHasData')->andReturn(false);
+            $mock->shouldReceive('vertexPropertyEnumValueInUse')->andReturn(false);
+            $mock->shouldReceive('usedVertexEnumValues')->andReturn([]);
+        });
+
+        $vertexType = VertexType::factory()->create();
+        $property = VertexProperty::factory()->for($vertexType)->enum()->create([
+            'name' => 'Genres',
+            'age_property_name' => 'genres',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$property->id}", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾樂', 'active' => true],
+                    ['value' => 'jazz', 'label' => '爵士', 'active' => true],
+                    ['value' => 'pop', 'label' => '流行', 'active' => true],
+                ],
+                'min_selections' => 1,
+                'max_selections' => 2,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $property->refresh();
+        $this->assertCount(3, $property->enum_options);
+        $this->assertSame('搖滾樂', $property->enum_options[0]['label']);
+        $this->assertSame(1, $property->min_selections);
+        $this->assertSame(2, $property->max_selections);
+    }
+
+    public function test_update_rejects_removing_enum_value_in_use(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('vertexPropertyHasData')->andReturn(false);
+            $mock->shouldReceive('vertexPropertyEnumValueInUse')
+                ->andReturnUsing(fn (VertexType $vertexType, VertexProperty $property, string $value): bool => $value === 'jazz');
+            $mock->shouldReceive('usedVertexEnumValues')->andReturn(['jazz']);
+        });
+
+        $vertexType = VertexType::factory()->create();
+        $property = VertexProperty::factory()->for($vertexType)->enum([
+            ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+            ['value' => 'jazz', 'label' => '爵士', 'active' => true],
+        ])->create([
+            'name' => 'Genres',
+            'age_property_name' => 'genres',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$property->id}", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                ],
+                'min_selections' => 1,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['enum_options']);
+    }
+
+    public function test_update_rejects_type_change_when_graph_data_exists(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('vertexPropertyHasData')->andReturn(true);
+            $mock->shouldReceive('vertexPropertyEnumValueInUse')->andReturn(false);
+            $mock->shouldReceive('usedVertexEnumValues')->andReturn([]);
+        });
+
+        $vertexType = VertexType::factory()->create();
+        $property = VertexProperty::factory()->for($vertexType)->enum()->create([
+            'name' => 'Genres',
+            'age_property_name' => 'genres',
+        ]);
+
+        $this->actingAs($this->user)
+            ->put("/graph-schema/vertex-type/{$vertexType->id}/vertex-property/{$property->id}", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_type' => PropertyType::String->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['age_property_type']);
+    }
+
+    public function test_store_enum_rejects_duplicate_values_and_labels(): void
+    {
+        $vertexType = VertexType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Genres',
+                'description' => '',
+                'age_property_name' => 'genres',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                    ['value' => 'rock', 'label' => '搖滾樂', 'active' => true],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['enum_options.1.value']);
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Genres 2',
+                'description' => '',
+                'age_property_name' => 'genres_2',
+                'age_property_type' => PropertyType::Enum->value,
+                'enum_options' => [
+                    ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+                    ['value' => 'jazz', 'label' => '搖滾', 'active' => true],
+                ],
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasErrors(['enum_options.1.label']);
+    }
+
     public function test_store_date_and_timestamptz_types_success()
     {
         $vertexType = VertexType::factory()->create();
@@ -561,5 +808,29 @@ class VertexPropertyTest extends TestCase
             ->assertSee('繁體中文')
             ->assertSee('(zh_tw)')
             ->assertSee('name_zh_tw');
+    }
+
+    public function test_vertex_type_show_lists_enum_option_labels(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('vertexPropertyHasData')->andReturn(false);
+            $mock->shouldReceive('usedVertexEnumValues')->andReturn([]);
+        });
+
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->enum([
+            ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+            ['value' => 'jazz', 'label' => '爵士', 'active' => false],
+        ])->create([
+            'name' => 'Genres',
+            'age_property_name' => 'genres',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('graph-schema.vertex-type.show', $vertexType))
+            ->assertOk()
+            ->assertSee('ENUM')
+            ->assertSee('搖滾')
+            ->assertSee('爵士（已停用）');
     }
 }

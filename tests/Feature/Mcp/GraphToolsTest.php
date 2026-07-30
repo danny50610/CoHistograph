@@ -316,7 +316,7 @@ class GraphToolsTest extends TestCase
             $json->where('total', 1)
                 ->where('edge_types.0.id', $edgeType->id)
                 ->where('edge_types.0.properties.0.age_property_name', 'role')
-                ->missing('edge_types.0.start_vertex')
+                ->missing('edge_types.0.vertex_pairs')
                 ->etc();
 
             return true;

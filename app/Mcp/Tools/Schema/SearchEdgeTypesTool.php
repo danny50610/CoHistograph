@@ -4,6 +4,7 @@ namespace App\Mcp\Tools\Schema;
 
 use App\Mcp\Concerns\AuthenticatesMcpRequests;
 use App\Models\EdgeType;
+use App\Models\EdgeTypeVertexPair;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -14,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-edge-types')]
-#[Description('搜尋 EdgeType（可選含 Property、起訖 VertexType 與使用指南）。')]
+#[Description('搜尋 EdgeType（可選含 Property、起迄 VertexType 組合與使用指南）。')]
 #[IsReadOnly]
 class SearchEdgeTypesTool extends Tool
 {
@@ -44,9 +45,9 @@ class SearchEdgeTypesTool extends Tool
         $offset = (int) ($validated['offset'] ?? 0);
 
         $with = [];
-        if ($includeVertices || isset($validated['start_vertex_type_label']) || isset($validated['end_vertex_type_label'])) {
-            $with[] = 'startVertex';
-            $with[] = 'endVertex';
+        if ($includeVertices) {
+            $with[] = 'vertexPairs.startVertex';
+            $with[] = 'vertexPairs.endVertex';
         }
         if ($includeProperties) {
             $with[] = 'properties';
@@ -69,11 +70,17 @@ class SearchEdgeTypesTool extends Tool
         }
 
         if (! empty($validated['start_vertex_type_label'])) {
-            $builder->whereHas('startVertex', fn ($q) => $q->where('age_label_name', $validated['start_vertex_type_label']));
+            $builder->whereHas(
+                'startVertices',
+                fn ($q) => $q->where('age_label_name', $validated['start_vertex_type_label'])
+            );
         }
 
         if (! empty($validated['end_vertex_type_label'])) {
-            $builder->whereHas('endVertex', fn ($q) => $q->where('age_label_name', $validated['end_vertex_type_label']));
+            $builder->whereHas(
+                'endVertices',
+                fn ($q) => $q->where('age_label_name', $validated['end_vertex_type_label'])
+            );
         }
 
         $total = (clone $builder)->count();
@@ -90,14 +97,21 @@ class SearchEdgeTypesTool extends Tool
                 ];
 
                 if ($includeVertices) {
-                    $payload['start_vertex'] = $edgeType->startVertex === null ? null : [
-                        'name' => $edgeType->startVertex->name,
-                        'age_label_name' => $edgeType->startVertex->age_label_name,
-                    ];
-                    $payload['end_vertex'] = $edgeType->endVertex === null ? null : [
-                        'name' => $edgeType->endVertex->name,
-                        'age_label_name' => $edgeType->endVertex->age_label_name,
-                    ];
+                    $payload['vertex_pairs'] = $edgeType->vertexPairs
+                        ->map(function (EdgeTypeVertexPair $pair): array {
+                            return [
+                                'start_vertex' => $pair->startVertex === null ? null : [
+                                    'name' => $pair->startVertex->name,
+                                    'age_label_name' => $pair->startVertex->age_label_name,
+                                ],
+                                'end_vertex' => $pair->endVertex === null ? null : [
+                                    'name' => $pair->endVertex->name,
+                                    'age_label_name' => $pair->endVertex->age_label_name,
+                                ],
+                            ];
+                        })
+                        ->values()
+                        ->all();
                 }
 
                 if ($includeProperties) {
@@ -129,14 +143,14 @@ class SearchEdgeTypesTool extends Tool
             'query' => $schema->string()
                 ->description('搜尋關鍵字；比對 name、reverse_name、description、usage_guidelines、age_label_name'),
             'start_vertex_type_label' => $schema->string()
-                ->description('篩選起點 VertexType 的 age_label_name'),
+                ->description('篩選起點 VertexType 的 age_label_name（匹配任一允許的起迄組合）'),
             'end_vertex_type_label' => $schema->string()
-                ->description('篩選終點 VertexType 的 age_label_name'),
+                ->description('篩選終點 VertexType 的 age_label_name（匹配任一允許的起迄組合）'),
             'include_properties' => $schema->boolean()
                 ->description('是否附帶 properties，預設 false')
                 ->default(false),
             'include_vertices' => $schema->boolean()
-                ->description('是否附帶 start_vertex、end_vertex 摘要，預設 true')
+                ->description('是否附帶 vertex_pairs（起迄組合）摘要，預設 true')
                 ->default(true),
             'limit' => $schema->integer()
                 ->description('預設 20，上限 50')

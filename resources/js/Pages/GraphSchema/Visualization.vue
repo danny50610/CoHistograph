@@ -32,6 +32,17 @@ function showEdgeDetail(d) {
     selectedItem.value = { type: 'edge', data: d };
 }
 
+function formatEnumSchemaLabels(property) {
+    if (property?.age_property_type !== 'ENUM' || !Array.isArray(property.enum_options)) {
+        return '';
+    }
+
+    return property.enum_options
+        .map((option) => (option.active ? option.label : `${option.label}（已停用）`))
+        .filter(Boolean)
+        .join('、');
+}
+
 onMounted(() => {
     if (!graphContainer.value) {
         return;
@@ -287,6 +298,10 @@ onUnmounted(() => {
                                             </dt>
                                             <dd class="col-md-7 mb-0">
                                                 <span class="badge text-bg-info">{{ p.age_property_type }}</span>
+                                                <span
+                                                    v-if="formatEnumSchemaLabels(p)"
+                                                    class="text-body-secondary ms-1"
+                                                >{{ formatEnumSchemaLabels(p) }}</span>
                                             </dd>
                                         </template>
                                     </dl>
@@ -329,6 +344,10 @@ onUnmounted(() => {
                                             </dt>
                                             <dd class="col-md-7 mb-0">
                                                 <span class="badge text-bg-info">{{ p.age_property_type }}</span>
+                                                <span
+                                                    v-if="formatEnumSchemaLabels(p)"
+                                                    class="text-body-secondary ms-1"
+                                                >{{ formatEnumSchemaLabels(p) }}</span>
                                             </dd>
                                         </template>
                                     </dl>
