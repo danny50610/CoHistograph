@@ -59,8 +59,8 @@
         </div>
 
         <div class="row g-2 mb-1 d-none d-md-flex text-body-secondary small">
-            <div class="col-md-3">Value</div>
             <div class="col-md-4">Label</div>
+            <div class="col-md-3">Value</div>
             <div class="col-md-2">啟用</div>
             <div class="col-md-3">操作</div>
         </div>
@@ -74,6 +74,25 @@
                     $isActive = filter_var($option['active'] ?? true, FILTER_VALIDATE_BOOLEAN);
                 @endphp
                 <div class="row g-2 align-items-start mb-2 enum-option-row">
+                    <div class="col-md-4">
+                        <label class="visually-hidden" for="enum-option-label-{{ $index }}">Label</label>
+                        <input
+                            id="enum-option-label-{{ $index }}"
+                            type="text"
+                            name="enum_options[{{ $index }}][label]"
+                            value="{{ $option['label'] ?? '' }}"
+                            class="form-control enum-option-label @if ($errors->has("enum_options.$index.label")) is-invalid @endif"
+                            maxlength="128"
+                            required
+                        >
+                        @if ($errors->has("enum_options.$index.label"))
+                            <div class="invalid-feedback">
+                                @foreach ($errors->get("enum_options.$index.label") as $message)
+                                    {{ $message }}
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                     <div class="col-md-3">
                         <label class="visually-hidden" for="enum-option-value-{{ $index }}">Value</label>
                         <input
@@ -91,25 +110,6 @@
                         @if ($errors->has("enum_options.$index.value"))
                             <div class="invalid-feedback">
                                 @foreach ($errors->get("enum_options.$index.value") as $message)
-                                    {{ $message }}
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                    <div class="col-md-4">
-                        <label class="visually-hidden" for="enum-option-label-{{ $index }}">Label</label>
-                        <input
-                            id="enum-option-label-{{ $index }}"
-                            type="text"
-                            name="enum_options[{{ $index }}][label]"
-                            value="{{ $option['label'] ?? '' }}"
-                            class="form-control enum-option-label @if ($errors->has("enum_options.$index.label")) is-invalid @endif"
-                            maxlength="128"
-                            required
-                        >
-                        @if ($errors->has("enum_options.$index.label"))
-                            <div class="invalid-feedback">
-                                @foreach ($errors->get("enum_options.$index.label") as $message)
                                     {{ $message }}
                                 @endforeach
                             </div>
@@ -206,16 +206,16 @@
                 const row = document.createElement('div');
                 row.className = 'row g-2 align-items-start mb-2 enum-option-row';
                 row.innerHTML = `
+                    <div class="col-md-4">
+                        <label class="visually-hidden" for="enum-option-label-new">Label</label>
+                        <input id="enum-option-label-new" type="text" class="form-control enum-option-label"
+                            maxlength="128" required>
+                    </div>
                     <div class="col-md-3">
                         <label class="visually-hidden" for="enum-option-value-new">Value</label>
                         <input id="enum-option-value-new" type="text" class="form-control enum-option-value"
                             pattern="[a-z0-9_+\\-]{1,64}" maxlength="64"
                             title="僅限小寫 a-z、0-9、底線、加號與減號，共 1–64 字元" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="visually-hidden" for="enum-option-label-new">Label</label>
-                        <input id="enum-option-label-new" type="text" class="form-control enum-option-label"
-                            maxlength="128" required>
                     </div>
                     <div class="col-md-2 pt-md-2">
                         <input type="hidden" value="0">
@@ -263,7 +263,7 @@
             addButton.addEventListener('click', function () {
                 rowsContainer.appendChild(createRow());
                 reindexRows();
-                rowsContainer.lastElementChild.querySelector('.enum-option-value').focus();
+                rowsContainer.lastElementChild.querySelector('.enum-option-label').focus();
             });
 
             rowsContainer.addEventListener('click', function (event) {
