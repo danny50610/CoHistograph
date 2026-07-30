@@ -173,7 +173,7 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 ---
 
-## 修訂 UI：PropertyValueInput 與審核差異（進行中）
+## 修訂 UI：PropertyValueInput multi-select（進行中）
 
 現況：
 - `PropertyValueInput.vue` 依 `propertyType` 切換；`modelValue` 為 **string｜number｜null**，emit 字串
@@ -231,6 +231,15 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 | 停用項 | ✅ B′ 全列 + eligibleInactive 可復原 |
 | 摘要 | ✅ labels 以「、」連接 |
 | modelValue | ✅ ENUM 為 `string[]`；props 帶 `enumOptions` |
+| 審核差異 | ⏳ 要顯示多了／少了哪些 enum（進行中） |
+
+### Q17 — 審核頁 ENUM「變更前」從哪來？（進行中）
+
+需求：後台審核（`admin/revisions/show` → `action-card`）對 ENUM 要能看出 **新增了哪些／移除了哪些**，不能只顯示新的完整 list。
+
+現況：`action-card` 僅 `= {value}`，無舊值；update 也不預載 AGE 現值。
+
+見對話。
 
 ---
 
