@@ -186,7 +186,17 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 - 父層從 `selectedProperty.enum_options` 傳入
 - 切換屬性時清空 value（既有 `onPropertyChange`）
 
-### Q14 — 多選控件形態？（進行中）
+### Q14 — 多選控件形態？ ✅
+
+| 選項 | 形態 |
+|------|------|
+| **A. Checkbox 列表（已選）** | 依定義序；顯示 label、送出 value |
+| B. Native `<select multiple>` | UX 差 |
+| C. Tag／chip 挑選器 | v1 過重 |
+
+**決定：A。** `PropertyValueInput` 在 `propertyType === 'ENUM'` 時渲染 checkbox 列表；emit `string[]`（非空）；父層寫入 action.`value`。
+
+### Q15 — 停用（`active:false`）選項在列表怎麼顯示？（進行中）
 
 見對話。
 
