@@ -17,7 +17,7 @@ use Tests\TestCase;
 
 class EnumPropertyDiffTest extends TestCase
 {
-    private AgeGraphStateManager $graphManager;
+    private AgeGraphStateManager&Mockery\MockInterface $graphManager;
 
     private EnumPropertyDiff $diff;
 
@@ -25,7 +25,9 @@ class EnumPropertyDiffTest extends TestCase
     {
         parent::setUp();
 
-        $this->graphManager = Mockery::mock(AgeGraphStateManager::class);
+        /** @var AgeGraphStateManager&Mockery\MockInterface $graphManager */
+        $graphManager = Mockery::mock(AgeGraphStateManager::class);
+        $this->graphManager = $graphManager;
         $this->diff = new EnumPropertyDiff($this->graphManager, new PropertyValueCaster);
     }
 
@@ -95,8 +97,9 @@ class EnumPropertyDiffTest extends TestCase
             'value' => ['rock', 'pop'],
         ]);
 
-        $this->graphManager->shouldReceive('loadAgeVertexState')
-            ->with(42)
+        /** @var Mockery\Expectation $expectation */
+        $expectation = $this->graphManager->shouldReceive('loadAgeVertexState');
+        $expectation->with(42)
             ->andReturn([
                 'type_label' => 'person',
                 'property_values' => [
@@ -133,8 +136,9 @@ class EnumPropertyDiffTest extends TestCase
             'value' => ['rock'],
         ]);
 
-        $this->graphManager->shouldReceive('loadAgeVertexState')
-            ->with(7)
+        /** @var Mockery\Expectation $expectation */
+        $expectation = $this->graphManager->shouldReceive('loadAgeVertexState');
+        $expectation->with(7)
             ->andReturn([
                 'type_label' => 'person',
                 'property_values' => [
