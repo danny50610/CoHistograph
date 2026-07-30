@@ -47,7 +47,7 @@
 
 ### Q5 / Q5b — revision 編碼 ✅ → **B1 `value` → jsonb**
 
-純量＝JSON scalar；ENUM＝JSON array。既有 text 以 `to_jsonb(value)` 遷移。
+純量＝JSON scalar；ENUM＝JSON array。既有 text 先 `to_jsonb(value)`，再依 property schema 盡力把 INTEGER／FLOAT／BOOLEAN 升成原生 scalar。
 
 ### Q6 — 空陣列 ✅ → **A 禁止 `[]`**；清空＝`delete_*_property`
 
