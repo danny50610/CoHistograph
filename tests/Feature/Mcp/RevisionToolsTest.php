@@ -657,8 +657,8 @@ class RevisionToolsTest extends TestCase
         ])->assertOk();
 
         $actions = $revision->fresh()->actions()->orderBy('order')->get();
-        $this->assertSame('["a","b"]', $actions[1]->value);
-        $this->assertSame('42', $actions[2]->value);
+        $this->assertSame(['a', 'b'], $actions[1]->value);
+        $this->assertSame(42, $actions[2]->value);
     }
 
     private function graphLabel(): string
