@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q27 已鎖定（G4 修正含 -/+；G7 嚴格小寫）；進行 G8（Q28）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -287,7 +287,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G1 | **`value`→jsonb 後，既有純量怎麼存** | ✅ **B1**：原生 scalar；遷移盡力轉；讀取兼容 string｜native |
 | G2 | **圖資料顯示（Vertex／Edge show）** | ✅ **A**：labels「、」；未知 value → raw |
 | G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | ✅ **A**：與審核頁相同（共用 presenter） |
-| G4 | **option `value` 字元規則** | ✅ **A′**：`^[a-z0-9_+-]+$`，1–64（含 `-`、`+`） |
+| G4 | **option `value` 字元規則** | ✅ **A**：`^[a-z0-9_]+$`，1–64；不查保留字 |
 | G5 | **可否把所有 option 都停用（active 全 false）** | ✅ **B**：允許；失敗時明確說明「無啟用選項／已停用不可新選」 |
 
 ### 中（有明確預設可推，但未明示鎖定）
@@ -391,25 +391,16 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：A。** 共用 presenter；舊值即時讀 AGE（Q17）；同一頁可批次查圖。編輯列表摘要列（`Edit.vue` 一行 title）仍可用 Q16 labels；**卡片內文／詳情**用三行 diff。
 
-### Q23 — G4：option `value` 字元規則？ ✅
+### Q23 — G4：option `value` 字元規則？ ✅（後經修正）
 
 | 選項 | 規則 |
 |------|------|
-| **A. 同 age_property_name（已選）** | `^[a-z0-9_]+$`，長度 1–64 |
+| A. 同 age_property_name | 原 `^[a-z0-9_]+$` |
+| **A′. 另允許 `-`、`+`（已選）** | `^[a-z0-9_+-]+$`，長度 1–64 |
 | B. 任意非空白 Unicode | |
-| C. 另允許 `-` | |
+| C. 僅另允許 `-` | |
 
-**決定：A。** Form Request 驗證每個 `enum_options[].value`；**不**套 Cypher 保留字檢查（value 不是 property 名）。`label`：非空字串，允許 Unicode，建議另定合理上限（如 64／128，實作時可跟 name 欄對齊）。
-
-### Q23 — G4：option `value` 字元規則？ ✅
-
-| 選項 | 規則 |
-|------|------|
-| **A. 同 age_property_name（已選）** | `^[a-z0-9_]+$`，長度 1–64 |
-| B. 任意非空白 Unicode | |
-| C. 另允許 `-` | |
-
-**決定：A。** Form Request 驗證每個 `enum_options[].value`；**不**套 Cypher 保留字檢查（value 不是 property 名）。`label`：非空字串，允許 Unicode，建議另定合理上限（如 64／128，實作時可跟 name 欄對齊）。
+**決定：A′。** 小寫英文、數字、`_`、`-`、`+`；不套 Cypher 保留字檢查。
 
 ### Q24 — G5：可否將所有 option 都停用？ ✅
 
@@ -429,23 +420,29 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 ### Q25 — 中優先缺口是否繼續逐題收？ ✅
 
-**決定：A，繼續。** 下一題 G6。
-
-### Q25 — 中優先缺口是否繼續逐題收？ ✅
-
-**決定：A，繼續。** 下一題 G6。
+**決定：A，繼續。**
 
 ### Q26 — G6：不同 option 的 `label` 可否重複？ ✅
 
 | 選項 | 規則 |
 |------|------|
 | A. 允許重複 | |
-| **B. 同一 property 內 label 唯一（已選）** | 與 value 一樣不可重複 |
+| **B. 同一 property 內 label 唯一（已選）** | |
 | C. 允許重複但 UI 附 value | |
 
-**決定：B。** Form Request：`enum_options[].label` 在同一 property 內唯一。比對採**區分大小寫的精確字串相等**（不做 trim 以外的 Unicode 正規化；前後空白應 trim 後再比／再存）。
+**決定：B。** `label` trim 後在同一 property 內精確唯一（區分大小寫）。
 
-### Q27 — G7：`value` 大小寫是否敏感？（進行中）
+### Q27 — G7：`value` 大小寫是否敏感？ ✅
+
+| 選項 | 規則 |
+|------|------|
+| **A. 嚴格小寫（已選）** | 含大寫 → 驗證失敗，不自動 `strtolower` |
+| B. 寫入前強制小寫 | |
+| C. 比對忽略大小寫 | 否決 |
+
+**決定：A。** 與 G4 字元集一致；UI 提示僅限小寫與允許符號。
+
+### Q28 — G8：圖上出現不在 `enum_options` 的 orphan value 怎辦？（進行中）
 
 見對話。
 
