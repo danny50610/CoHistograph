@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：決策樹主幹 + Schema UI 已鎖定（Q1–Q13）；修訂 UI 進行中（Q14…）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q18 已鎖定（含審核 ENUM 差異）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -284,7 +284,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 4. Form Requests：ENUM 時驗證 `enum_options`、禁止 locale；非 ENUM 時 `enum_options` 必須 null
 5. 更新 property 時：停用／硬刪護欄（擴充 `AgePropertyDataChecker` 查 list 成員）
 6. `PropertyValueCaster` + `RevisionActionValidator` / `RevisionApplyService`：`mixed` value、ENUM 集合驗證與正規化
-7. `PropertyValueInput.vue`：multi-select；需 props 帶入 `enum_options`
+7. `PropertyValueInput.vue`：ENUM checkbox（B′）；`Edit.vue` 摘要 labels「、」；審核 `action-card` 現有／新增／移除（即時讀 AGE 差集）
 8. Schema Blade：共用 `property-enum-options-fields` partial（Vertex／Edge）；type=ENUM 時顯示；與 locale 聯動
 9. show／列表：呈現 options 與 active 狀態
 10. Topic（實作時）：掛上 Q11 operators
