@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q32 已鎖定（G12 延後）；待確認整份評估收斂（Q33）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -300,7 +300,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G9 | Schema Visualization／列表是否展示 options | ✅ **A**：不顯示（僅 ENUM badge） |
 | G10 | list 成員「是否被使用」AGE 查詢語意 | ✅ **A**：Cypher `$v IN prop` LIMIT 1；與 list spike 一併驗證 |
 | G11 | 同修訂 `create_vertex` ref 目標的審核 diff | ✅ **A**：現有（無）＋說明「本修訂新建，圖上尚無值」 |
-| G12 | MCP／對外讀取 ENUM | 回 value list 或 value+label |
+| G12 | MCP／對外讀取 ENUM | ✅ **C：先不處理**（不阻塞核心實作） |
 
 ### 低／實作細節（可不開題）
 
@@ -528,7 +528,29 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：A。** before＝∅；「現有」顯示「（無）」並附說明；「新增」＝全部 after；「移除」省略或「—」。
 
-### Q32 — G12：MCP／對外讀取 ENUM 回傳形狀？（進行中）
+### Q31 — G11：同修訂新建 ref 目標的 diff 文案？ ✅
+
+| 選項 | 文案 |
+|------|------|
+| **A. 現有（無）＋說明（已選）** | 小字：「此目標於本修訂新建，圖上尚無值」 |
+| B. 現有：— 不說明 | |
+| C. 只顯示新增列 | |
+
+**決定：A。** before＝∅；「現有」顯示「（無）」並附說明；「新增」＝全部 after；「移除」省略或「—」。
+
+### Q32 — G12：MCP／對外讀取 ENUM 回傳形狀？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| A. value list + schema 帶 enum_options | |
+| B. 值用 value+label 物件 | |
+| **C. 先不處理（已選）** | v1 評估不鎖定 MCP 形狀 |
+
+**決定：C。** 留給 MCP／對外 API 實作或後續評估；本文件不阻塞 ENUM 核心實作。搜尋仍可維持既有 STRING-only，直到另開題。
+
+### 中優先缺口 G6–G12 已收斂（G12 延後）。
+
+### Q33 — 低優先／整份評估是否收斂？（進行中）
 
 見對話。
 
