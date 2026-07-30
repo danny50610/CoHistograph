@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：決策樹主幹已鎖定（Q1–Q12）；Schema UI 剩餘 Q13…。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：決策樹主幹 + Schema UI 已鎖定並收斂（Q1–Q13）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
