@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q24 已鎖定（高優先 G1–G5 完成）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -288,7 +288,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G2 | **圖資料顯示（Vertex／Edge show）** | ✅ **A**：labels「、」；未知 value → raw |
 | G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | ✅ **A**：與審核頁相同（共用 presenter） |
 | G4 | **option `value` 字元規則** | ✅ **A**：`^[a-z0-9_]+$`，1–64；不查保留字 |
-| G5 | **可否把所有 option 都停用（active 全 false）** | 仍 ≥1 列，但 0 個可新選；create 永遠失敗，只剩祖父 update |
+| G5 | **可否把所有 option 都停用（active 全 false）** | ✅ **B**：允許；失敗時明確說明「無啟用選項／已停用不可新選」 |
 
 ### 中（有明確預設可推，但未明示鎖定）
 
@@ -401,7 +401,33 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：A。** Form Request 驗證每個 `enum_options[].value`；**不**套 Cypher 保留字檢查（value 不是 property 名）。`label`：非空字串，允許 Unicode，建議另定合理上限（如 64／128，實作時可跟 name 欄對齊）。
 
-### Q24 — G5：可否將所有 option 都停用？（進行中）
+### Q23 — G4：option `value` 字元規則？ ✅
+
+| 選項 | 規則 |
+|------|------|
+| **A. 同 age_property_name（已選）** | `^[a-z0-9_]+$`，長度 1–64 |
+| B. 任意非空白 Unicode | |
+| C. 另允許 `-` | |
+
+**決定：A。** Form Request 驗證每個 `enum_options[].value`；**不**套 Cypher 保留字檢查（value 不是 property 名）。`label`：非空字串，允許 Unicode，建議另定合理上限（如 64／128，實作時可跟 name 欄對齊）。
+
+### Q24 — G5：可否將所有 option 都停用？ ✅
+
+| 選項 | 規則 |
+|------|------|
+| A. 禁止全停用 | 至少 1 個 active |
+| **B. 允許全停用（已選）** | 可 0 個 active；並**清楚解釋**後續失敗原因 |
+| C. 全停用當凍結屬性（專用錯誤碼） | 近於 B＋文案 |
+
+**決定：B。** Schema 允許全部 `active:false`。修訂驗證失敗時必須說明原因，例如：
+
+- create／update 若需要**新引入**某值但該值 inactive，或目前 **没有任何 active option 可選**且提出的 list 無法只靠祖父條款滿足 → 錯誤訊息明示：  
+  「此 ENUM 屬性目前沒有可選的啟用選項」／「選項「X」已停用，不可新選」  
+- 前端 checkbox：全停用且無 eligibleInactive 時，顯示提示文案，避免只剩空白必填失敗
+
+### 高優先缺口 G1–G5 已收斂。
+
+### Q25 — 中優先缺口是否繼續逐題收？（進行中）
 
 見對話。
 
