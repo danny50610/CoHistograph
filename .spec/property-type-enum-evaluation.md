@@ -233,11 +233,21 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 | modelValue | ✅ ENUM 為 `string[]`；props 帶 `enumOptions` |
 | 審核差異 | ⏳ 要顯示多了／少了哪些 enum（進行中） |
 
-### Q17 — 審核頁 ENUM「變更前」從哪來？（進行中）
+### Q17 — 審核頁 ENUM「變更前」從哪來？ ✅
 
-需求：後台審核（`admin/revisions/show` → `action-card`）對 ENUM 要能看出 **新增了哪些／移除了哪些**，不能只顯示新的完整 list。
+| 選項 | 做法 |
+|------|------|
+| **A. 審核頁即時讀 AGE（已選）** | 查圖上現有 list，與 action.value 做差集 |
+| B. 快照 `previous_value` | 作者編輯當下基準 |
+| C. 不顯示增減 | 否決 |
 
-現況：`action-card` 僅 `= {value}`，無舊值；update 也不預載 AGE 現值。
+**決定：A。**  
+- create：before＝∅ → 全部為「新增」  
+- delete：after＝∅ → 全部為「移除」（before 從 AGE 讀）  
+- update：added = after − before，removed = before − after（集合差；順序無關）  
+- 讀取失敗／target 為同修訂新建 ref：before 視為 ∅ 或標「尚無圖上值」（實作時對 ref 目標明確處理）
+
+### Q18 — 增減 diff 怎麼呈現？（進行中）
 
 見對話。
 
