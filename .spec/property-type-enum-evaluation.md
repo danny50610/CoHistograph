@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q22 已鎖定（G1–G3 完成）；進行 G4（Q23）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -272,7 +272,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | 摘要（編輯列表） | ✅ labels「、」 |
 | modelValue | ✅ `string[]` + `enumOptions` |
 | 審核舊值 | ✅ 即時讀 AGE |
-| 審核 diff | ✅ 現有／新增／移除三行 |
+| 審核／作者 diff | ✅ 現有／新增／移除三行（G3） |
 
 ---
 
