@@ -31,12 +31,12 @@ class AgeGraphStateManager
     private array $edgeTypeByLabel = [];
 
     /**
-     * @var array<int, array{exists:bool,type_label:string,properties:array<string,bool>}>
+     * @var array<int, array{exists:bool,type_label:string,properties:array<string,bool>,property_values:array<string, mixed>}>
      */
     private array $ageVertexCache = [];
 
     /**
-     * @var array<int, array{exists:bool,type_label:string,start:int,end:int,properties:array<string,bool>}>
+     * @var array<int, array{exists:bool,type_label:string,start:int,end:int,properties:array<string,bool>,property_values:array<string, mixed>}>
      */
     private array $ageEdgeCache = [];
 
@@ -74,7 +74,7 @@ class AgeGraphStateManager
     /**
      * 取得所有已加載的 Age Vertex 狀態
      *
-     * @return array<int, array{exists:bool,type_label:string,properties:array<string,bool>}>
+     * @return array<int, array{exists:bool,type_label:string,properties:array<string,bool>,property_values:array<string, mixed>}>
      */
     public function getAllLoadedVertexStates(): array
     {
@@ -84,7 +84,7 @@ class AgeGraphStateManager
     /**
      * 取得所有已加載的 Age Edge 狀態
      *
-     * @return array<int, array{exists:bool,type_label:string,start:int,end:int,properties:array<string,bool>}>
+     * @return array<int, array{exists:bool,type_label:string,start:int,end:int,properties:array<string,bool>,property_values:array<string, mixed>}>
      */
     public function getAllLoadedEdgeStates(): array
     {
@@ -92,7 +92,7 @@ class AgeGraphStateManager
     }
 
     /**
-     * @return array{exists:bool,type_label:string,properties:array<string,bool>}
+     * @return array{exists:bool,type_label:string,properties:array<string,bool>,property_values:array<string, mixed>}
      */
     public function loadAgeVertexState(int $vertexId): array
     {
@@ -112,6 +112,7 @@ class AgeGraphStateManager
                 'exists' => false,
                 'type_label' => '',
                 'properties' => [],
+                'property_values' => [],
             ];
             $this->ageVertexCache[$vertexId] = $cached;
 
@@ -120,14 +121,19 @@ class AgeGraphStateManager
 
         $vertex = $record->v;
         $properties = [];
+        $propertyValues = [];
         foreach ($this->normalizeProperties($vertex->properties ?? []) as $name => $value) {
             $properties[$name] = ! is_null($value);
+            if (! is_null($value)) {
+                $propertyValues[$name] = $value;
+            }
         }
 
         $cached = [
             'exists' => true,
             'type_label' => (string) $vertex->label,
             'properties' => $properties,
+            'property_values' => $propertyValues,
         ];
 
         $this->ageVertexCache[$vertexId] = $cached;
@@ -136,7 +142,7 @@ class AgeGraphStateManager
     }
 
     /**
-     * @return array{exists:bool,type_label:string,start:int,end:int,properties:array<string,bool>}
+     * @return array{exists:bool,type_label:string,start:int,end:int,properties:array<string,bool>,property_values:array<string, mixed>}
      */
     public function loadAgeEdgeState(int $edgeId): array
     {
@@ -160,6 +166,7 @@ class AgeGraphStateManager
                 'start' => 0,
                 'end' => 0,
                 'properties' => [],
+                'property_values' => [],
             ];
             $this->ageEdgeCache[$edgeId] = $cached;
 
@@ -171,8 +178,12 @@ class AgeGraphStateManager
         $end = $record->t;
 
         $properties = [];
+        $propertyValues = [];
         foreach ($this->normalizeProperties($edge->properties ?? []) as $name => $value) {
             $properties[$name] = ! is_null($value);
+            if (! is_null($value)) {
+                $propertyValues[$name] = $value;
+            }
         }
 
         $startId = (int) $start->id;
@@ -184,6 +195,7 @@ class AgeGraphStateManager
             'start' => $startId,
             'end' => $endId,
             'properties' => $properties,
+            'property_values' => $propertyValues,
         ];
 
         $this->ageEdgeCache[$edgeId] = $cached;

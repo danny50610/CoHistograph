@@ -2,7 +2,7 @@
 
 ## 現況
 
-`PropertyType` enum（`app/Enums/PropertyType.php`）定義屬性型別。目前共 **7** 種：
+`PropertyType` enum（`app/Enums/PropertyType.php`）定義屬性型別。目前共 **8** 種：
 
 | Enum case | 儲存值 | AGE 實際型別 | PHP 讀出型別 |
 |-----------|--------|--------------|--------------|
@@ -13,8 +13,9 @@
 | `Date` | `DATE` | **agtype string**（`Y-m-d`） | `Carbon\CarbonImmutable` |
 | `MonthDay` | `MONTH_DAY` | **agtype string**（`m-d`，如 `07-22`） | `Carbon\CarbonImmutable`（sentinel year `2000`） |
 | `Timestamptz` | `TIMESTAMPTZ` | **agtype string**（ISO-8601 + offset） | `Carbon\CarbonImmutable` |
+| `Enum` | `ENUM` | **agtype list of string**（option `value`） | `list<string>` |
 
-`DATE` 對應完整日期；`MONTH_DAY` 只存月日（週年／紀念日等，不綁年份）；`TIMESTAMPTZ` 為帶時區的時間點。
+`DATE` 對應完整日期；`MONTH_DAY` 只存月日（週年／紀念日等，不綁年份）；`TIMESTAMPTZ` 為帶時區的時間點；`ENUM` 為多選預定義選項（詳見 `.spec/property-type-enum-evaluation.md`）。
 
 ## 字串儲存／讀出轉換
 
@@ -38,7 +39,14 @@
 
 修訂編輯 UI（`resources/js/Pages/Revisions/Partials/PropertyValueInput.vue`）依型別切換輸入元件，仍寫入上述字串格式。
 
-`revision_actions.value` 仍為 text；型別轉換發生在驗證／套用／讀取顯示時，不靠 Eloquent cast。
+`revision_actions.value` 為 **jsonb**（Eloquent `json` cast）：純量依型別為原生 number／bool／string；`ENUM` 為非空 string array。型別驗證與 AGE 轉換在 `PropertyValueCaster`／`RevisionActionValidator`／`RevisionApplyService`。
+
+## ENUM
+
+- Schema：`vertex_properties`／`edge_properties.enum_options` JSON：`[{value, label, active}, …]`
+- AGE：list of option `value`；禁止空陣列（清空＝delete property）
+- 不可設 `locale`；停用選項採祖父條款
+- 修訂 UI：`PropertyValueInput` checkbox 多選；摘要／資料頁以 labels「、」顯示
 
 ## Apache AGE driver 是否需要修改？
 

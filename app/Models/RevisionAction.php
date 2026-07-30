@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $end_vertex_age_id
  * @property int|null $end_vertex_ref_order
  * @property string|null $age_property_name
- * @property string|null $value
+ * @property array<int, mixed>|string|int|float|bool|null $value
  */
 class RevisionAction extends Model
 {
@@ -51,6 +51,7 @@ class RevisionAction extends Model
             'target_age_id' => 'string',
             'start_vertex_age_id' => 'string',
             'end_vertex_age_id' => 'string',
+            'value' => 'json',
         ];
     }
 

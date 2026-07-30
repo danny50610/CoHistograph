@@ -170,6 +170,7 @@ class RevisionValidationService
                 'start_key' => 'age:'.$state['start'],
                 'end_key' => 'age:'.$state['end'],
                 'properties' => $state['properties'],
+                'property_values' => $state['property_values'],
             ]);
         }
 

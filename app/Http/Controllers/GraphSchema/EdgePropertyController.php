@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\GraphSchema;
 
+use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GraphSchema\StoreEdgePropertyRequest;
 use App\Http\Requests\GraphSchema\UpdateEdgePropertyRequest;
 use App\Models\EdgeProperty;
 use App\Models\EdgeType;
 use App\Support\AgePropertyDataChecker;
+use App\Support\EnumOptions;
 
 class EdgePropertyController extends Controller
 {
@@ -30,13 +32,15 @@ class EdgePropertyController extends Controller
     public function store(StoreEdgePropertyRequest $request, EdgeType $edgeType)
     {
         $validated = $request->validated();
+        $isEnum = ($validated['age_property_type'] ?? null) === PropertyType::Enum->value;
 
         $edgeProperty = new EdgeProperty([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
             'age_property_name' => $validated['resolved_age_property_name'],
             'age_property_type' => $validated['age_property_type'],
-            'locale' => $validated['locale'],
+            'locale' => $isEnum ? null : ($validated['locale'] ?? null),
+            'enum_options' => $request->enumOptionsForStorage(),
         ]);
         $edgeProperty->edgeType()->associate($edgeType);
         $edgeProperty->save();
@@ -48,19 +52,39 @@ class EdgePropertyController extends Controller
     public function edit(EdgeType $edgeType, EdgeProperty $edgeProperty)
     {
         $agePropertyNameLocked = $this->agePropertyDataChecker->edgePropertyHasData($edgeType, $edgeProperty);
+        $usedEnumValues = [];
 
-        return view('graph-schema.edge-property.create-or-edit', compact('edgeType', 'edgeProperty', 'agePropertyNameLocked'));
+        if ($edgeProperty->age_property_type === PropertyType::Enum) {
+            $usedEnumValues = $this->agePropertyDataChecker->usedEdgeEnumValues(
+                $edgeType,
+                $edgeProperty,
+                EnumOptions::values(EnumOptions::normalize($edgeProperty->enum_options)),
+            );
+        }
+
+        return view('graph-schema.edge-property.create-or-edit', compact(
+            'edgeType',
+            'edgeProperty',
+            'agePropertyNameLocked',
+            'usedEnumValues',
+        ));
     }
 
     public function update(UpdateEdgePropertyRequest $request, EdgeType $edgeType, EdgeProperty $edgeProperty)
     {
         $validated = $request->validated();
+        $type = PropertyType::from((string) ($validated['age_property_type'] ?? $edgeProperty->age_property_type->value));
 
         $attributes = [
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
-            'age_property_type' => $validated['age_property_type'],
+            'age_property_type' => $type,
+            'enum_options' => $type === PropertyType::Enum ? $request->enumOptionsForStorage() : null,
         ];
+
+        if ($type === PropertyType::Enum) {
+            $attributes['locale'] = null;
+        }
 
         if (! $request->agePropertyNameLocked()) {
             $attributes['age_property_name'] = $validated['resolved_age_property_name'];

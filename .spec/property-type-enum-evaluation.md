@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：評估已收斂（Q1–Q33）；實作進行中。** AGE list round-trip spike：本環境無 AGE（pgsql-age connection refused），依 driver `SetClause`／JSON 參數編碼實作；待有 AGE 環境再驗證 `$v IN prop` 與 list write/read。
 
 ---
 

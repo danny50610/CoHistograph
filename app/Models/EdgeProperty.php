@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $age_property_name
  * @property \App\Enums\PropertyType $age_property_type
  * @property string|null $locale
+ * @property list<array{value: string, label: string, active: bool}>|null $enum_options
  */
 class EdgeProperty extends Model
 {
@@ -25,12 +26,14 @@ class EdgeProperty extends Model
         'age_property_name',
         'age_property_type',
         'locale',
+        'enum_options',
     ];
 
     protected function casts(): array
     {
         return [
             'age_property_type' => PropertyType::class,
+            'enum_options' => 'array',
         ];
     }
 

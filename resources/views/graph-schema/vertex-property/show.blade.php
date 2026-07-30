@@ -39,6 +39,42 @@
 
                     <dt class="col-md-2">Property Type</dt>
                     <dd class="col-md-10">{{ $vertexProperty->age_property_type }}</dd>
+
+                    @if ($vertexProperty->age_property_type === \App\Enums\PropertyType::Enum)
+                        <dt class="col-md-2">ENUM 選項</dt>
+                        <dd class="col-md-10">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Value</th>
+                                            <th scope="col">Label</th>
+                                            <th scope="col">狀態</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($vertexProperty->enum_options ?? [] as $option)
+                                            <tr>
+                                                <td><code>{{ $option['value'] }}</code></td>
+                                                <td>{{ $option['label'] }}</td>
+                                                <td>
+                                                    @if ($option['active'])
+                                                        <span class="badge text-bg-success">啟用</span>
+                                                    @else
+                                                        <span class="badge text-bg-secondary">停用</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="text-body-secondary">尚無選項</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </dd>
+                    @endif
                 </dl>
             </div>
         </div>

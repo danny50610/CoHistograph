@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\GraphSchema;
 
+use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GraphSchema\StoreVertexPropertyRequest;
 use App\Http\Requests\GraphSchema\UpdateVertexPropertyRequest;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use App\Support\AgePropertyDataChecker;
+use App\Support\EnumOptions;
 use App\Support\LocalizedPropertyName;
 
 class VertexPropertyController extends Controller
@@ -31,13 +33,15 @@ class VertexPropertyController extends Controller
     public function store(StoreVertexPropertyRequest $request, VertexType $vertexType)
     {
         $validated = $request->validated();
+        $isEnum = ($validated['age_property_type'] ?? null) === PropertyType::Enum->value;
 
         $vertexProperty = new VertexProperty([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
             'age_property_name' => $validated['resolved_age_property_name'],
             'age_property_type' => $validated['age_property_type'],
-            'locale' => $validated['locale'],
+            'locale' => $isEnum ? null : ($validated['locale'] ?? null),
+            'enum_options' => $request->enumOptionsForStorage(),
         ]);
         $vertexProperty->vertexType()->associate($vertexType);
         $vertexProperty->save();
@@ -49,19 +53,39 @@ class VertexPropertyController extends Controller
     public function edit(VertexType $vertexType, VertexProperty $vertexProperty)
     {
         $agePropertyNameLocked = $this->agePropertyDataChecker->vertexPropertyHasData($vertexType, $vertexProperty);
+        $usedEnumValues = [];
 
-        return view('graph-schema.vertex-property.create-or-edit', compact('vertexType', 'vertexProperty', 'agePropertyNameLocked'));
+        if ($vertexProperty->age_property_type === PropertyType::Enum) {
+            $usedEnumValues = $this->agePropertyDataChecker->usedVertexEnumValues(
+                $vertexType,
+                $vertexProperty,
+                EnumOptions::values(EnumOptions::normalize($vertexProperty->enum_options)),
+            );
+        }
+
+        return view('graph-schema.vertex-property.create-or-edit', compact(
+            'vertexType',
+            'vertexProperty',
+            'agePropertyNameLocked',
+            'usedEnumValues',
+        ));
     }
 
     public function update(UpdateVertexPropertyRequest $request, VertexType $vertexType, VertexProperty $vertexProperty)
     {
         $validated = $request->validated();
+        $type = PropertyType::from((string) ($validated['age_property_type'] ?? $vertexProperty->age_property_type->value));
 
         $attributes = [
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
-            'age_property_type' => $validated['age_property_type'],
+            'age_property_type' => $type,
+            'enum_options' => $type === PropertyType::Enum ? $request->enumOptionsForStorage() : null,
         ];
+
+        if ($type === PropertyType::Enum) {
+            $attributes['locale'] = null;
+        }
 
         if (! $request->agePropertyNameLocked()) {
             $oldAgePropertyName = $vertexProperty->age_property_name;

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\GraphSchema;
 
 use App\Enums\PropertyType;
+use App\Http\Requests\GraphSchema\Concerns\ValidatesEnumOptionsOnUpdate;
 use App\Models\VertexProperty;
 use App\Models\VertexType;
 use App\Rules\GraphSchema\AgePropertyName;
@@ -12,9 +13,12 @@ use App\Support\AgePropertyDataChecker;
 use App\Support\LocalizedPropertyName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateVertexPropertyRequest extends FormRequest
 {
+    use ValidatesEnumOptionsOnUpdate;
+
     private bool $agePropertyNameLocked = true;
 
     public function authorize(): bool
@@ -80,6 +84,11 @@ class UpdateVertexPropertyRequest extends FormRequest
             'locale' => ['prohibited'],
         ];
 
+        $rules = array_merge(
+            $rules,
+            $this->enumOptionsUpdateRules($this->agePropertyNameLocked, $vertexProperty->age_property_type),
+        );
+
         if ($this->agePropertyNameLocked) {
             $rules['age_property_name'] = ['prohibited'];
             $rules['base_age_property_name'] = ['prohibited'];
@@ -117,6 +126,21 @@ class UpdateVertexPropertyRequest extends FormRequest
         ];
 
         return $rules;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        /** @var VertexType $vertexType */
+        $vertexType = $this->route('vertex_type');
+        /** @var VertexProperty $vertexProperty */
+        $vertexProperty = $this->route('vertex_property');
+
+        $this->withEnumOptionsUpdateValidator(
+            $validator,
+            static fn () => $vertexProperty,
+            $this->resolveVertexEnumValueInUseChecker($vertexType, $vertexProperty),
+            $this->agePropertyNameLocked,
+        );
     }
 
     public function agePropertyNameLocked(): bool
