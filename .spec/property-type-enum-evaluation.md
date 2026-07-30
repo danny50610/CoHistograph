@@ -196,9 +196,11 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 **決定：A。** `PropertyValueInput` 在 `propertyType === 'ENUM'` 時渲染 checkbox 列表；emit `string[]`（非空）；父層寫入 action.`value`。
 
-### Q15 — 停用（`active:false`）選項在列表怎麼顯示？（進行中）
+### Q15 — 停用選項顯示／復原？（進行中，已納入復原問題）
 
-見對話。
+問題：若 inactive 取消勾選後立刻從列表移除，同一次編輯無法再勾回。
+
+見對話（修正方案）。
 
 ---
 
