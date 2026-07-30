@@ -100,8 +100,6 @@
 
 ---
 
----
-
 ## Schema UI：Vertex / Edge Property 介面（進行中）
 
 Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對稱），差異只在 route／model。
@@ -140,6 +138,23 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 ### Q12 — 選項編輯器 UI 形態？（進行中）
 
 見對話。
+
+---
+
+## 實作觸點
+
+1. `App\Enums\PropertyType` 新增 `Enum = 'ENUM'`
+2. migration：`vertex_properties` / `edge_properties` 加 `enum_options`（json nullable）
+3. migration：`revision_actions.value` text → jsonb + 資料轉換
+4. Form Requests：ENUM 時驗證 `enum_options`、禁止 locale；非 ENUM 時 `enum_options` 必須 null
+5. 更新 property 時：停用／硬刪護欄（擴充 `AgePropertyDataChecker` 查 list 成員）
+6. `PropertyValueCaster` + `RevisionActionValidator` / `RevisionApplyService`：`mixed` value、ENUM 集合驗證與正規化
+7. `PropertyValueInput.vue`：multi-select；需 props 帶入 `enum_options`
+8. Schema Blade：共用 `property-enum-options-fields` partial（Vertex／Edge）；type=ENUM 時顯示；與 locale 聯動
+9. show／列表：呈現 options 與 active 狀態
+10. Topic（實作時）：掛上 Q11 operators
+11. 更新 `.spec/property-types.md`、`.spec/revision.md`、本文件
+12. **先做** AGE list write/read spike（driver）
 
 ## 成功標準（實作 PR）
 
