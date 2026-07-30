@@ -100,19 +100,46 @@
 
 ---
 
-## 實作觸點
+---
 
-1. `App\Enums\PropertyType` 新增 `Enum = 'ENUM'`
-2. migration：`vertex_properties` / `edge_properties` 加 `enum_options`（json nullable）
-3. migration：`revision_actions.value` text → jsonb + 資料轉換
-4. Form Requests：ENUM 時驗證 `enum_options`、禁止 locale；非 ENUM 時 `enum_options` 必須 null
-5. 更新 property 時：停用／硬刪護欄（擴充 `AgePropertyDataChecker` 查 list 成員）
-6. `PropertyValueCaster` + `RevisionActionValidator` / `RevisionApplyService`：`mixed` value、ENUM 集合驗證與正規化
-7. `PropertyValueInput.vue`：multi-select；需 props 帶入 `enum_options`（含 inactive 顯示規則）
-8. Schema Blade：ENUM 時編輯 options（value/label/active）
-9. Topic（實作時）：掛上 Q11 operators
-10. 更新 `.spec/property-types.md`、`.spec/revision.md`、本文件
-11. **先做** AGE list write/read spike（driver）
+## Schema UI：Vertex / Edge Property 介面（進行中）
+
+Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對稱），差異只在 route／model。
+
+### 既有畫面
+
+- 新增／編輯：`graph-schema/{vertex|edge}-property/create-or-edit.blade.php`
+- 目前欄位：名稱、描述、locale／age_property_name、`age_property_type` select
+- 詳情：`show.blade.php` 僅顯示 type 字串，尚無 options
+
+### 使用流程（依已鎖定決策推導）
+
+```text
+選 Property Type
+  ├─ 非 ENUM → 隱藏選項區；locale 維持現況
+  └─ ENUM
+        ├─ 語言版本強制「非多語系」（禁用 locale select；Q8）
+        └─ 顯示「選項 enum_options」編輯區
+              每列：value | label | 使用中(active) | 操作
+```
+
+| 操作 | 行為 |
+|------|------|
+| 新增 option | 加一列；`active` 預設 true；`value` 在儲存前可改 |
+| 改 label | 永遠可 |
+| 停用 | `active=false`；之後修訂不可**新選**（祖父條款） |
+| 重新啟用 | `active=true` |
+| 刪除列（硬刪） | 僅當 AGE 無人使用該 `value`；否則按鈕 disabled + 說明 |
+| 已寫入圖的 `value` | 編輯時 **value 輸入框鎖定**（改 value＝更名，需走硬刪護欄；避免誤改 key） |
+| 儲存 | `ENUM` ⇒ `enum_options` 必填且 ≥1；非 `ENUM` ⇒ `enum_options` 必須 null |
+| 詳情頁 | 表格列出 value／label／狀態（使用中／已停用） |
+| 列表 badge | 既有 `ENUM` type badge；可選加「N 個選項」 |
+
+修訂頁（`PropertyValueInput`）不在本節；該處為 **multi-select**，選項來自 schema 的 `enum_options`（active 可選；inactive 僅若已在圖上才顯示為已選且不可新勾）。
+
+### Q12 — 選項編輯器 UI 形態？（進行中）
+
+見對話。
 
 ## 成功標準（實作 PR）
 
