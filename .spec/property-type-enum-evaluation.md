@@ -570,6 +570,42 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 ## 評估結論：已收斂，進入實作
 
+## 後續增量：ENUM 選取數量上下限（進行中）
+
+### Q34 — min／max 約束語意？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| A. Schema：`min ≤ \|可使用選項\| ≤ max` | 無法「10 選 2」 |
+| **B. 修訂選取值：`min ≤ \|selected\| ≤ max`（已選）** | 另要求 schema 側 `|active| ≥ min`（否則 create 無解）；實質上界 `min(max, \|usable\|)` |
+
+**決定：B。**
+
+- 欄位：`vertex_properties`／`edge_properties` 的 `min_selections`／`max_selections`（nullable int）
+- 非 ENUM：兩欄必須 null
+- 修訂驗證：`min ≤ count(selected) ≤ max`（`max` 為 null 則不設上限）
+- Schema 儲存時：`min ≤ |active options|`（若設了 min）；**不**要求 `|active| ≤ max`
+
+### Q35 — 修改 schema 時是否檢查既有圖資料？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| **A. 不檢查（已選）** | 改 min／max／停用 options 不掃 AGE；既有 list 可暫時「違規」 |
+| B. 檢查並拒絕讓現況變違規的變更 | |
+
+**決定：A。**  
+既有圖上值若已超出新 max、或少於新 min：不擋 schema 儲存；之後对该 property 的 **create／update 修訂**才依新約束驗證（失敗訊息明示數量上下限）。delete 仍可清掉。
+
+### 仍待鎖定（建議下一題）
+
+| # | 主題 | 可推預設 |
+|---|------|----------|
+| G13 | `min_selections`／`max_selections` 預設 | min 預設 1（對齊禁止 `[]`）；max 預設 null＝不限 |
+| G14 | Schema：停用後 `|active| < min` 是否拒存 | 拒存（與「\|active\| ≥ min」一致）vs 允許存、修訂再爆 |
+| G15 | `min`／`max` 數字範圍 | min ≥ 1；有 max 時 min ≤ max；合理上限（如 ≤ option 數或固定 64） |
+
+---
+
 ## 實作觸點
 
 1. `App\Enums\PropertyType` 新增 `Enum = 'ENUM'`
