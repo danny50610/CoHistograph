@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q18 已鎖定（含審核 ENUM 差異）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q18 已鎖定；缺口盤點中（Q19…）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -100,7 +100,7 @@
 
 ---
 
-## Schema UI：Vertex / Edge Property 介面（進行中）
+## Schema UI：Vertex / Edge Property 介面
 
 Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對稱），差異只在 route／model。
 
@@ -173,7 +173,7 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 ---
 
-## 修訂 UI：PropertyValueInput multi-select（進行中）
+## 修訂 UI：PropertyValueInput 與審核差異
 
 現況：
 - `PropertyValueInput.vue` 依 `propertyType` 切換；`modelValue` 為 **string｜number｜null**，emit 字串
