@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q26 已鎖定；進行 G7（Q27）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -294,7 +294,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 | # | 主題 | 暫定可推方向（未鎖定） |
 |---|------|------------------------|
-| G6 | label 是否允許重複 | value 唯一即可；label 重複允許 |
+| G6 | label 是否允許重複 | ✅ **B**：同一 property 內 label 唯一（trim 後精確比對） |
 | G7 | value 大小寫是否敏感 | 敏感（`Rock` ≠ `rock`） |
 | G8 | 圖上出現不在 `enum_options` 的 orphan value | 顯示 raw；update 不可保留？或當祖父？ |
 | G9 | Schema Visualization／列表是否展示 options | 僅 type badge vs 展開 options |
@@ -431,7 +431,21 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：A，繼續。** 下一題 G6。
 
-### Q26 — G6：不同 option 的 `label` 可否重複？（進行中）
+### Q25 — 中優先缺口是否繼續逐題收？ ✅
+
+**決定：A，繼續。** 下一題 G6。
+
+### Q26 — G6：不同 option 的 `label` 可否重複？ ✅
+
+| 選項 | 規則 |
+|------|------|
+| A. 允許重複 | |
+| **B. 同一 property 內 label 唯一（已選）** | 與 value 一樣不可重複 |
+| C. 允許重複但 UI 附 value | |
+
+**決定：B。** Form Request：`enum_options[].label` 在同一 property 內唯一。比對採**區分大小寫的精確字串相等**（不做 trim 以外的 Unicode 正規化；前後空白應 trim 後再比／再存）。
+
+### Q27 — G7：`value` 大小寫是否敏感？（進行中）
 
 見對話。
 
