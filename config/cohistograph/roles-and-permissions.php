@@ -10,6 +10,7 @@ return [
                 'role.manage',
                 'graph-schema.manage',
                 'revision.review',
+                'faq.manage',
             ],
         ],
     ],
@@ -29,6 +30,10 @@ return [
         'revision.review' => [
             'display_name' => '審核修訂',
             'description' => '審核、接受或退回使用者提交的修訂',
+        ],
+        'faq.manage' => [
+            'display_name' => '管理常見問題',
+            'description' => '新增、修改、刪除網站常見問題',
         ],
     ],
 ];
