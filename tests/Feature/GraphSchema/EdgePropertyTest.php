@@ -307,11 +307,11 @@ class EdgePropertyTest extends TestCase
 
         DB::connection(config('cohistograph.app.graph.connection-name'))
             ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
-                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                return $builder->createNode('a', $edgeType->vertexPairs->first()->startVertex->age_label_name)
                     ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name, [
                         $edgeProperty->age_property_name => 'in_use',
                     ])
-                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->withCreateNode('b', $edgeType->vertexPairs->first()->endVertex->age_label_name)
                     ->setAs(['e']);
             })->get();
 
@@ -372,11 +372,11 @@ class EdgePropertyTest extends TestCase
 
         DB::connection(config('cohistograph.app.graph.connection-name'))
             ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
-                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                return $builder->createNode('a', $edgeType->vertexPairs->first()->startVertex->age_label_name)
                     ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name, [
                         $edgeProperty->age_property_name => 'in_use',
                     ])
-                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->withCreateNode('b', $edgeType->vertexPairs->first()->endVertex->age_label_name)
                     ->setAs(['e']);
             })->get();
 
@@ -440,11 +440,11 @@ class EdgePropertyTest extends TestCase
 
         DB::connection(config('cohistograph.app.graph.connection-name'))
             ->apacheAgeCypher(config('cohistograph.app.graph.name'), function (AgeQueryBuilder $builder) use ($edgeType, $edgeProperty) {
-                return $builder->createNode('a', $edgeType->startVertex->age_label_name)
+                return $builder->createNode('a', $edgeType->vertexPairs->first()->startVertex->age_label_name)
                     ->withCreateEdge(Direction::RIGHT, 'e', $edgeType->age_label_name, [
                         $edgeProperty->age_property_name => 'in_use',
                     ])
-                    ->withCreateNode('b', $edgeType->endVertex->age_label_name)
+                    ->withCreateNode('b', $edgeType->vertexPairs->first()->endVertex->age_label_name)
                     ->setAs(['e']);
             })->get();
 

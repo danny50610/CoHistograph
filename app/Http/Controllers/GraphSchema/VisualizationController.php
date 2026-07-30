@@ -27,23 +27,33 @@ class VisualizationController extends Controller
             'url' => route('graph-schema.vertex-type.show', $vt),
         ]);
 
-        $edgeTypeList = EdgeType::with(['properties', 'startVertex', 'endVertex'])->orderBy('id')->get()->map(fn (EdgeType $et) => [
-            'id' => $et->id,
-            'name' => $et->name,
-            'reverse_name' => $et->reverse_name,
-            'age_label_name' => $et->age_label_name,
-            'description' => $et->description,
-            'start_vertex_id' => $et->start_vertex_id,
-            'end_vertex_id' => $et->end_vertex_id,
-            'start_vertex_name' => $et->startVertex?->name,
-            'end_vertex_name' => $et->endVertex?->name,
-            'properties' => $et->properties->map(fn (EdgeProperty $p) => [
-                'name' => $p->name,
-                'age_property_name' => $p->age_property_name,
-                'age_property_type' => $p->age_property_type,
-            ]),
-            'url' => route('graph-schema.edge-type.show', $et),
-        ]);
+        $edgeTypeList = [];
+        $edgeTypes = EdgeType::with(['properties', 'vertexPairs.startVertex', 'vertexPairs.endVertex'])
+            ->orderBy('id')
+            ->get();
+
+        foreach ($edgeTypes as $et) {
+            foreach ($et->vertexPairs as $pair) {
+                $edgeTypeList[] = [
+                    'id' => $et->id.'-'.$pair->id,
+                    'edge_type_id' => $et->id,
+                    'name' => $et->name,
+                    'reverse_name' => $et->reverse_name,
+                    'age_label_name' => $et->age_label_name,
+                    'description' => $et->description,
+                    'start_vertex_id' => $pair->start_vertex_id,
+                    'end_vertex_id' => $pair->end_vertex_id,
+                    'start_vertex_name' => $pair->startVertex?->name,
+                    'end_vertex_name' => $pair->endVertex?->name,
+                    'properties' => $et->properties->map(fn (EdgeProperty $p) => [
+                        'name' => $p->name,
+                        'age_property_name' => $p->age_property_name,
+                        'age_property_type' => $p->age_property_type,
+                    ]),
+                    'url' => route('graph-schema.edge-type.show', $et),
+                ];
+            }
+        }
 
         return Inertia::render('GraphSchema/Visualization', [
             'vertexTypeList' => $vertexTypeList,

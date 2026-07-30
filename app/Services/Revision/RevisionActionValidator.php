@@ -176,20 +176,22 @@ class RevisionActionValidator
             return;
         }
 
-        $expectedStart = $edgeType->startVertex?->age_label_name;
-        $expectedEnd = $edgeType->endVertex?->age_label_name;
         $actualStart = $this->resolver->vertexTypeLabel($start['key']);
         $actualEnd = $this->resolver->vertexTypeLabel($end['key']);
 
-        if ($actualStart !== $expectedStart || $actualEnd !== $expectedEnd) {
+        if (! $edgeType->allowsEndpointPair($actualStart, $actualEnd)) {
+            $allowedPairs = $edgeType->vertexPairs->map(fn ($pair) => [
+                'start' => $pair->startVertex?->age_label_name,
+                'end' => $pair->endVertex?->age_label_name,
+            ])->values()->all();
+
             $this->addActionError(
                 $result,
                 $order,
                 'EDGE_VERTEX_TYPE_MISMATCH',
                 '起訖 Vertex 類型不符合 Edge 類型定義',
                 [
-                    'expected_start' => $expectedStart,
-                    'expected_end' => $expectedEnd,
+                    'allowed_pairs' => $allowedPairs,
                     'actual_start' => $actualStart,
                     'actual_end' => $actualEnd,
                 ],

@@ -20,7 +20,7 @@ CoHistograph 是一個協作式歷史事件知識圖譜平台，讓使用者能�
 
 1. **VertexType**（頂點類型）：定義圖中節點的種類，例如「人物」、「事件」、「地點」。每個 VertexType 有對應的 `age_label_name` 作為 Apache AGE 的標籤。
 2. **VertexProperty**（頂點屬性）：定義某 VertexType 擁有的屬性欄位，例如「人物」有「姓名」、「生卒年」等。
-3. **EdgeType**（邊類型）：定義兩個 VertexType 之間的關係種類，例如「人物」→「參與」→「事件」。支援正向名稱（name）與反向名稱（reverse_name）。
+3. **EdgeType**（邊類型）：定義關係種類（一個 AGE label），並可指定一或多組允許的起迄 VertexType 組合，例如「應援廣告」→「應援」→「VTuber／團體」。支援正向名稱（name）與反向名稱（reverse_name）。
 4. **EdgeProperty**（邊屬性）：定義某 EdgeType 擁有的屬性欄位。
 
 實際的頂點與邊資料儲存在 Apache AGE 圖資料庫中，透過 `danny50610/laravel-apache-age-driver` 套件進行 Cypher 查詢。

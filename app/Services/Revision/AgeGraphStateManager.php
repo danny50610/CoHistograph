@@ -49,7 +49,7 @@ class AgeGraphStateManager
             ->all();
 
         $this->edgeTypeByLabel = EdgeType::query()
-            ->with(['startVertex', 'endVertex', 'properties'])
+            ->with(['vertexPairs.startVertex', 'vertexPairs.endVertex', 'properties'])
             ->get()
             ->keyBy('age_label_name')
             ->all();

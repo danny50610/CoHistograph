@@ -17,7 +17,7 @@ class GraphSearchController extends Controller
     {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
-            'id' => ['nullable', 'integer', 'min:1'],
+            'id' => ['nullable', 'numeric', 'min:1'],
             'type' => ['nullable', 'string', 'max:255'],
             'types' => ['nullable', 'array'],
             'types.*' => ['string', 'max:255'],
@@ -52,7 +52,7 @@ class GraphSearchController extends Controller
     {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
-            'id' => ['nullable', 'integer', 'min:1'],
+            'id' => ['nullable', 'numeric', 'min:1'],
             'type' => ['nullable', 'string', 'max:255'],
             'types' => ['nullable', 'array'],
             'types.*' => ['string', 'max:255'],
