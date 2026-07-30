@@ -167,7 +167,9 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 | locale | ✅ 選 ENUM 時強制非多語系 |
 | type 變更 | ✅ 有圖資料則鎖 type |
 | 詳情 | ✅ 列出 value／label／active |
-| 修訂填值 | 另頁 multi-select（非本節表單） |
+| 修訂填值 | 另頁 multi-select（非本節表單）；待開題時再定 |
+
+**Schema UI 決策已收斂（使用者確認）。** 修訂頁 `PropertyValueInput` multi-select 不在本節範圍。
 
 ---
 
