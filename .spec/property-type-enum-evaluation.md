@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q18 已鎖定；缺口盤點中（Q19…）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q18 已鎖定（含審核 ENUM 差異）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -100,7 +100,7 @@
 
 ---
 
-## Schema UI：Vertex / Edge Property 介面
+## Schema UI：Vertex / Edge Property 介面（進行中）
 
 Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對稱），差異只在 route／model。
 
@@ -173,7 +173,7 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 ---
 
-## 修訂 UI：PropertyValueInput 與審核差異
+## 修訂 UI：PropertyValueInput multi-select（進行中）
 
 現況：
 - `PropertyValueInput.vue` 依 `propertyType` 切換；`modelValue` 為 **string｜number｜null**，emit 字串
@@ -275,6 +275,49 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | 審核 diff | ✅ 現有／新增／移除三行 |
 
 ---
+
+## 尚未討論的缺口（盤點）
+
+依影響實作／一致性排列。標 **高** 建議收斂前進決策；**中／低** 可實作時定或延後。
+
+### 高（會卡住實作或造成語意分歧）
+
+| # | 主題 | 為何還沒定 |
+|---|------|------------|
+| G1 | **`value`→jsonb 後，既有純量怎麼存** | INTEGER／BOOLEAN 等現為 text；`to_jsonb(text)` 會變成 JSON **字串** `"42"`／`"true"`，不是 number／bool。要「全部維持 JSON string、套用時再 cast」還是「遷移成原生 JSON scalar」？ |
+| G2 | **圖資料顯示（Vertex／Edge show）** | `formatForDisplay`／`LocalizedPropertyGrouper` 對 list 尚未定：顯示 labels「、」？還是 raw values？ |
+| G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | Q18 只鎖審核 `action-card`；使用者自己的 revision show／edit 卡片要不要同一套「現有／新增／移除」？ |
+| G4 | **option `value` 字元規則** | 是否限 `[a-z0-9_]+`、可否空白／Unicode？影響 Cypher／Topic／輸入驗證 |
+| G5 | **可否把所有 option 都停用（active 全 false）** | 仍 ≥1 列，但 0 個可新選；create 永遠失敗，只剩祖父 update |
+
+### 中（有明確預設可推，但未明示鎖定）
+
+| # | 主題 | 暫定可推方向（未鎖定） |
+|---|------|------------------------|
+| G6 | label 是否允許重複 | value 唯一即可；label 重複允許 |
+| G7 | value 大小寫是否敏感 | 敏感（`Rock` ≠ `rock`） |
+| G8 | 圖上出現不在 `enum_options` 的 orphan value | 顯示 raw；update 不可保留？或當祖父？ |
+| G9 | Schema Visualization／列表是否展示 options | 僅 type badge vs 展開 options |
+| G10 | list 成員「是否被使用」AGE 查詢語意 | spike：`X IN prop`／UNWIND；失敗則硬刪護欄策略 |
+| G11 | 同修訂 `create_vertex` ref 目標的審核 diff | Q17 已提「視為 ∅」；需否在 UI 明示「新建對象、無現有值」 |
+| G12 | MCP／對外讀取 ENUM | 回 value list 或 value+label |
+
+### 低／實作細節（可不開題）
+
+- Eloquent `value` 自訂 cast（scalar｜array）
+- Inertia 確保 `vertexTypes.properties` 帶 `enum_options`
+- Factory／Seeder、測試矩陣
+- `actions_snapshot` 與 jsonb value 對齊（多半自動）
+- 文件：`.spec/property-types.md` 仍寫 7 種／text value（實作時更新）
+
+### 文件內部不一致（應順手修，非產品決策）
+
+- Schema UI 章節標題仍寫「進行中」；修訂 UI 有重複「鎖定摘要」且一處仍寫審核差異 ⏳
+- Q15 前文有一處仍描述舊的「不可新勾」簡化句（與 B′ 不符）
+
+### Q19 — 下一題先收哪個高優先缺口？（進行中）
+
+見對話。
 
 ## 實作觸點
 
