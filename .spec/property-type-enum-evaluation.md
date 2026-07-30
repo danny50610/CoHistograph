@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：決策樹主幹 + Schema UI + 修訂 UI 已鎖定（Q1–Q16）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：決策樹主幹 + Schema UI 已鎖定（Q1–Q13）；修訂 UI 進行中（Q14…）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -173,7 +173,7 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 ---
 
-## 修訂 UI：PropertyValueInput multi-select
+## 修訂 UI：PropertyValueInput multi-select（進行中）
 
 現況：
 - `PropertyValueInput.vue` 依 `propertyType` 切換；`modelValue` 為 **string｜number｜null**，emit 字串
@@ -213,9 +213,24 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 - 可取消後再勾回 eligible 項（復原 OK）；不可新引入非 eligible 的停用值
 - 伺服端仍以圖上 `current` 做祖父驗證（UI eligible 不能取代伺服端）
 
-### Q16 — 摘要列如何顯示 ENUM `value`？（進行中）
+### Q16 — 摘要列如何顯示 ENUM `value`？ ✅
 
-見對話。
+| 選項 | 例子 |
+|------|------|
+| **A. label + 頓號（已選）** | `= 搖滾、爵士` |
+| B. value + 逗號 | `= rock, jazz` |
+| C. JSON | `= ["rock","jazz"]` |
+
+**決定：A。** `Edit.vue`（及後台審核摘要若同樣拼接）將 array 經 options 轉 label，依定義序以「、」連接；未知 value 顯示原字串。
+
+### 修訂 UI 鎖定摘要
+
+| 項目 | 決定 |
+|------|------|
+| 控件 | ✅ checkbox 列表 |
+| 停用項 | ✅ B′ 全列 + eligibleInactive 可復原 |
+| 摘要 | ✅ labels 以「、」連接 |
+| modelValue | ✅ ENUM 為 `string[]`；props 帶 `enumOptions` |
 
 ---
 
@@ -227,7 +242,7 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 4. Form Requests：ENUM 時驗證 `enum_options`、禁止 locale；非 ENUM 時 `enum_options` 必須 null
 5. 更新 property 時：停用／硬刪護欄（擴充 `AgePropertyDataChecker` 查 list 成員）
 6. `PropertyValueCaster` + `RevisionActionValidator` / `RevisionApplyService`：`mixed` value、ENUM 集合驗證與正規化
-7. `PropertyValueInput.vue`：ENUM checkbox 列表（B′ eligibleInactive）；props 帶 `enumOptions`；`Edit.vue` 摘要用 labels「、」
+7. `PropertyValueInput.vue`：multi-select；需 props 帶入 `enum_options`
 8. Schema Blade：共用 `property-enum-options-fields` partial（Vertex／Edge）；type=ENUM 時顯示；與 locale 聯動
 9. show／列表：呈現 options 與 active 狀態
 10. Topic（實作時）：掛上 Q11 operators
