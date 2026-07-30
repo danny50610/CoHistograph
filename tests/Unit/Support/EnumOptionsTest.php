@@ -58,6 +58,10 @@ class EnumOptionsTest extends TestCase
             ['rock', 'pop'],
             (new PropertyValueCaster)->toStorage(['pop', 'rock'], PropertyType::Enum, $options),
         );
+        $this->assertSame(
+            '搖滾、爵士（已停用）、流行',
+            EnumOptions::formatSchemaLabels($options),
+        );
     }
 
     #[Test]

@@ -84,6 +84,42 @@ class VisualizationTest extends TestCase
         $response->assertSee('"properties":[{"name":"since_year","age_property_name":"sinceYear","age_property_type":"INTEGER"}]', false);
     }
 
+    public function test_visualization_includes_enum_options_for_enum_properties(): void
+    {
+        $vertex = VertexType::factory()->create([
+            'name' => 'Artist',
+            'age_label_name' => 'artist_label',
+        ]);
+
+        VertexProperty::factory()->for($vertex)->enum([
+            ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+            ['value' => 'jazz', 'label' => '爵士', 'active' => false],
+        ])->create([
+            'name' => 'genres',
+            'age_property_name' => 'genres',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('graph-schema.visualization'))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('GraphSchema/Visualization')
+                ->has('vertexTypeList')
+                ->where('vertexTypeList', function ($list) use ($vertex) {
+                    $item = collect($list)->firstWhere('id', $vertex->id);
+                    if ($item === null) {
+                        return false;
+                    }
+
+                    $property = collect($item['properties'] ?? [])->firstWhere('age_property_name', 'genres');
+
+                    return ($property['age_property_type'] ?? null) === PropertyType::Enum->value
+                        && ($property['enum_options'][0]['label'] ?? null) === '搖滾'
+                        && ($property['enum_options'][1]['active'] ?? null) === false;
+                })
+            );
+    }
+
     public function test_visualization_data_contains_urls(): void
     {
         $vertex = VertexType::factory()->create();

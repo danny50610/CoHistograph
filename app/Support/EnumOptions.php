@@ -204,6 +204,28 @@ class EnumOptions
         return implode($separator, $labels);
     }
 
+    /**
+     * Schema list / visualization: all option labels in definition order.
+     * Inactive options are marked so managers still see the full vocabulary.
+     *
+     * @param  list<EnumOption>|list<array<string, mixed>>|null  $options
+     */
+    public static function formatSchemaLabels(?array $options, string $separator = '、'): string
+    {
+        $normalized = self::normalize($options);
+
+        if ($normalized === []) {
+            return '';
+        }
+
+        return implode($separator, array_map(
+            static fn (array $option): string => $option['active']
+                ? $option['label']
+                : $option['label'].'（已停用）',
+            $normalized,
+        ));
+    }
+
     public static function requiresEnumOptions(PropertyType $type): bool
     {
         return $type === PropertyType::Enum;

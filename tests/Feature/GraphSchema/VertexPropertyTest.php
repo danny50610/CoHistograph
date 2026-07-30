@@ -645,4 +645,28 @@ class VertexPropertyTest extends TestCase
             ->assertSee('(zh_tw)')
             ->assertSee('name_zh_tw');
     }
+
+    public function test_vertex_type_show_lists_enum_option_labels(): void
+    {
+        $this->mock(\App\Support\AgePropertyDataChecker::class, function ($mock): void {
+            $mock->shouldReceive('vertexPropertyHasData')->andReturn(false);
+            $mock->shouldReceive('usedVertexEnumValues')->andReturn([]);
+        });
+
+        $vertexType = VertexType::factory()->create();
+        VertexProperty::factory()->for($vertexType)->enum([
+            ['value' => 'rock', 'label' => '搖滾', 'active' => true],
+            ['value' => 'jazz', 'label' => '爵士', 'active' => false],
+        ])->create([
+            'name' => 'Genres',
+            'age_property_name' => 'genres',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('graph-schema.vertex-type.show', $vertexType))
+            ->assertOk()
+            ->assertSee('ENUM')
+            ->assertSee('搖滾')
+            ->assertSee('爵士（已停用）');
+    }
 }

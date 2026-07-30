@@ -297,7 +297,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G6 | label 是否允許重複 | ✅ **B**：同一 property 內 label 唯一（trim 後精確比對） |
 | G7 | value 大小寫是否敏感 | ✅ **A**：嚴格小寫，不自動轉換 |
 | G8 | 圖上出現不在 `enum_options` 的 orphan value | ✅ **A**：當祖父（可留／可拿，不可新引入） |
-| G9 | Schema Visualization／列表是否展示 options | ✅ **A**：不顯示（僅 ENUM badge） |
+| G9 | Schema Visualization／列表是否展示 options | ✅ **B**：badge 旁顯示 labels（停用標「已停用」） |
 | G10 | list 成員「是否被使用」AGE 查詢語意 | ✅ **A**：Cypher `$v IN prop` LIMIT 1；與 list spike 一併驗證 |
 | G11 | 同修訂 `create_vertex` ref 目標的審核 diff | ✅ **A**：現有（無）＋說明「本修訂新建，圖上尚無值」 |
 | G12 | MCP／對外讀取 ENUM | ✅ **C：先不處理**（不阻塞核心實作） |
@@ -478,25 +478,25 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 - 驗證：`allowed = active values ∪ (current ∩ (inactive ∪ orphan))`；不可把不在 current 的 orphan 新加進去  
 - UI checkbox：orphan 出現在「額外列」（不在 enum_options 定義序內、附在末尾），納入 session eligible 以便復原
 
-### Q29 — G9：Schema Visualization／列表是否展示 options？ ✅
+### Q29 — G9：Schema Visualization／列表是否展示 options？ ✅（後經修正）
 
 | 選項 | 含義 |
 |------|------|
-| **A. 不顯示 options（已選）** | 僅 type badge `ENUM`；不列 value／label、不顯示個數 |
-| B. 展開 active labels | |
-| C. 展開全部含停用 | |
+| A. 不顯示 options | 僅 type badge `ENUM` |
+| **B. 展開 labels（已選）** | badge 旁以「、」列出 labels；停用項加「（已停用）」 |
+| C. 展開全部含 value | |
 
-**決定：A。** Visualization／型別列表維持現況；options 只在 property **詳情／編輯**頁維護與檢視。
+**決定：B。** Visualization 與 Vertex／Edge 型別列表在 `ENUM` badge 後顯示可選值 labels（定義序）；詳情／編輯頁仍維護完整 options 表格。
 
-### Q29 — G9：Schema Visualization／列表是否展示 options？ ✅
+### Q29 — G9：Schema Visualization／列表是否展示 options？ ✅（後經修正）
 
 | 選項 | 含義 |
 |------|------|
-| **A. 不顯示 options（已選）** | 僅 type badge `ENUM`；不列 value／label、不顯示個數 |
-| B. 展開 active labels | |
-| C. 展開全部含停用 | |
+| A. 不顯示 options | 僅 type badge `ENUM` |
+| **B. 展開 labels（已選）** | badge 旁以「、」列出 labels；停用項加「（已停用）」 |
+| C. 展開全部含 value | |
 
-**決定：A。** Visualization／型別列表維持現況；options 只在 property **詳情／編輯**頁維護與檢視。
+**決定：B。** Visualization 與 Vertex／Edge 型別列表在 `ENUM` badge 後顯示可選值 labels（定義序）；詳情／編輯頁仍維護完整 options 表格。
 
 ### Q30 — G10：硬刪 option 時「是否使用中」怎麼查？ ✅
 
