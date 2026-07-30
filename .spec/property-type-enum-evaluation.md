@@ -196,11 +196,26 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 
 **決定：A。** `PropertyValueInput` 在 `propertyType === 'ENUM'` 時渲染 checkbox 列表；emit `string[]`（非空）；父層寫入 action.`value`。
 
-### Q15 — 停用選項顯示／復原？（進行中，已納入復原問題）
+### Q15 — 停用選項顯示／復原？ ✅
 
-問題：若 inactive 取消勾選後立刻從列表移除，同一次編輯無法再勾回。
+| 選項 | 含義 |
+|------|------|
+| A′. 僅顯示 active ∪ eligibleInactive | 列表較乾淨 |
+| **B′. 全列 + eligible 可復原（已選）** | 所有 options 都顯示；僅 eligible inactive 可來回勾 |
+| 裸 B | 取消後 disabled → 無法復原（否決） |
+| C. 預載 AGE + A′／B′ | v1 不做 |
 
-見對話（修正方案）。
+**決定：B′。**
+
+- 開啟此 ENUM 控件時，令 `eligibleInactive` = 當時 `value` 中 ∩ inactive options（create／空值起步為 `[]`）
+- 整段編輯期間 `eligibleInactive` **固定不縮水**
+- 渲染：全部 `enum_options` 依定義序；`active` 或 ∈ `eligibleInactive` → 可勾選；其餘 inactive → disabled，標示「已停用」
+- 可取消後再勾回 eligible 項（復原 OK）；不可新引入非 eligible 的停用值
+- 伺服端仍以圖上 `current` 做祖父驗證（UI eligible 不能取代伺服端）
+
+### Q16 — 摘要列如何顯示 ENUM `value`？（進行中）
+
+見對話。
 
 ---
 
