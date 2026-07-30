@@ -247,9 +247,32 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 - update：added = after − before，removed = before − after（集合差；順序無關）  
 - 讀取失敗／target 為同修訂新建 ref：before 視為 ∅ 或標「尚無圖上值」（實作時對 ref 目標明確處理）
 
-### Q18 — 增減 diff 怎麼呈現？（進行中）
+### Q18 — 增減 diff 怎麼呈現？ ✅
 
-見對話。
+| 選項 | 呈現 |
+|------|------|
+| **A. 現有／新增／移除三行（已選）** | 現有＋新增（綠）＋移除（紅） |
+| B. 只強調增減 | 較短 |
+| C. 前後完整箭頭＋增減 | 最佔版面 |
+
+**決定：A。** `action-card`（審核唯讀，必要時編輯頁亦可共用 presenter）對 ENUM：
+
+- **現有：** before labels（無則「—」或「（無）」）
+- **新增：** added labels（無則省略列或「—」）
+- **移除：** removed labels（無則省略列或「—」）
+
+label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；delete 無 action.value 時「新增」為無、移除＝現有全部。
+
+### 修訂 UI 鎖定摘要
+
+| 項目 | 決定 |
+|------|------|
+| 控件 | ✅ checkbox 列表 |
+| 停用項 | ✅ B′ 全列 + eligibleInactive 可復原 |
+| 摘要（編輯列表） | ✅ labels「、」 |
+| modelValue | ✅ `string[]` + `enumOptions` |
+| 審核舊值 | ✅ 即時讀 AGE |
+| 審核 diff | ✅ 現有／新增／移除三行 |
 
 ---
 
