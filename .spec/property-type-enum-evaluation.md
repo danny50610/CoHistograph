@@ -600,9 +600,26 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 | # | 主題 | 可推預設 |
 |---|------|----------|
-| G13 | `min_selections`／`max_selections` 預設 | min 預設 1（對齊禁止 `[]`）；max 預設 null＝不限 |
-| G14 | Schema：停用後 `|active| < min` 是否拒存 | 拒存（與「\|active\| ≥ min」一致）vs 允許存、修訂再爆 |
-| G15 | `min`／`max` 數字範圍 | min ≥ 1；有 max 時 min ≤ max；合理上限（如 ≤ option 數或固定 64） |
+| G13 | `min_selections`／`max_selections` 預設 | ✅ **是**：ENUM 時 `min_selections` 預設 **1**（對齊禁止 `[]`）；`max_selections` 預設 **null**＝不限 |
+| G14 | Schema：停用後 `|active| < min` 是否拒存 | ✅ **拒存** |
+| G15 | `min`／`max` 數字範圍 | ✅ **8-bit unsigned（0–255）** |
+
+### Q36 — G13：min／max 預設？ ✅
+
+**決定：是。** ENUM 建立／未填時：`min_selections = 1`，`max_selections = null`（不限）。非 ENUM：兩欄皆 null。
+
+### Q37 — G14：`|active| < min` 時？ ✅
+
+**決定：拒存。** Schema 建立／更新若 active options 數 `< min_selections` → 驗證失敗（含把選項停用到不足 min）。不讀 AGE。
+
+### Q38 — G15：數字範圍？ ✅
+
+**決定：8-bit unsigned。**  
+- 儲存：`unsignedTinyInteger`（0–255）；`max_selections` 另可 null  
+- 驗證：`min_selections` ∈ 1–255（保留 Q6，不開放 min=0）；`max_selections` 若有值則 ∈ 1–255 且 `min_selections ≤ max_selections`  
+- （0 僅 theoretically 在 DB 型別範圍內；應用層不接受 min=0）
+
+### ENUM min／max 增量決策已收斂（Q34–Q38）。實作時加欄位、schema／修訂驗證與 UI。
 
 ---
 
