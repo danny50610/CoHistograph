@@ -169,7 +169,26 @@ Vertex 與 Edge **同一套 partial**（與現有 `property-locale-fields` 對�
 | 詳情 | ✅ 列出 value／label／active |
 | 修訂填值 | 另頁 multi-select（非本節表單）；待開題時再定 |
 
-**Schema UI 決策已收斂（使用者確認）。** 修訂頁 `PropertyValueInput` multi-select 不在本節範圍。
+**Schema UI 決策已收斂（使用者確認）。**
+
+---
+
+## 修訂 UI：PropertyValueInput multi-select（進行中）
+
+現況：
+- `PropertyValueInput.vue` 依 `propertyType` 切換；`modelValue` 為 **string｜number｜null**，emit 字串
+- `VertexPropertyActionForm` / `EdgePropertyActionForm` 只傳 `property-type`，**尚未**傳 `enum_options`
+- 修訂 payload 的 `value` 在 ENUM 落地後為 **jsonb array**（Q5b）
+
+推導必做（不另開題）：
+- props 增加 `enumOptions: {value, label, active}[]`
+- `modelValue` 對 ENUM 為 `string[] | null`（父層 action.value 對齊）
+- 父層從 `selectedProperty.enum_options` 傳入
+- 切換屬性時清空 value（既有 `onPropertyChange`）
+
+### Q14 — 多選控件形態？（進行中）
+
+見對話。
 
 ---
 
