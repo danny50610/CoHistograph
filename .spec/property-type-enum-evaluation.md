@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q21 已鎖定（G1–G2 完成）；進行 G3（Q22）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q27 已鎖定（G4 修正含 -/+；G7 嚴格小寫）；進行 G8（Q28）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -287,7 +287,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G1 | **`value`→jsonb 後，既有純量怎麼存** | ✅ **B1**：原生 scalar；遷移盡力轉；讀取兼容 string｜native |
 | G2 | **圖資料顯示（Vertex／Edge show）** | ✅ **A**：labels「、」；未知 value → raw |
 | G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | ✅ **A**：與審核頁相同（共用 presenter） |
-| G4 | **option `value` 字元規則** | ✅ **A**：`^[a-z0-9_]+$`，1–64；不查保留字 |
+| G4 | **option `value` 字元規則** | ✅ **A′**：`^[a-z0-9_+-]+$`，1–64（含 `-`、`+`） |
 | G5 | **可否把所有 option 都停用（active 全 false）** | ✅ **B**：允許；失敗時明確說明「無啟用選項／已停用不可新選」 |
 
 ### 中（有明確預設可推，但未明示鎖定）
@@ -295,7 +295,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | # | 主題 | 暫定可推方向（未鎖定） |
 |---|------|------------------------|
 | G6 | label 是否允許重複 | ✅ **B**：同一 property 內 label 唯一（trim 後精確比對） |
-| G7 | value 大小寫是否敏感 | 敏感（`Rock` ≠ `rock`） |
+| G7 | value 大小寫是否敏感 | ✅ **A**：嚴格小寫，不自動轉換 |
 | G8 | 圖上出現不在 `enum_options` 的 orphan value | 顯示 raw；update 不可保留？或當祖父？ |
 | G9 | Schema Visualization／列表是否展示 options | 僅 type badge vs 展開 options |
 | G10 | list 成員「是否被使用」AGE 查詢語意 | spike：`X IN prop`／UNWIND；失敗則硬刪護欄策略 |
