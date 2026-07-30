@@ -15,6 +15,14 @@ class FaqItem extends Model
         'question',
         'answer',
         'sort_order',
+        'is_hidden',
+    ];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_hidden' => false,
     ];
 
     /**
@@ -24,6 +32,7 @@ class FaqItem extends Model
     {
         return [
             'sort_order' => 'integer',
+            'is_hidden' => 'boolean',
         ];
     }
 
@@ -34,5 +43,14 @@ class FaqItem extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * @param  Builder<FaqItem>  $query
+     * @return Builder<FaqItem>
+     */
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->where('is_hidden', false);
     }
 }

@@ -3,6 +3,8 @@
 @php
     $isEditMode = isset($faqItem);
     $methodText = $isEditMode ? '編輯' : '新增';
+    $selectedPlaceAfterId = old('place_after_id', $placeAfterId);
+    $isHidden = (bool) old('is_hidden', $isEditMode ? $faqItem->is_hidden : false);
 @endphp
 
 @section('title', $methodText . '常見問題')
@@ -38,14 +40,43 @@
                                 required
                             />
 
-                            <x-forms.input
-                                id="sort_order"
-                                label="排序"
-                                type="number"
-                                :value="(string) ($faqItem->sort_order ?? $nextSortOrder ?? 0)"
-                                help-text="數字越小越靠前"
-                                required
-                            />
+                            <div class="row mb-3">
+                                <label for="place_after_id" class="col-md-2 col-form-label">位置</label>
+                                <div class="col-md-10">
+                                    <select id="place_after_id" name="place_after_id"
+                                            class="form-select @if ($errors->has('place_after_id')) is-invalid @endif">
+                                        <option value="" @selected($selectedPlaceAfterId === null || $selectedPlaceAfterId === '')>
+                                            最上方
+                                        </option>
+                                        @foreach($placementOptions as $option)
+                                            <option value="{{ $option['value'] }}"
+                                                @selected((string) $selectedPlaceAfterId === (string) $option['value'])>
+                                                {{ $option['label'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text">選擇要放在哪個問題的下方</div>
+                                    @if ($errors->has('place_after_id'))
+                                        <div class="invalid-feedback d-block">
+                                            @foreach ($errors->get('place_after_id') as $message)
+                                                {{ $message }}
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <label class="col-md-2 col-form-label">顯示</label>
+                                <div class="col-md-10" style="padding-top: calc(.5rem - 1px * 2);">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input"
+                                               name="is_hidden" value="1" id="is_hidden"
+                                               @checked($isHidden)>
+                                        <label class="custom-control-label" for="is_hidden">隱藏此問題（前台不顯示）</label>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="form-group row">
                                 <div class="col-md-10 ml-auto">

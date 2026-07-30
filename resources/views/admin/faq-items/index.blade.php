@@ -12,16 +12,24 @@
             <table class="table table-bordered table-hover">
                 <thead>
                 <tr>
-                    <th style="width: 5rem;">排序</th>
+                    <th style="width: 5rem;">順序</th>
                     <th>問題</th>
+                    <th style="width: 6rem;">狀態</th>
                     <th style="width: 14rem;">操作</th>
                 </tr>
                 </thead>
                 <tbody>
                 @forelse($faqItems as $faqItem)
-                    <tr>
-                        <td class="align-middle">{{ $faqItem->sort_order }}</td>
+                    <tr @class(['table-secondary' => $faqItem->is_hidden])>
+                        <td class="align-middle">{{ $loop->iteration }}</td>
                         <td class="align-middle">{{ $faqItem->question }}</td>
+                        <td class="align-middle">
+                            @if($faqItem->is_hidden)
+                                <span class="badge text-bg-secondary">隱藏</span>
+                            @else
+                                <span class="badge text-bg-success">顯示</span>
+                            @endif
+                        </td>
                         <td class="align-middle">
                             <a href="{{ route('admin.faq-items.edit', $faqItem) }}" class="btn btn-primary">
                                 <i class="far fa-edit" aria-hidden="true"></i> 編輯
@@ -35,7 +43,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3" class="text-center text-secondary py-4">
+                        <td colspan="4" class="text-center text-secondary py-4">
                             目前還沒有任何常見問題
                         </td>
                     </tr>
@@ -43,8 +51,5 @@
                 </tbody>
             </table>
         </div>
-        <a href="{{ route('faq') }}" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
-            預覽公開頁面
-        </a>
     </div>
 @endsection

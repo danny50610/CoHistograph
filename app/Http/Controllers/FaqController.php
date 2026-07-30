@@ -9,7 +9,7 @@ class FaqController extends Controller
 {
     public function index(): View
     {
-        $faqItems = FaqItem::query()->ordered()->get();
+        $faqItems = FaqItem::query()->visible()->ordered()->get();
 
         return view('footer-page.faq', compact('faqItems'));
     }

@@ -21,6 +21,14 @@ class FaqItemFactory extends Factory
             'question' => $this->faker->sentence().'？',
             'answer' => $this->faker->paragraph(),
             'sort_order' => $this->faker->numberBetween(0, 100),
+            'is_hidden' => false,
         ];
+    }
+
+    public function hidden(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'is_hidden' => true,
+        ]);
     }
 }
