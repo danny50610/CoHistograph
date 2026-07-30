@@ -12,6 +12,7 @@ use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder as AgeQueryBuilder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AgePropertyDataCheckerTest extends TestCase
@@ -24,6 +25,8 @@ class AgePropertyDataCheckerTest extends TestCase
 
     private string $graphName;
 
+    private string $suffix;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -31,6 +34,7 @@ class AgePropertyDataCheckerTest extends TestCase
         $this->checker = new AgePropertyDataChecker;
         $this->graphConnection = (string) config('cohistograph.app.graph.connection-name');
         $this->graphName = (string) config('cohistograph.app.graph.name');
+        $this->suffix = Str::lower(Str::random(8));
 
         $connection = DB::connection($this->graphConnection);
         if (! $connection->apacheAgeHasGraph($this->graphName)) {
@@ -40,7 +44,7 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_vertex_property_has_data_returns_false_when_empty(): void
     {
-        $vertexType = VertexType::factory()->create(['age_label_name' => 'apdc_vp_empty_vt']);
+        $vertexType = VertexType::factory()->create(['age_label_name' => $this->label('vp_empty_vt')]);
         $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
             'age_property_name' => 'apdc_name',
         ]);
@@ -50,7 +54,7 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_vertex_property_has_data_returns_true_when_property_set(): void
     {
-        $vertexType = VertexType::factory()->create(['age_label_name' => 'apdc_vp_filled_vt']);
+        $vertexType = VertexType::factory()->create(['age_label_name' => $this->label('vp_filled_vt')]);
         $vertexProperty = VertexProperty::factory()->for($vertexType)->create([
             'age_property_name' => 'apdc_name',
         ]);
@@ -65,9 +69,9 @@ class AgePropertyDataCheckerTest extends TestCase
     public function test_edge_property_has_data_with_vertex_pairs(): void
     {
         [$edgeType, $edgeProperty, $start, $end] = $this->makeEdgeTypeWithProperty(
-            edgeLabel: 'apdc_ep_pair_et',
-            startLabel: 'apdc_ep_pair_start',
-            endLabel: 'apdc_ep_pair_end',
+            edgeKey: 'ep_pair_et',
+            startKey: 'ep_pair_start',
+            endKey: 'ep_pair_end',
             propertyName: 'apdc_role',
         );
 
@@ -85,10 +89,10 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_edge_property_has_data_without_vertex_pairs(): void
     {
-        [$edgeType, $edgeProperty] = $this->makeEdgeTypeWithProperty(
-            edgeLabel: 'apdc_ep_nopair_et',
-            startLabel: 'apdc_ep_nopair_start',
-            endLabel: 'apdc_ep_nopair_end',
+        [$edgeType, $edgeProperty, $start, $end] = $this->makeEdgeTypeWithProperty(
+            edgeKey: 'ep_nopair_et',
+            startKey: 'ep_nopair_start',
+            endKey: 'ep_nopair_end',
             propertyName: 'apdc_role',
         );
 
@@ -98,8 +102,8 @@ class AgePropertyDataCheckerTest extends TestCase
         $this->assertFalse($this->checker->edgePropertyHasData($edgeType->fresh(), $edgeProperty));
 
         $this->createEdgeWithProperty(
-            'apdc_ep_nopair_start',
-            'apdc_ep_nopair_end',
+            $start->age_label_name,
+            $end->age_label_name,
             $edgeType->age_label_name,
             [$edgeProperty->age_property_name => 'lead'],
         );
@@ -110,9 +114,9 @@ class AgePropertyDataCheckerTest extends TestCase
     public function test_edge_property_has_data_returns_false_when_pair_labels_missing(): void
     {
         [$edgeType, $edgeProperty] = $this->makeEdgeTypeWithProperty(
-            edgeLabel: 'apdc_ep_nullpair_et',
-            startLabel: 'apdc_ep_nullpair_start',
-            endLabel: 'apdc_ep_nullpair_end',
+            edgeKey: 'ep_nullpair_et',
+            startKey: 'ep_nullpair_start',
+            endKey: 'ep_nullpair_end',
             propertyName: 'apdc_role',
         );
 
@@ -123,10 +127,10 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_edge_type_has_data_with_vertex_pairs(): void
     {
-        $start = VertexType::factory()->create(['age_label_name' => 'apdc_et_pair_start']);
-        $end = VertexType::factory()->create(['age_label_name' => 'apdc_et_pair_end']);
+        $start = VertexType::factory()->create(['age_label_name' => $this->label('et_pair_start')]);
+        $end = VertexType::factory()->create(['age_label_name' => $this->label('et_pair_end')]);
         $edgeType = EdgeType::factory()->create([
-            'age_label_name' => 'apdc_et_pair_et',
+            'age_label_name' => $this->label('et_pair_et'),
             'vertex_pairs' => [['start_vertex_id' => $start->id, 'end_vertex_id' => $end->id]],
         ]);
 
@@ -143,10 +147,10 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_edge_type_has_data_without_vertex_pairs(): void
     {
-        $start = VertexType::factory()->create(['age_label_name' => 'apdc_et_nopair_start']);
-        $end = VertexType::factory()->create(['age_label_name' => 'apdc_et_nopair_end']);
+        $start = VertexType::factory()->create(['age_label_name' => $this->label('et_nopair_start')]);
+        $end = VertexType::factory()->create(['age_label_name' => $this->label('et_nopair_end')]);
         $edgeType = EdgeType::factory()->create([
-            'age_label_name' => 'apdc_et_nopair_et',
+            'age_label_name' => $this->label('et_nopair_et'),
             'vertex_pairs' => [['start_vertex_id' => $start->id, 'end_vertex_id' => $end->id]],
         ]);
 
@@ -166,10 +170,10 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_edge_type_has_data_returns_false_when_pair_labels_missing(): void
     {
-        $start = VertexType::factory()->create(['age_label_name' => 'apdc_et_null_start']);
-        $end = VertexType::factory()->create(['age_label_name' => 'apdc_et_null_end']);
+        $start = VertexType::factory()->create(['age_label_name' => $this->label('et_null_start')]);
+        $end = VertexType::factory()->create(['age_label_name' => $this->label('et_null_end')]);
         $edgeType = EdgeType::factory()->create([
-            'age_label_name' => 'apdc_et_null_et',
+            'age_label_name' => $this->label('et_null_et'),
             'vertex_pairs' => [['start_vertex_id' => $start->id, 'end_vertex_id' => $end->id]],
         ]);
 
@@ -180,10 +184,10 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_pair_has_data(): void
     {
-        $start = VertexType::factory()->create(['age_label_name' => 'apdc_pair_start']);
-        $end = VertexType::factory()->create(['age_label_name' => 'apdc_pair_end']);
+        $start = VertexType::factory()->create(['age_label_name' => $this->label('pair_start')]);
+        $end = VertexType::factory()->create(['age_label_name' => $this->label('pair_end')]);
         $edgeType = EdgeType::factory()->create([
-            'age_label_name' => 'apdc_pair_et',
+            'age_label_name' => $this->label('pair_et'),
             'vertex_pairs' => [['start_vertex_id' => $start->id, 'end_vertex_id' => $end->id]],
         ]);
         $pair = $edgeType->vertexPairs->first();
@@ -201,10 +205,10 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_pair_has_data_returns_false_when_labels_missing(): void
     {
-        $start = VertexType::factory()->create(['age_label_name' => 'apdc_pair_null_start']);
-        $end = VertexType::factory()->create(['age_label_name' => 'apdc_pair_null_end']);
+        $start = VertexType::factory()->create(['age_label_name' => $this->label('pair_null_start')]);
+        $end = VertexType::factory()->create(['age_label_name' => $this->label('pair_null_end')]);
         $edgeType = EdgeType::factory()->create([
-            'age_label_name' => 'apdc_pair_null_et',
+            'age_label_name' => $this->label('pair_null_et'),
             'vertex_pairs' => [['start_vertex_id' => $start->id, 'end_vertex_id' => $end->id]],
         ]);
         $pair = $edgeType->vertexPairs->first();
@@ -216,7 +220,7 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_vertex_property_enum_value_in_use(): void
     {
-        $vertexType = VertexType::factory()->create(['age_label_name' => 'apdc_enum_vt']);
+        $vertexType = VertexType::factory()->create(['age_label_name' => $this->label('enum_vt')]);
         $vertexProperty = VertexProperty::factory()->for($vertexType)->enum([
             ['value' => 'rock', 'label' => '搖滾', 'active' => true],
             ['value' => 'jazz', 'label' => '爵士', 'active' => true],
@@ -243,9 +247,9 @@ class AgePropertyDataCheckerTest extends TestCase
     public function test_edge_property_enum_value_in_use_with_vertex_pairs(): void
     {
         [$edgeType, $edgeProperty, $start, $end] = $this->makeEdgeTypeWithProperty(
-            edgeLabel: 'apdc_enum_pair_et',
-            startLabel: 'apdc_enum_pair_start',
-            endLabel: 'apdc_enum_pair_end',
+            edgeKey: 'enum_pair_et',
+            startKey: 'enum_pair_start',
+            endKey: 'enum_pair_end',
             propertyName: 'apdc_tags',
             enum: true,
         );
@@ -272,9 +276,9 @@ class AgePropertyDataCheckerTest extends TestCase
     public function test_edge_property_enum_value_in_use_without_vertex_pairs(): void
     {
         [$edgeType, $edgeProperty, $start, $end] = $this->makeEdgeTypeWithProperty(
-            edgeLabel: 'apdc_enum_nopair_et',
-            startLabel: 'apdc_enum_nopair_start',
-            endLabel: 'apdc_enum_nopair_end',
+            edgeKey: 'enum_nopair_et',
+            startKey: 'enum_nopair_start',
+            endKey: 'enum_nopair_end',
             propertyName: 'apdc_tags',
             enum: true,
         );
@@ -301,9 +305,9 @@ class AgePropertyDataCheckerTest extends TestCase
     public function test_edge_property_enum_value_in_use_returns_false_when_pair_labels_missing(): void
     {
         [$edgeType, $edgeProperty] = $this->makeEdgeTypeWithProperty(
-            edgeLabel: 'apdc_enum_null_et',
-            startLabel: 'apdc_enum_null_start',
-            endLabel: 'apdc_enum_null_end',
+            edgeKey: 'enum_null_et',
+            startKey: 'enum_null_start',
+            endKey: 'enum_null_end',
             propertyName: 'apdc_tags',
             enum: true,
         );
@@ -317,7 +321,7 @@ class AgePropertyDataCheckerTest extends TestCase
 
     public function test_used_vertex_enum_values_filters_candidates(): void
     {
-        $vertexType = VertexType::factory()->create(['age_label_name' => 'apdc_used_vt']);
+        $vertexType = VertexType::factory()->create(['age_label_name' => $this->label('used_vt')]);
         $vertexProperty = VertexProperty::factory()->for($vertexType)->enum([
             ['value' => 'rock', 'label' => '搖滾', 'active' => true],
             ['value' => 'jazz', 'label' => '爵士', 'active' => true],
@@ -339,9 +343,9 @@ class AgePropertyDataCheckerTest extends TestCase
     public function test_used_edge_enum_values_filters_candidates(): void
     {
         [$edgeType, $edgeProperty, $start, $end] = $this->makeEdgeTypeWithProperty(
-            edgeLabel: 'apdc_used_edge_et',
-            startLabel: 'apdc_used_edge_start',
-            endLabel: 'apdc_used_edge_end',
+            edgeKey: 'used_edge_et',
+            startKey: 'used_edge_start',
+            endKey: 'used_edge_end',
             propertyName: 'apdc_used_tags',
             enum: true,
         );
@@ -359,20 +363,25 @@ class AgePropertyDataCheckerTest extends TestCase
         );
     }
 
+    private function label(string $key): string
+    {
+        return 'apdc_'.$key.'_'.$this->suffix;
+    }
+
     /**
      * @return array{0: EdgeType, 1: EdgeProperty, 2: VertexType, 3: VertexType}
      */
     private function makeEdgeTypeWithProperty(
-        string $edgeLabel,
-        string $startLabel,
-        string $endLabel,
+        string $edgeKey,
+        string $startKey,
+        string $endKey,
         string $propertyName,
         bool $enum = false,
     ): array {
-        $start = VertexType::factory()->create(['age_label_name' => $startLabel]);
-        $end = VertexType::factory()->create(['age_label_name' => $endLabel]);
+        $start = VertexType::factory()->create(['age_label_name' => $this->label($startKey)]);
+        $end = VertexType::factory()->create(['age_label_name' => $this->label($endKey)]);
         $edgeType = EdgeType::factory()->create([
-            'age_label_name' => $edgeLabel,
+            'age_label_name' => $this->label($edgeKey),
             'vertex_pairs' => [['start_vertex_id' => $start->id, 'end_vertex_id' => $end->id]],
         ]);
 
