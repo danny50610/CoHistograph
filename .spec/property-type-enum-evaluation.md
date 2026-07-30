@@ -3,7 +3,7 @@
 > 範圍：在既有 `PropertyType`（INTEGER…TIMESTAMPTZ）之外，**新增一種資料型別 `ENUM`**（值必須落在 schema 定義的選項集合內）。  
 > 非範圍：是否用 PHP Enum 實作型別系統（已定案：繼續用 `App\Enums\PropertyType`）。
 
-**狀態：Q1–Q18 已鎖定（含審核 ENUM 差異）。** 實作前仍須完成 AGE list round-trip spike。
+**狀態：Q1–Q20 已鎖定（G1 完成）；進行 G2（Q21）。** 實作前仍須完成 AGE list round-trip spike。
 
 ---
 
@@ -14,7 +14,7 @@
 | 層 | 儲存 |
 |----|------|
 | Schema | `vertex_properties` / `edge_properties.enum_options`（json）：`[{value, label, active}, …]` |
-| Revision | `revision_actions.value`：**text → jsonb**；ENUM 為非空 JSON string array |
+| Revision | `revision_actions.value`：**text → jsonb**；純量依型別原生 scalar（B1）；ENUM 為非空 string array |
 | AGE | agtype **list of strings**（只存 option `value`） |
 
 語意摘要：多選集合、拒重複、依 options 定義序正規化；禁止 `[]`（清空＝delete）；可 `active:false` 停用（祖父條款）；不可設 `locale`；與 `BOOLEAN` 並存；Topic 用成員類 operator。
@@ -284,7 +284,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 | # | 主題 | 為何還沒定 |
 |---|------|------------|
-| G1 | **`value`→jsonb 後，既有純量怎麼存** | INTEGER／BOOLEAN 等現為 text；`to_jsonb(text)` 會變成 JSON **字串** `"42"`／`"true"`，不是 number／bool。要「全部維持 JSON string、套用時再 cast」還是「遷移成原生 JSON scalar」？ |
+| G1 | **`value`→jsonb 後，既有純量怎麼存** | ✅ **B1**：原生 scalar；遷移盡力轉；讀取兼容 string｜native |
 | G2 | **圖資料顯示（Vertex／Edge show）** | `formatForDisplay`／`LocalizedPropertyGrouper` 對 list 尚未定：顯示 labels「、」？還是 raw values？ |
 | G3 | **作者修訂詳情／編輯頁是否也顯示三行 diff** | Q18 只鎖審核 `action-card`；使用者自己的 revision show／edit 卡片要不要同一套「現有／新增／移除」？ |
 | G4 | **option `value` 字元規則** | 是否限 `[a-z0-9_]+`、可否空白／Unicode？影響 Cypher／Topic／輸入驗證 |
@@ -319,7 +319,23 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 **決定：由高到低逐題收（G1→G5…）；本輪先 G1。**
 
-### Q20 — G1：`value`→jsonb 後，既有純量如何存放？（進行中）
+### Q20 — G1：`value`→jsonb 後純量如何存放？ ✅
+
+| 選項 | 含義 |
+|------|------|
+| A. 一律 JSON string | 含數字／布林 |
+| **B1. 原生 scalar + 盡力遷移（已選）** | INTEGER／FLOAT／BOOLEAN 用 number／bool；舊資料能轉就轉 |
+| B2. 僅新寫入原生、舊留 string | 永久雙軌寫入策略不同 |
+| C. 雙軌並行無遷移策略 | 否決 |
+
+**決定：B1。**
+
+- **新寫入**：依 `PropertyType` 寫入原生 JSON（int／float／bool／string／ENUM array）
+- **遷移**：`text`→`jsonb` 後，能依 action 的 property／schema 推得 INTEGER／FLOAT／BOOLEAN 者轉成原生；推不到或非該型別 → 留 JSON string
+- **讀取／caster／validator**：兼容歷史 JSON string 與原生 scalar（再交給既有轉型邏輯）
+- ENUM 一律 array（元素為 string）
+
+### Q21 — G2：圖資料頁（Vertex／Edge show）ENUM 怎麼顯示？（進行中）
 
 見對話。
 
