@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-vertex-types')]
-#[Description('搜尋 VertexType（可選含 Property 定義與使用指南）。')]
+#[Description('搜尋 VertexType（可選含 Property 定義）。')]
 #[IsReadOnly]
 class SearchVertexTypesTool extends Tool
 {
@@ -50,7 +50,6 @@ class SearchVertexTypesTool extends Tool
             $builder->where(function ($q) use ($like) {
                 $q->whereRaw('LOWER(name) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(COALESCE(usage_guidelines, \'\')) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(age_label_name) LIKE ?', [$like]);
             });
         }
@@ -63,7 +62,6 @@ class SearchVertexTypesTool extends Tool
                     'name' => $vertexType->name,
                     'age_label_name' => $vertexType->age_label_name,
                     'description' => $vertexType->description,
-                    'usage_guidelines' => $vertexType->usage_guidelines,
                     'properties_count' => $vertexType->properties_count,
                 ];
 
@@ -95,7 +93,7 @@ class SearchVertexTypesTool extends Tool
     {
         return [
             'query' => $schema->string()
-                ->description('搜尋關鍵字；比對 name、description、usage_guidelines、age_label_name'),
+                ->description('搜尋關鍵字；比對 name、description、age_label_name'),
             'include_properties' => $schema->boolean()
                 ->description('是否附帶 properties 陣列，預設 false')
                 ->default(false),

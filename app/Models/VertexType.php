@@ -14,7 +14,6 @@ class VertexType extends Model
     protected $fillable = [
         'name',
         'description',
-        'usage_guidelines',
         'age_label_name',
         'overview_order',
         'show_property_name',

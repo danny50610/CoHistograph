@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-edge-types')]
-#[Description('搜尋 EdgeType（可選含 Property、起迄 VertexType 組合與使用指南）。')]
+#[Description('搜尋 EdgeType（可選含 Property、起迄 VertexType 組合）。')]
 #[IsReadOnly]
 class SearchEdgeTypesTool extends Tool
 {
@@ -64,7 +64,6 @@ class SearchEdgeTypesTool extends Tool
                 $q->whereRaw('LOWER(name) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(COALESCE(reverse_name, \'\')) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(COALESCE(usage_guidelines, \'\')) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(age_label_name) LIKE ?', [$like]);
             });
         }
@@ -92,7 +91,6 @@ class SearchEdgeTypesTool extends Tool
                     'reverse_name' => $edgeType->reverse_name,
                     'age_label_name' => $edgeType->age_label_name,
                     'description' => $edgeType->description,
-                    'usage_guidelines' => $edgeType->usage_guidelines,
                     'properties_count' => $edgeType->properties_count,
                 ];
 
@@ -141,7 +139,7 @@ class SearchEdgeTypesTool extends Tool
     {
         return [
             'query' => $schema->string()
-                ->description('搜尋關鍵字；比對 name、reverse_name、description、usage_guidelines、age_label_name'),
+                ->description('搜尋關鍵字；比對 name、reverse_name、description、age_label_name'),
             'start_vertex_type_label' => $schema->string()
                 ->description('篩選起點 VertexType 的 age_label_name（匹配任一允許的起迄組合）'),
             'end_vertex_type_label' => $schema->string()

@@ -71,7 +71,6 @@ class EdgeTypeController extends Controller
             'reverse_name' => ['nullable', 'string'],
             'age_label_name' => ['required', 'string', new AgeLabelName, Rule::unique('vertex_types'), Rule::unique('edge_types')],
             'description' => ['nullable', 'string'],
-            'usage_guidelines' => ['nullable', 'string'],
             'vertex_pairs' => ['required', 'array', 'min:1'],
             'vertex_pairs.*.start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'vertex_pairs.*.end_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -84,7 +83,6 @@ class EdgeTypeController extends Controller
             'reverse_name' => $validated['reverse_name'] ?? '',
             'age_label_name' => $validated['age_label_name'],
             'description' => $validated['description'] ?? '',
-            'usage_guidelines' => $validated['usage_guidelines'] ?? null,
         ]);
 
         $edgeType->syncVertexPairs($validated['vertex_pairs']);
@@ -120,7 +118,6 @@ class EdgeTypeController extends Controller
                 Rule::unique('edge_types')->ignore($edgeType),
             ],
             'description' => ['nullable', 'string'],
-            'usage_guidelines' => ['nullable', 'string'],
             'vertex_pairs' => ['required', 'array', 'min:1'],
             'vertex_pairs.*.start_vertex_id' => ['required', 'exists:vertex_types,id'],
             'vertex_pairs.*.end_vertex_id' => ['required', 'exists:vertex_types,id'],
@@ -134,7 +131,6 @@ class EdgeTypeController extends Controller
             'reverse_name' => $validated['reverse_name'] ?? '',
             'age_label_name' => $validated['age_label_name'],
             'description' => $validated['description'] ?? '',
-            'usage_guidelines' => $validated['usage_guidelines'] ?? null,
         ]);
 
         $edgeType->syncVertexPairs($validated['vertex_pairs']);

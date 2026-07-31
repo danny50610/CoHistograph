@@ -12,11 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vertex_types', function (Blueprint $table) {
-            $table->text('usage_guidelines')->nullable()->after('description');
+            if (Schema::hasColumn('vertex_types', 'usage_guidelines')) {
+                $table->dropColumn('usage_guidelines');
+            }
         });
 
         Schema::table('edge_types', function (Blueprint $table) {
-            $table->text('usage_guidelines')->nullable()->after('description');
+            if (Schema::hasColumn('edge_types', 'usage_guidelines')) {
+                $table->dropColumn('usage_guidelines');
+            }
         });
     }
 
@@ -26,11 +30,15 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('vertex_types', function (Blueprint $table) {
-            $table->dropColumn('usage_guidelines');
+            if (! Schema::hasColumn('vertex_types', 'usage_guidelines')) {
+                $table->text('usage_guidelines')->nullable()->after('description');
+            }
         });
 
         Schema::table('edge_types', function (Blueprint $table) {
-            $table->dropColumn('usage_guidelines');
+            if (! Schema::hasColumn('edge_types', 'usage_guidelines')) {
+                $table->text('usage_guidelines')->nullable()->after('description');
+            }
         });
     }
 };

@@ -34,7 +34,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 重要規則：
 - 所有圖資料變更必須透過 Revision 工作流，不可直接寫入 Apache AGE。
-- VertexType / EdgeType 定義「是什麼」；usage_guidelines 說明「應該怎麼用」。
+- VertexType / EdgeType 的 description 說明類型用途；建立 revision 前請先查 Schema。
 - AGE 命名規則：age_label_name / age_property_name 使用小寫英數字與底線。
 - target_age_id：指向 AGE 中既有頂點或邊的 graphid。
 - target_ref_order：引用同份 Revision 內較早的 create_vertex / create_edge 的 order（0-based）。

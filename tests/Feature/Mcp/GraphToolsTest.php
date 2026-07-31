@@ -53,13 +53,13 @@ class GraphToolsTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    public function test_search_vertex_types_returns_usage_guidelines(): void
+    public function test_search_vertex_types_finds_by_query(): void
     {
         $user = User::factory()->createOne();
         $vertexType = VertexType::factory()->createOne([
             'name' => '歷史事件',
             'age_label_name' => $this->graphLabel('event'),
-            'usage_guidelines' => '用於可明確界定時間範圍的歷史事件',
+            'description' => '用於可明確界定時間範圍的歷史事件',
         ]);
 
         $response = CoHistographServer::actingAs($user)->tool(SearchVertexTypesTool::class, [
@@ -72,7 +72,7 @@ class GraphToolsTest extends TestCase
 
             $json->where('total', 1)
                 ->where('vertex_types.0.id', $vertexType->id)
-                ->where('vertex_types.0.usage_guidelines', '用於可明確界定時間範圍的歷史事件')
+                ->where('vertex_types.0.description', '用於可明確界定時間範圍的歷史事件')
                 ->etc();
 
             return true;
@@ -87,7 +87,7 @@ class GraphToolsTest extends TestCase
         $edgeType = EdgeType::factory()->createOne([
             'name' => '參與',
             'age_label_name' => $this->graphLabel('participated_in'),
-            'usage_guidelines' => '用於表示人物實際參與某事件',
+            'description' => '用於表示人物實際參與某事件',
             'start_vertex_id' => $person->id,
             'end_vertex_id' => $event->id,
         ]);
@@ -103,7 +103,7 @@ class GraphToolsTest extends TestCase
 
             $json->where('total', 1)
                 ->where('edge_types.0.id', $edgeType->id)
-                ->where('edge_types.0.usage_guidelines', '用於表示人物實際參與某事件')
+                ->where('edge_types.0.description', '用於表示人物實際參與某事件')
                 ->etc();
 
             return true;

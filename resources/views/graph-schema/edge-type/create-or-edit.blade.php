@@ -42,7 +42,6 @@
                         required
                     />
                     <x-forms.input id="description" label="描述" :value="$edgeType->description ?? ''" />
-                    <x-forms.textarea id="usage_guidelines" label="使用指南" :value="$edgeType->usage_guidelines ?? ''" :rows="4" helpText="說明語意、方向、適用條件、何時不應使用與屬性填寫原則" />
 
                     <div class="row mb-3">
                         <label class="col-md-2 col-form-label">
