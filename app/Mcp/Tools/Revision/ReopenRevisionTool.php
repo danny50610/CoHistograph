@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('reopen-revision')]
-#[Description('將已退回的修訂重新開啟為草稿。')]
+#[Description('Reopen a rejected revision as a draft.')]
 class ReopenRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -37,11 +37,11 @@ class ReopenRevisionTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('update', $revision)) {
-            return Response::error('無權限更新此修訂。');
+            return Response::error('Not authorized to update this revision.');
         }
 
         if (! $revision->isRejected()) {
-            return Response::error('只有已退回的修訂可以重新開啟。');
+            return Response::error('Only rejected revisions can be reopened.');
         }
 
         try {
@@ -61,7 +61,7 @@ class ReopenRevisionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
         ];
     }

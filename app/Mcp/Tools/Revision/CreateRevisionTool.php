@@ -13,7 +13,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('create-revision')]
-#[Description('建立空白修訂草稿。')]
+#[Description('Create an empty draft revision.')]
 class CreateRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -45,10 +45,10 @@ class CreateRevisionTool extends Tool
     {
         return [
             'title' => $schema->string()
-                ->description('修訂標題')
+                ->description('Revision title')
                 ->required(),
             'description' => $schema->string()
-                ->description('修訂說明'),
+                ->description('Revision description'),
         ];
     }
 }

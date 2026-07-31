@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-edges')]
-#[Description('依 EdgeType、端點或文字條件搜尋邊，取得 delete_edge 或 edge property action 所需的 target_age_id。')]
+#[Description('Search edges by EdgeType, endpoints, or text to obtain target_age_id for delete_edge or edge property actions.')]
 #[IsReadOnly]
 class SearchEdgesTool extends Tool
 {
@@ -64,20 +64,20 @@ class SearchEdgesTool extends Tool
     {
         return [
             'edge_type_label' => $schema->string()
-                ->description('AGE edge label；省略時跨 EdgeType 搜尋'),
+                ->description('AGE edge label; omit to search across EdgeTypes'),
             'start_vertex_age_id' => $schema->integer()
-                ->description('篩選起點頂點 AGE ID'),
+                ->description('Filter by start vertex AGE ID'),
             'end_vertex_age_id' => $schema->integer()
-                ->description('篩選終點頂點 AGE ID'),
+                ->description('Filter by end vertex AGE ID'),
             'query' => $schema->string()
-                ->description('文字搜尋關鍵字；有值時搜尋 edge 的 STRING 屬性'),
+                ->description('Text search keyword; when set, searches STRING properties on edges'),
             'property' => $schema->string()
-                ->description('限定搜尋的 edge age_property_name'),
+                ->description('Limit search to this edge age_property_name'),
             'limit' => $schema->integer()
-                ->description('預設 20，上限 100')
+                ->description('Default 20, max 100')
                 ->default(20),
             'offset' => $schema->integer()
-                ->description('分頁偏移')
+                ->description('Pagination offset')
                 ->default(0),
         ];
     }

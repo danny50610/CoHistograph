@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get-edge-detail')]
-#[Description('取得單一邊詳情、屬性與起訖頂點摘要。')]
+#[Description('Get a single edge with properties and endpoint vertex summaries.')]
 #[IsReadOnly]
 class GetEdgeDetailTool extends Tool
 {
@@ -35,7 +35,7 @@ class GetEdgeDetailTool extends Tool
 
         $edge = $this->graphQueryService->getEdge((int) $validated['age_id']);
         if ($edge === null) {
-            return Response::error("找不到邊: {$validated['age_id']}");
+            return Response::error("Edge not found: {$validated['age_id']}");
         }
 
         return Response::structured($edge);

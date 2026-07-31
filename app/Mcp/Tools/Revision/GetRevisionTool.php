@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get-revision')]
-#[Description('取得修訂詳情（含 actions 與最後驗證結果）。')]
+#[Description('Get revision details including actions and the latest validation result.')]
 #[IsReadOnly]
 class GetRevisionTool extends Tool
 {
@@ -38,7 +38,7 @@ class GetRevisionTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('view', $revision)) {
-            return Response::error('無權限查看此修訂。');
+            return Response::error('Not authorized to view this revision.');
         }
 
         return Response::structured($this->revisionService->toChangeResponse($revision));
@@ -51,7 +51,7 @@ class GetRevisionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
         ];
     }

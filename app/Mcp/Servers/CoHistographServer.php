@@ -30,17 +30,17 @@ use Laravel\Mcp\Server\Attributes\Version;
 #[Name('CoHistograph')]
 #[Version('1.0.0')]
 #[Instructions(<<<'INSTRUCTIONS'
-協作式歷史事件知識圖譜平台。可查詢圖譜 Schema 與頂點資料、協助建立與提交修訂。
+Collaborative historical-event knowledge graph platform. Query graph schema and vertex data, and help create and submit revisions.
 
-重要規則：
-- 所有圖資料變更必須透過 Revision 工作流，不可直接寫入 Apache AGE。
-- VertexType / EdgeType 的 description 說明類型用途；建立 revision 前請先查 Schema。
-- AGE 命名規則：age_label_name / age_property_name 使用小寫英數字與底線。
-- target_age_id：指向 AGE 中既有頂點或邊的 graphid。
-- target_ref_order：引用同份 Revision 內較早的 create_vertex / create_edge 的 order（0-based）。
-- create_vertex 只建立空頂點；屬性請用 create_vertex_property / update_vertex_property。
-- Action 編輯請使用單筆 CRUD 與 move-revision-action，不要整份覆寫 actions。
-- 提交前請確認 validate-revision 通過。
+Important rules:
+- All graph data changes must go through the Revision workflow; never write directly to Apache AGE.
+- VertexType / EdgeType description fields explain each type; look up the schema before creating a revision.
+- AGE naming: age_label_name / age_property_name use lowercase letters, digits, and underscores.
+- target_age_id: graphid of an existing vertex or edge in AGE.
+- target_ref_order: 0-based order of an earlier create_vertex / create_edge in the same Revision.
+- create_vertex creates an empty vertex only; set properties with create_vertex_property / update_vertex_property.
+- Edit actions with single-action CRUD and move-revision-action; do not overwrite the full actions list.
+- Confirm validate-revision passes before submitting.
 INSTRUCTIONS)]
 class CoHistographServer extends Server
 {

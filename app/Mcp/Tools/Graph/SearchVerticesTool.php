@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-vertices')]
-#[Description('依 VertexType 列出頂點，或以文字搜尋頂點屬性，取得後續 action 所需的 target_age_id。')]
+#[Description('List vertices by VertexType, or text-search vertex properties, to obtain target_age_id for later actions.')]
 #[IsReadOnly]
 class SearchVerticesTool extends Tool
 {
@@ -60,17 +60,17 @@ class SearchVerticesTool extends Tool
     {
         return [
             'vertex_type_label' => $schema->string()
-                ->description('AGE label，如 person、event')
+                ->description('AGE label, e.g. person, event')
                 ->required(),
             'query' => $schema->string()
-                ->description('文字搜尋關鍵字；有值時改為搜尋模式'),
+                ->description('Text search keyword; when set, switches to search mode'),
             'property' => $schema->string()
-                ->description('限定搜尋的 age_property_name；省略時搜尋所有 STRING 屬性'),
+                ->description('Limit search to this age_property_name; omit to search all STRING properties'),
             'limit' => $schema->integer()
-                ->description('預設 20，上限 100')
+                ->description('Default 20, max 100')
                 ->default(20),
             'offset' => $schema->integer()
-                ->description('分頁偏移')
+                ->description('Pagination offset')
                 ->default(0),
         ];
     }

@@ -17,7 +17,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('add-revision-action')]
-#[Description('在指定位置新增一筆 revision action。')]
+#[Description('Add a revision action at a given position.')]
 class AddRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -52,11 +52,11 @@ class AddRevisionActionTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('update', $revision)) {
-            return Response::error('無權限更新此修訂。');
+            return Response::error('Not authorized to update this revision.');
         }
 
         if (! $revision->isDraft()) {
-            return Response::error('只有草稿狀態的修訂可以更新。');
+            return Response::error('Only draft revisions can be updated.');
         }
 
         try {
@@ -75,10 +75,10 @@ class AddRevisionActionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
             'order' => $schema->integer()
-                ->description('插入位置（0-based）')
+                ->description('Insert position (0-based)')
                 ->required(),
             'action' => $this->revisionActionSchema($schema)->required(),
         ];

@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-revisions')]
-#[Description('搜尋目前登入使用者可查看的修訂，以便接續草稿或查詢送審狀態。')]
+#[Description('Search revisions visible to the current user, to continue drafts or check submission status.')]
 #[IsReadOnly]
 class SearchRevisionsTool extends Tool
 {
@@ -46,7 +46,7 @@ class SearchRevisionsTool extends Tool
 
         if ($user->hasPermission('revision.review')) {
             // reviewers can search the reviewable scope; still exclude unrelated drafts of others if desired?
-            // Spec: 具有 revision.review 權限者可搜尋可審視範圍
+            // Spec: users with revision.review may search the reviewable scope
             $builder->where(function ($q) use ($user) {
                 $q->where('user_id', $user->id)
                     ->orWhereIn('status', [
@@ -99,15 +99,15 @@ class SearchRevisionsTool extends Tool
     {
         return [
             'query' => $schema->string()
-                ->description('搜尋 title、description'),
+                ->description('Search title and description'),
             'status' => $schema->string()
                 ->enum(['draft', 'pending_review', 'approved', 'rejected'])
-                ->description('修訂狀態篩選'),
+                ->description('Filter by revision status'),
             'limit' => $schema->integer()
-                ->description('預設 20，上限 50')
+                ->description('Default 20, max 50')
                 ->default(20),
             'offset' => $schema->integer()
-                ->description('分頁偏移')
+                ->description('Pagination offset')
                 ->default(0),
         ];
     }

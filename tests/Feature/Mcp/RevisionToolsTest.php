@@ -52,7 +52,7 @@ class RevisionToolsTest extends TestCase
             'title' => '未登入測試',
         ]);
 
-        $response->assertHasErrors(['未授權']);
+        $response->assertHasErrors(['Unauthorized']);
     }
 
     public function test_create_update_action_crud_validate_and_submit_flow(): void
@@ -178,7 +178,7 @@ class RevisionToolsTest extends TestCase
             'title' => '嘗試竄改',
         ]);
 
-        $response->assertHasErrors(['無權限更新此修訂']);
+        $response->assertHasErrors(['Not authorized to update this revision']);
     }
 
     public function test_search_revisions_scopes_to_owner(): void
@@ -232,11 +232,11 @@ class RevisionToolsTest extends TestCase
 
         CoHistographServer::actingAs($user)->tool(ReopenRevisionTool::class, [
             'revision_id' => $pending->id,
-        ])->assertHasErrors(['只有已退回的修訂可以重新開啟']);
+        ])->assertHasErrors(['Only rejected revisions can be reopened']);
 
         CoHistographServer::actingAs($user)->tool(DeleteRevisionTool::class, [
             'revision_id' => $pending->id,
-        ])->assertHasErrors(['只有草稿狀態的修訂可以刪除']);
+        ])->assertHasErrors(['Only draft revisions can be deleted']);
 
         CoHistographServer::actingAs($user)->tool(DeleteRevisionTool::class, [
             'revision_id' => $draft->id,
@@ -364,11 +364,11 @@ class RevisionToolsTest extends TestCase
 
         CoHistographServer::actingAs($other)->tool(ListRevisionActionsTool::class, [
             'revision_id' => $revision->id,
-        ])->assertHasErrors(['無權限查看此修訂']);
+        ])->assertHasErrors(['Not authorized to view this revision']);
 
         CoHistographServer::actingAs($other)->tool(GetRevisionTool::class, [
             'revision_id' => $revision->id,
-        ])->assertHasErrors(['無權限查看此修訂']);
+        ])->assertHasErrors(['Not authorized to view this revision']);
     }
 
     public function test_search_revisions_as_reviewer_can_filter_pending_of_others(): void
@@ -470,26 +470,26 @@ class RevisionToolsTest extends TestCase
         CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
             'revision_id' => $revision->id,
             'action_id' => $actionId,
-        ])->assertHasErrors(['to_order 與 direction 必須二擇一']);
+        ])->assertHasErrors(['Provide exactly one of to_order or direction']);
 
         CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
             'revision_id' => $revision->id,
             'action_id' => $actionId,
             'to_order' => 0,
             'direction' => 'up',
-        ])->assertHasErrors(['to_order 與 direction 必須二擇一']);
+        ])->assertHasErrors(['Provide exactly one of to_order or direction']);
 
         CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
             'revision_id' => $revision->id,
             'action_id' => $actionId,
             'direction' => 'up',
-        ])->assertHasErrors(['已經是第一筆']);
+        ])->assertHasErrors(['Already the first action']);
 
         CoHistographServer::actingAs($user)->tool(MoveRevisionActionTool::class, [
             'revision_id' => $revision->id,
             'action_id' => $actionId,
             'direction' => 'down',
-        ])->assertHasErrors(['已經是最後一筆']);
+        ])->assertHasErrors(['Already the last action']);
     }
 
     public function test_mutating_tools_reject_non_draft_and_non_owner(): void
@@ -525,7 +525,7 @@ class RevisionToolsTest extends TestCase
         CoHistographServer::actingAs($owner)->tool(UpdateRevisionTool::class, [
             'revision_id' => $pending->id,
             'title' => '不該更新',
-        ])->assertHasErrors(['只有草稿']);
+        ])->assertHasErrors(['Only draft']);
 
         CoHistographServer::actingAs($owner)->tool(AddRevisionActionTool::class, [
             'revision_id' => $pending->id,
@@ -534,7 +534,7 @@ class RevisionToolsTest extends TestCase
                 'action' => 'create_vertex',
                 'vertex_type_label' => $vertexType->age_label_name,
             ],
-        ])->assertHasErrors(['只有草稿']);
+        ])->assertHasErrors(['Only draft']);
 
         CoHistographServer::actingAs($owner)->tool(UpdateRevisionActionTool::class, [
             'revision_id' => $pending->id,
@@ -543,22 +543,22 @@ class RevisionToolsTest extends TestCase
                 'action' => 'create_vertex',
                 'vertex_type_label' => $vertexType->age_label_name,
             ],
-        ])->assertHasErrors(['只有草稿']);
+        ])->assertHasErrors(['Only draft']);
 
         CoHistographServer::actingAs($owner)->tool(DeleteRevisionActionTool::class, [
             'revision_id' => $pending->id,
             'action_id' => $actionId,
-        ])->assertHasErrors(['只有草稿']);
+        ])->assertHasErrors(['Only draft']);
 
         CoHistographServer::actingAs($owner)->tool(MoveRevisionActionTool::class, [
             'revision_id' => $pending->id,
             'action_id' => $actionId,
             'direction' => 'up',
-        ])->assertHasErrors(['只有草稿']);
+        ])->assertHasErrors(['Only draft']);
 
         CoHistographServer::actingAs($owner)->tool(SubmitRevisionTool::class, [
             'revision_id' => $pending->id,
-        ])->assertHasErrors(['只有草稿狀態的修訂可以提交審核']);
+        ])->assertHasErrors(['Only draft revisions can be submitted for review']);
 
         CoHistographServer::actingAs($owner)->tool(ValidateRevisionTool::class, [
             'revision_id' => $pending->id,
@@ -566,26 +566,26 @@ class RevisionToolsTest extends TestCase
 
         CoHistographServer::actingAs($other)->tool(SubmitRevisionTool::class, [
             'revision_id' => $draft->id,
-        ])->assertHasErrors(['無權限提交此修訂']);
+        ])->assertHasErrors(['Not authorized to submit this revision']);
 
         CoHistographServer::actingAs($other)->tool(MoveRevisionActionTool::class, [
             'revision_id' => $draft->id,
             'action_id' => $actionId,
             'direction' => 'up',
-        ])->assertHasErrors(['無權限更新此修訂']);
+        ])->assertHasErrors(['Not authorized to update this revision']);
 
         CoHistographServer::actingAs($other)->tool(DeleteRevisionActionTool::class, [
             'revision_id' => $draft->id,
             'action_id' => $actionId,
-        ])->assertHasErrors(['無權限更新此修訂']);
+        ])->assertHasErrors(['Not authorized to update this revision']);
 
         CoHistographServer::actingAs($other)->tool(ReopenRevisionTool::class, [
             'revision_id' => $pending->id,
-        ])->assertHasErrors(['無權限更新此修訂']);
+        ])->assertHasErrors(['Not authorized to update this revision']);
 
         CoHistographServer::actingAs($other)->tool(DeleteRevisionTool::class, [
             'revision_id' => $draft->id,
-        ])->assertHasErrors(['無權限刪除此修訂']);
+        ])->assertHasErrors(['Not authorized to delete this revision']);
     }
 
     public function test_unauthenticated_revision_tools_are_rejected(): void
@@ -611,7 +611,7 @@ class RevisionToolsTest extends TestCase
                 'order' => 0,
                 'action' => ['action' => 'create_vertex'],
                 'direction' => 'up',
-            ])->assertHasErrors(['未授權']);
+            ])->assertHasErrors(['Unauthorized']);
         }
     }
 

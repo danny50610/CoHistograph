@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get-vertex-detail')]
-#[Description('取得單一頂點詳情與屬性。')]
+#[Description('Get a single vertex with its properties.')]
 #[IsReadOnly]
 class GetVertexDetailTool extends Tool
 {
@@ -35,7 +35,7 @@ class GetVertexDetailTool extends Tool
 
         $vertex = $this->graphQueryService->getVertex((int) $validated['age_id']);
         if ($vertex === null) {
-            return Response::error("找不到頂點: {$validated['age_id']}");
+            return Response::error("Vertex not found: {$validated['age_id']}");
         }
 
         return Response::structured($vertex);
@@ -48,7 +48,7 @@ class GetVertexDetailTool extends Tool
     {
         return [
             'age_id' => $schema->integer()
-                ->description('AGE 頂點 ID')
+                ->description('AGE vertex ID')
                 ->required(),
         ];
     }

@@ -11,28 +11,28 @@ trait ProvidesRevisionActionSchema
     {
         return $schema->object([
             'action' => $schema->string()
-                ->description('十種 action 之一，如 create_vertex、create_edge')
+                ->description('One of the ten actions, e.g. create_vertex, create_edge')
                 ->required(),
             'target_age_id' => $schema->integer()
-                ->description('操作對象 AGE graphid（與 target_ref_order 互斥）'),
+                ->description('AGE graphid of the target (mutually exclusive with target_ref_order)'),
             'target_ref_order' => $schema->integer()
-                ->description('引用同 Revision 內 create_vertex / create_edge 的 order'),
+                ->description('Order of create_vertex / create_edge in the same Revision'),
             'vertex_type_label' => $schema->string()
-                ->description('create_vertex 時必填的 AGE label'),
+                ->description('Required AGE label for create_vertex'),
             'edge_type_label' => $schema->string()
-                ->description('create_edge 時必填的 AGE label'),
+                ->description('Required AGE label for create_edge'),
             'start_vertex_age_id' => $schema->integer()
-                ->description('create_edge 起點 AGE ID'),
+                ->description('create_edge start vertex AGE ID'),
             'start_vertex_ref_order' => $schema->integer()
-                ->description('create_edge 起點引用同 Revision 內 create_vertex 的 order'),
+                ->description('create_edge start: order of create_vertex in the same Revision'),
             'end_vertex_age_id' => $schema->integer()
-                ->description('create_edge 終點 AGE ID'),
+                ->description('create_edge end vertex AGE ID'),
             'end_vertex_ref_order' => $schema->integer()
-                ->description('create_edge 終點引用同 Revision 內 create_vertex 的 order'),
+                ->description('create_edge end: order of create_vertex in the same Revision'),
             'age_property_name' => $schema->string()
-                ->description('property 相關 action 時必填'),
+                ->description('Required for property-related actions'),
             'value' => $schema->string()
-                ->description('屬性值（字串；型別依 Schema 屬性定義）'),
-        ])->description('單筆 RevisionAction 欄位');
+                ->description('Property value as a string; type follows the schema property definition'),
+        ])->description('Fields for a single RevisionAction');
     }
 }

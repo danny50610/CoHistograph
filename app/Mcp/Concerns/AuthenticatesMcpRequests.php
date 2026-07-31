@@ -13,7 +13,7 @@ trait AuthenticatesMcpRequests
         $user = $request->user();
 
         if (! $user instanceof User) {
-            return Response::error('未授權：請先以有效的 OAuth access token 登入（scope: mcp:use）。');
+            return Response::error('Unauthorized: sign in with a valid OAuth access token (scope: mcp:use).');
         }
 
         return $user;

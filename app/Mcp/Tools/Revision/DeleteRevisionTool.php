@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('delete-revision')]
-#[Description('刪除草稿修訂。')]
+#[Description('Delete a draft revision.')]
 class DeleteRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -37,11 +37,11 @@ class DeleteRevisionTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('delete', $revision)) {
-            return Response::error('無權限刪除此修訂。');
+            return Response::error('Not authorized to delete this revision.');
         }
 
         if (! $revision->isDraft()) {
-            return Response::error('只有草稿狀態的修訂可以刪除。');
+            return Response::error('Only draft revisions can be deleted.');
         }
 
         $revisionId = $revision->id;
@@ -65,7 +65,7 @@ class DeleteRevisionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
         ];
     }

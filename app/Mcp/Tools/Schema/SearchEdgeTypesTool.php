@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-edge-types')]
-#[Description('搜尋 EdgeType（可選含 Property、起迄 VertexType 組合）。')]
+#[Description('Search EdgeTypes (optionally include properties and endpoint VertexType pairs).')]
 #[IsReadOnly]
 class SearchEdgeTypesTool extends Tool
 {
@@ -139,22 +139,22 @@ class SearchEdgeTypesTool extends Tool
     {
         return [
             'query' => $schema->string()
-                ->description('搜尋關鍵字；比對 name、reverse_name、description、age_label_name'),
+                ->description('Search keyword; matches name, reverse_name, description, age_label_name'),
             'start_vertex_type_label' => $schema->string()
-                ->description('篩選起點 VertexType 的 age_label_name（匹配任一允許的起迄組合）'),
+                ->description('Filter by start VertexType age_label_name (matches any allowed endpoint pair)'),
             'end_vertex_type_label' => $schema->string()
-                ->description('篩選終點 VertexType 的 age_label_name（匹配任一允許的起迄組合）'),
+                ->description('Filter by end VertexType age_label_name (matches any allowed endpoint pair)'),
             'include_properties' => $schema->boolean()
-                ->description('是否附帶 properties，預設 false')
+                ->description('Include properties; default false')
                 ->default(false),
             'include_vertices' => $schema->boolean()
-                ->description('是否附帶 vertex_pairs（起迄組合）摘要，預設 true')
+                ->description('Include vertex_pairs (endpoint combinations) summary; default true')
                 ->default(true),
             'limit' => $schema->integer()
-                ->description('預設 20，上限 50')
+                ->description('Default 20, max 50')
                 ->default(20),
             'offset' => $schema->integer()
-                ->description('分頁偏移')
+                ->description('Pagination offset')
                 ->default(0),
         ];
     }

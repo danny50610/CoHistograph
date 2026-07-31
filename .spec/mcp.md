@@ -82,7 +82,7 @@ tests/Feature/Mcp/                    # MCP 整合測試
 |------|-----|
 | Name | `CoHistograph` |
 | Version | `1.0.0` |
-| Instructions | 協作式歷史事件知識圖譜平台。可查詢圖譜 Schema 與頂點資料、協助建立與提交修訂。所有圖資料變更須透過 Revision 工作流，不可直接寫入 AGE。領域知識（VertexType / EdgeType 概念、AGE 命名規則、`target_age_id` 與 `target_ref_order` 語意）寫入 Server Instructions，不另建 Resource。 |
+| Instructions | Collaborative historical-event knowledge graph platform. Query schema and vertex data; help create and submit revisions. All graph changes must go through the Revision workflow (never write AGE directly). Domain guidance (VertexType / EdgeType, AGE naming, `target_age_id` / `target_ref_order`) lives in Server Instructions; no separate Resources. |
 
 ### 設計原則：Tools-only
 

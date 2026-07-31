@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list-revision-actions')]
-#[Description('列出修訂的所有 action（依 order 升序）與最後驗證結果。')]
+#[Description('List all actions of a revision (ascending by order) and the latest validation result.')]
 #[IsReadOnly]
 class ListRevisionActionsTool extends Tool
 {
@@ -38,7 +38,7 @@ class ListRevisionActionsTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('view', $revision)) {
-            return Response::error('無權限查看此修訂。');
+            return Response::error('Not authorized to view this revision.');
         }
 
         return Response::structured($this->revisionService->toChangeResponse($revision));
@@ -51,7 +51,7 @@ class ListRevisionActionsTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
         ];
     }

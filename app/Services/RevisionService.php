@@ -126,7 +126,7 @@ class RevisionService
         abort_unless($action->revision_id === $revision->id, 404);
 
         if (($toOrder === null && $direction === null) || ($toOrder !== null && $direction !== null)) {
-            throw new InvalidArgumentException('to_order 與 direction 必須二擇一');
+            throw new InvalidArgumentException('Provide exactly one of to_order or direction');
         }
 
         DB::transaction(function () use ($revision, $action, $toOrder, $direction) {
@@ -139,12 +139,12 @@ class RevisionService
 
             if ($direction !== null) {
                 if (! in_array($direction, ['up', 'down'], true)) {
-                    throw new InvalidArgumentException('direction 必須是 up 或 down');
+                    throw new InvalidArgumentException('direction must be up or down');
                 }
 
                 $swapWith = $direction === 'up' ? $fromIndex - 1 : $fromIndex + 1;
                 if ($swapWith < 0 || $swapWith >= $actions->count()) {
-                    throw new InvalidArgumentException($direction === 'up' ? '已經是第一筆 action' : '已經是最後一筆 action');
+                    throw new InvalidArgumentException($direction === 'up' ? 'Already the first action' : 'Already the last action');
                 }
 
                 $current = $actions[$fromIndex];

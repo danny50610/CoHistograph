@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('update-revision')]
-#[Description('更新修訂標題與說明（不含 actions）。')]
+#[Description('Update revision title and description (without actions).')]
 class UpdateRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -39,11 +39,11 @@ class UpdateRevisionTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('update', $revision)) {
-            return Response::error('無權限更新此修訂。');
+            return Response::error('Not authorized to update this revision.');
         }
 
         if (! $revision->isDraft()) {
-            return Response::error('只有草稿狀態的修訂可以更新。');
+            return Response::error('Only draft revisions can be updated.');
         }
 
         try {
@@ -62,13 +62,13 @@ class UpdateRevisionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
             'title' => $schema->string()
-                ->description('修訂標題')
+                ->description('Revision title')
                 ->required(),
             'description' => $schema->string()
-                ->description('修訂說明'),
+                ->description('Revision description'),
         ];
     }
 }

@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('validate-revision')]
-#[Description('在不修改內容的情況下重新驗證草稿，並寫回驗證快取。')]
+#[Description('Re-validate a draft without changing its content, and write back the validation cache.')]
 class ValidateRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -37,7 +37,7 @@ class ValidateRevisionTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('view', $revision)) {
-            return Response::error('無權限查看此修訂。');
+            return Response::error('Not authorized to view this revision.');
         }
 
         if (! $revision->isDraft()) {
@@ -60,7 +60,7 @@ class ValidateRevisionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
         ];
     }

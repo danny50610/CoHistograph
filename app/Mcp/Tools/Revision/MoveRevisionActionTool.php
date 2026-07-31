@@ -18,7 +18,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('move-revision-action')]
-#[Description('移動 revision action 至新位置（to_order 或 direction）。')]
+#[Description('Move a revision action to a new position (to_order or direction).')]
 class MoveRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -41,22 +41,22 @@ class MoveRevisionActionTool extends Tool
 
         if ((! array_key_exists('to_order', $validated) || $validated['to_order'] === null)
             && empty($validated['direction'])) {
-            return Response::error('to_order 與 direction 必須二擇一。');
+            return Response::error('Provide exactly one of to_order or direction.');
         }
 
         if (array_key_exists('to_order', $validated) && $validated['to_order'] !== null && ! empty($validated['direction'])) {
-            return Response::error('to_order 與 direction 必須二擇一。');
+            return Response::error('Provide exactly one of to_order or direction.');
         }
 
         $revision = Revision::query()->findOrFail($validated['revision_id']);
         $action = RevisionAction::query()->findOrFail($validated['action_id']);
 
         if (! Gate::forUser($user)->allows('update', $revision)) {
-            return Response::error('無權限更新此修訂。');
+            return Response::error('Not authorized to update this revision.');
         }
 
         if (! $revision->isDraft()) {
-            return Response::error('只有草稿狀態的修訂可以更新。');
+            return Response::error('Only draft revisions can be updated.');
         }
 
         try {
@@ -80,16 +80,16 @@ class MoveRevisionActionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
             'action_id' => $schema->integer()
                 ->description('revision_actions.id')
                 ->required(),
             'to_order' => $schema->integer()
-                ->description('目標位置（0-based）；與 direction 二擇一'),
+                ->description('Target position (0-based); mutually exclusive with direction'),
             'direction' => $schema->string()
                 ->enum(['up', 'down'])
-                ->description('與相鄰 action 交換；與 to_order 二擇一'),
+                ->description('Swap with adjacent action; mutually exclusive with to_order'),
         ];
     }
 }

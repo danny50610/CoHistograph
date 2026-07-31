@@ -17,7 +17,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('delete-revision-action')]
-#[Description('刪除單筆 revision action 並重排 order。')]
+#[Description('Delete a single revision action and resequence order.')]
 class DeleteRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -40,11 +40,11 @@ class DeleteRevisionActionTool extends Tool
         $action = RevisionAction::query()->findOrFail($validated['action_id']);
 
         if (! Gate::forUser($user)->allows('update', $revision)) {
-            return Response::error('無權限更新此修訂。');
+            return Response::error('Not authorized to update this revision.');
         }
 
         if (! $revision->isDraft()) {
-            return Response::error('只有草稿狀態的修訂可以更新。');
+            return Response::error('Only draft revisions can be updated.');
         }
 
         try {
@@ -63,7 +63,7 @@ class DeleteRevisionActionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
             'action_id' => $schema->integer()
                 ->description('revision_actions.id')

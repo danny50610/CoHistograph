@@ -155,7 +155,7 @@ class GraphToolsTest extends TestCase
             'property' => 'year',
         ]);
 
-        $response->assertHasErrors(['屬性 year 不存在或不是 STRING 類型']);
+        $response->assertHasErrors(['Property year does not exist or is not a STRING type']);
     }
 
     public function test_get_vertex_detail_neighbors_and_edge_search(): void
@@ -341,7 +341,7 @@ class GraphToolsTest extends TestCase
 
         CoHistographServer::actingAs($user)->tool(SearchVerticesTool::class, [
             'vertex_type_label' => 'missing_label_zzzz',
-        ])->assertHasErrors(['找不到 Vertex 類型']);
+        ])->assertHasErrors(['Vertex type not found']);
     }
 
     public function test_search_edges_validation_and_end_vertex_filter(): void
@@ -365,17 +365,17 @@ class GraphToolsTest extends TestCase
         $edgeId = $this->createAgeEdgeWithProperties($edgeType->age_label_name, $personId, $eventId, []);
 
         CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [])
-            ->assertHasErrors(['至少需提供']);
+            ->assertHasErrors(['At least one of']);
 
         CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [
             'edge_type_label' => 'missing_edge_zzzz',
-        ])->assertHasErrors(['找不到 Edge 類型']);
+        ])->assertHasErrors(['Edge type not found']);
 
         CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [
             'edge_type_label' => $edgeType->age_label_name,
             'query' => '1911',
             'property' => 'year',
-        ])->assertHasErrors(['不是 STRING 類型']);
+        ])->assertHasErrors(['is not a STRING type']);
 
         $byEnd = CoHistographServer::actingAs($user)->tool(SearchEdgesTool::class, [
             'end_vertex_age_id' => $eventId,
@@ -405,15 +405,15 @@ class GraphToolsTest extends TestCase
 
         CoHistographServer::actingAs($user)->tool(GetVertexDetailTool::class, [
             'age_id' => 999999999,
-        ])->assertHasErrors(['找不到頂點']);
+        ])->assertHasErrors(['Vertex not found']);
 
         CoHistographServer::actingAs($user)->tool(GetEdgeDetailTool::class, [
             'age_id' => 999999999,
-        ])->assertHasErrors(['找不到邊']);
+        ])->assertHasErrors(['Edge not found']);
 
         CoHistographServer::actingAs($user)->tool(ListVertexNeighborsTool::class, [
             'age_id' => 999999999,
-        ])->assertHasErrors(['找不到頂點']);
+        ])->assertHasErrors(['Vertex not found']);
 
         $incoming = CoHistographServer::actingAs($user)->tool(ListVertexNeighborsTool::class, [
             'age_id' => $eventId,

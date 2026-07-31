@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('submit-revision')]
-#[Description('提交修訂至待審核狀態。')]
+#[Description('Submit a revision for review.')]
 class SubmitRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;
@@ -37,11 +37,11 @@ class SubmitRevisionTool extends Tool
         $revision = Revision::query()->findOrFail($validated['revision_id']);
 
         if (! Gate::forUser($user)->allows('update', $revision)) {
-            return Response::error('無權限提交此修訂。');
+            return Response::error('Not authorized to submit this revision.');
         }
 
         if (! $revision->isDraft()) {
-            return Response::error('只有草稿狀態的修訂可以提交審核。');
+            return Response::error('Only draft revisions can be submitted for review.');
         }
 
         try {
@@ -72,7 +72,7 @@ class SubmitRevisionTool extends Tool
     {
         return [
             'revision_id' => $schema->integer()
-                ->description('修訂 ID')
+                ->description('Revision ID')
                 ->required(),
         ];
     }

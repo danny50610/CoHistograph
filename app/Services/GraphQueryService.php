@@ -36,14 +36,14 @@ class GraphQueryService
             ->first();
 
         if ($vertexType === null) {
-            throw new InvalidArgumentException("找不到 Vertex 類型: {$vertexTypeLabel}");
+            throw new InvalidArgumentException("Vertex type not found: {$vertexTypeLabel}");
         }
 
         $query = $this->normalizeOptionalQuery($query);
         $searchableProperties = $this->resolveStringPropertyNames($vertexType->properties, $property);
 
         if ($query !== null && $property !== null && $searchableProperties === []) {
-            throw new InvalidArgumentException("屬性 {$property} 不存在或不是 STRING 類型");
+            throw new InvalidArgumentException("Property {$property} does not exist or is not a STRING type");
         }
 
         $allVertices = $this->fetchVertices($vertexTypeLabel, $query, $searchableProperties);
@@ -115,7 +115,7 @@ class GraphQueryService
         $query = $this->normalizeOptionalQuery($query);
 
         if ($edgeTypeLabel === null && $startVertexAgeId === null && $endVertexAgeId === null && $query === null) {
-            throw new InvalidArgumentException('至少需提供 edge_type_label、start_vertex_age_id、end_vertex_age_id 或 query 其中一項');
+            throw new InvalidArgumentException('At least one of edge_type_label, start_vertex_age_id, end_vertex_age_id, or query is required');
         }
 
         $edgeTypes = EdgeType::query()
@@ -124,7 +124,7 @@ class GraphQueryService
             ->get();
 
         if ($edgeTypeLabel !== null && $edgeTypes->isEmpty()) {
-            throw new InvalidArgumentException("找不到 Edge 類型: {$edgeTypeLabel}");
+            throw new InvalidArgumentException("Edge type not found: {$edgeTypeLabel}");
         }
 
         if ($property !== null) {
@@ -133,7 +133,7 @@ class GraphQueryService
             );
 
             if (! $hasMatchingStringProperty) {
-                throw new InvalidArgumentException("屬性 {$property} 不存在或不是 STRING 類型");
+                throw new InvalidArgumentException("Property {$property} does not exist or is not a STRING type");
             }
         }
 
@@ -217,14 +217,14 @@ class GraphQueryService
     {
         $vertex = $this->getVertex($ageId);
         if ($vertex === null) {
-            throw new InvalidArgumentException("找不到頂點: {$ageId}");
+            throw new InvalidArgumentException("Vertex not found: {$ageId}");
         }
 
         $directions = match ($direction) {
             'outgoing' => [Direction::RIGHT],
             'incoming' => [Direction::LEFT],
             'both' => [Direction::RIGHT, Direction::LEFT],
-            default => throw new InvalidArgumentException('direction 必須是 outgoing、incoming 或 both'),
+            default => throw new InvalidArgumentException('direction must be outgoing, incoming, or both'),
         };
 
         $neighbors = [];

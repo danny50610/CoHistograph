@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list-vertex-neighbors')]
-#[Description('列出頂點的相鄰節點與邊。')]
+#[Description('List neighboring vertices and edges of a vertex.')]
 #[IsReadOnly]
 class ListVertexNeighborsTool extends Tool
 {
@@ -54,11 +54,11 @@ class ListVertexNeighborsTool extends Tool
     {
         return [
             'age_id' => $schema->integer()
-                ->description('AGE 頂點 ID')
+                ->description('AGE vertex ID')
                 ->required(),
             'direction' => $schema->string()
                 ->enum(['outgoing', 'incoming', 'both'])
-                ->description('outgoing / incoming / both，預設 both')
+                ->description('outgoing / incoming / both; default both')
                 ->default('both'),
         ];
     }

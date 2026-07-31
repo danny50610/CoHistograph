@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-vertex-types')]
-#[Description('搜尋 VertexType（可選含 Property 定義）。')]
+#[Description('Search VertexTypes (optionally include property definitions).')]
 #[IsReadOnly]
 class SearchVertexTypesTool extends Tool
 {
@@ -93,15 +93,15 @@ class SearchVertexTypesTool extends Tool
     {
         return [
             'query' => $schema->string()
-                ->description('搜尋關鍵字；比對 name、description、age_label_name'),
+                ->description('Search keyword; matches name, description, age_label_name'),
             'include_properties' => $schema->boolean()
-                ->description('是否附帶 properties 陣列，預設 false')
+                ->description('Include properties array; default false')
                 ->default(false),
             'limit' => $schema->integer()
-                ->description('預設 20，上限 50')
+                ->description('Default 20, max 50')
                 ->default(20),
             'offset' => $schema->integer()
-                ->description('分頁偏移')
+                ->description('Pagination offset')
                 ->default(0),
         ];
     }
