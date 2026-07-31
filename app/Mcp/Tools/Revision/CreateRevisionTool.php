@@ -32,7 +32,7 @@ class CreateRevisionTool extends Tool
             'description' => ['nullable', 'string'],
         ]);
 
-        $revision = $this->revisionService->create($user, $validated);
+        $revision = $this->revisionService->create($user, $validated, aiAssisted: true);
         $this->revisionService->refreshValidation($revision);
 
         return Response::structured($this->revisionService->toChangeResponse($revision));

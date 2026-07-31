@@ -401,6 +401,7 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
     "title": "新增辛亥革命",
     "description": null,
     "status": "draft",
+    "is_ai_assisted": true,
     "last_validated_at": "2026-07-07T08:00:00+00:00"
   },
   "actions": [
@@ -440,7 +441,7 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 
 - 一般使用者僅搜尋自己建立的 Revision
 - 具有 `revision.review` 權限者可搜尋可審視範圍，但本 MCP 不提供 approve / reject Tool
-- 回傳 action 數量、最後驗證摘要與 `updated_at`，不回傳完整 actions（需用 `get-revision` 或 `list-revision-actions`）
+- 回傳 action 數量、`is_ai_assisted`、最後驗證摘要與 `updated_at`，不回傳完整 actions（需用 `get-revision` 或 `list-revision-actions`）
 
 **委派**：`Revision::query()` 加上使用者範圍、搜尋條件與分頁。
 
@@ -455,15 +456,15 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 | `title` | string | 是 | 修訂標題 |
 | `description` | string | 否 | 修訂說明 |
 
-**委派**：`RevisionService::create`。
+**委派**：`RevisionService::create(..., aiAssisted: true)`，寫入 `is_ai_assisted = true`。
 
 **權限**：須登入。
 
-**回應**：空 `actions` 的變更後回應格式（驗證通常通過）。
+**回應**：空 `actions` 的變更後回應格式（驗證通常通過）；`revision.is_ai_assisted` 為 `true`。
 
 #### `update-revision`
 
-更新修訂標題與說明（**不含 actions**）。
+更新修訂標題與說明（**不含 actions**）。若原為人工建立的修訂，更新後會將 `is_ai_assisted` 設為 `true`（sticky）。
 
 | 參數 | 型別 | 必填 | 說明 |
 |------|------|------|------|

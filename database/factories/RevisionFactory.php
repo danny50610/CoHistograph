@@ -21,6 +21,14 @@ class RevisionFactory extends Factory
             'description' => fake()->optional()->sentence(),
             'status' => RevisionStatus::Draft,
             'user_id' => User::factory(),
+            'is_ai_assisted' => false,
         ];
+    }
+
+    public function aiAssisted(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'is_ai_assisted' => true,
+        ]);
     }
 }

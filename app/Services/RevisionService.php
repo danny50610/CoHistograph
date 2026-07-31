@@ -18,13 +18,14 @@ class RevisionService
         private \App\Support\RevisionActionValueNormalizer $actionValueNormalizer,
     ) {}
 
-    public function create(User $user, array $data): Revision
+    public function create(User $user, array $data, bool $aiAssisted = false): Revision
     {
         return Revision::create([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'status' => RevisionStatus::Draft,
             'user_id' => $user->id,
+            'is_ai_assisted' => $aiAssisted,
         ]);
     }
 
@@ -53,6 +54,8 @@ class RevisionService
     {
         abort_unless($revision->isDraft(), 422, '只有草稿狀態的修訂可以更新');
 
+        $this->markAiAssisted($revision);
+
         $revision->update([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
@@ -67,6 +70,8 @@ class RevisionService
     public function addAction(Revision $revision, int $order, array $actionData): RevisionAction
     {
         abort_unless($revision->isDraft(), 422, '只有草稿狀態的修訂可以更新');
+
+        $this->markAiAssisted($revision);
 
         $action = DB::transaction(function () use ($revision, $order, $actionData) {
             $actions = $revision->actions()->orderBy('order')->get();
@@ -94,6 +99,8 @@ class RevisionService
         abort_unless($revision->isDraft(), 422, '只有草稿狀態的修訂可以更新');
         abort_unless($action->revision_id === $revision->id, 404);
 
+        $this->markAiAssisted($revision);
+
         $action->update($this->actionAttributes($actionData, $action->order));
 
         $this->refreshValidation($revision);
@@ -105,6 +112,8 @@ class RevisionService
     {
         abort_unless($revision->isDraft(), 422, '只有草稿狀態的修訂可以更新');
         abort_unless($action->revision_id === $revision->id, 404);
+
+        $this->markAiAssisted($revision);
 
         DB::transaction(function () use ($revision, $action) {
             $deletedOrder = $action->order;
@@ -128,6 +137,8 @@ class RevisionService
         if (($toOrder === null && $direction === null) || ($toOrder !== null && $direction !== null)) {
             throw new InvalidArgumentException('Provide exactly one of to_order or direction');
         }
+
+        $this->markAiAssisted($revision);
 
         DB::transaction(function () use ($revision, $action, $toOrder, $direction) {
             $actions = $revision->actions()->orderBy('order')->get()->values();
@@ -248,6 +259,7 @@ class RevisionService
                 'title' => $revision->title,
                 'description' => $revision->description,
                 'status' => $revision->status->value,
+                'is_ai_assisted' => $revision->is_ai_assisted,
                 'last_validated_at' => $revision->last_validated_at?->toIso8601String(),
             ],
             'actions' => $revision->actions
@@ -280,6 +292,18 @@ class RevisionService
         ]);
 
         return $validationResult;
+    }
+
+    /**
+     * Sticky flag: once an MCP tool creates or edits a revision, mark it as AI-assisted.
+     */
+    private function markAiAssisted(Revision $revision): void
+    {
+        if ($revision->is_ai_assisted) {
+            return;
+        }
+
+        $revision->forceFill(['is_ai_assisted' => true])->save();
     }
 
     /**

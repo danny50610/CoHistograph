@@ -78,6 +78,7 @@ class SearchRevisionsTool extends Tool
                 'title' => $revision->title,
                 'description' => $revision->description,
                 'status' => $revision->status->value,
+                'is_ai_assisted' => $revision->is_ai_assisted,
                 'actions_count' => $revision->actions_count,
                 'last_validation_is_valid' => $revision->last_validation_is_valid,
                 'last_validation_summary' => $revision->last_validation_summary,

@@ -68,6 +68,7 @@ class RevisionToolsTest extends TestCase
         $create->assertStructuredContent(function (AssertableJson $json) {
 
             $json->where('revision.status', 'draft')
+                ->where('revision.is_ai_assisted', true)
                 ->where('actions', [])
                 ->etc();
 

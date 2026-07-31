@@ -40,6 +40,7 @@ Important rules:
 - target_ref_order: 0-based order of an earlier create_vertex / create_edge in the same Revision.
 - create_vertex creates an empty vertex only; set properties with create_vertex_property / update_vertex_property.
 - Edit actions with single-action CRUD and move-revision-action; do not overwrite the full actions list.
+- Revisions created or edited via MCP are marked `is_ai_assisted: true` (sticky).
 - Confirm validate-revision passes before submitting.
 INSTRUCTIONS)]
 class CoHistographServer extends Server

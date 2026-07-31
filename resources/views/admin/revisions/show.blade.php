@@ -25,6 +25,7 @@
         <div class="d-flex align-items-center gap-2 mb-3">
             <h1 class="h3 mb-0">{{ $revision->title }}</h1>
             @include('revisions.partials.status-badge', ['status' => $revision->status])
+            @include('revisions.partials.ai-assisted-badge', ['revision' => $revision])
         </div>
 
         {{-- Review operations --}}
