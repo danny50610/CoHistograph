@@ -15,7 +15,10 @@ return [
 
     'guard' => 'web',
 
-    'middleware' => [],
+    // Restore pgsql search_path before Passport introspects oauth_clients columns.
+    'middleware' => [
+        \App\Http\Middleware\RestoreDefaultPgsqlSearchPath::class,
+    ],
 
     /*
     |--------------------------------------------------------------------------
