@@ -14,7 +14,7 @@ A collaborative platform for building, managing, and exploring historical event 
 {
   "mcpServers": {
     "cohistograph": {
-      "url": "http://localhost:8080/mcp"
+      "url": "http://<your domain>/mcp"
     }
   }
 }
