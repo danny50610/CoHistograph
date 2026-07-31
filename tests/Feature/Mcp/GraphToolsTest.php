@@ -46,7 +46,7 @@ class GraphToolsTest extends TestCase
 
     public function test_unauthenticated_web_mcp_request_returns_401(): void
     {
-        $this->postJson('/mcp/cohistograph', [
+        $this->postJson('/mcp', [
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'tools/list',

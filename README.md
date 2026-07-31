@@ -8,13 +8,13 @@ A collaborative platform for building, managing, and exploring historical event 
 
 ## mcp.json
 
-在專案的 `mcp.json`
+在專案的 `mcp.json`（端點為 `/mcp`，與品牌顯示名稱無關）：
 
 ```json
 {
   "mcpServers": {
     "cohistograph": {
-      "url": "https://<your-domain>/mcp/cohistograph"
+      "url": "http://localhost:8080/mcp"
     }
   }
 }

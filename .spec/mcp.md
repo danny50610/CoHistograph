@@ -113,7 +113,7 @@ use Laravel\Mcp\Facades\Mcp;
 Mcp::oauthRoutes();
 
 // Web：供遠端 AI 客戶端（OAuth 2.1）
-Mcp::web('/mcp/cohistograph', CoHistographServer::class)
+Mcp::web('/mcp', CoHistographServer::class)
     ->middleware(['auth:api', 'throttle:mcp']);
 
 // Local：供本機編輯器整合（與 Boost 並存）

@@ -11,6 +11,15 @@ class OAuthRegisterTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_unauthenticated_mcp_http_endpoint_returns_401(): void
+    {
+        $this->postJson('/mcp', [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/list',
+        ])->assertUnauthorized();
+    }
+
     public function test_dynamic_client_registration_accepts_cursor_redirect_uri(): void
     {
         $response = $this->postJson('/oauth/register', [
@@ -31,6 +40,10 @@ class OAuthRegisterTest extends TestCase
 
     public function test_dynamic_client_registration_survives_ag_catalog_leading_search_path(): void
     {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('Requires pgsql with Apache AGE schemas');
+        }
+
         // Reproduce apache-age-driver's HTTP ConnectionEstablished side effect
         // (skipped while runningInConsole, so PHPUnit must set it manually).
         DB::statement('SET SESSION search_path = ag_catalog, public');

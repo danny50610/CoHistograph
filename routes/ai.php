@@ -9,7 +9,7 @@ Route::middleware(RestoreDefaultPgsqlSearchPath::class)->group(function (): void
     Mcp::oauthRoutes();
 });
 
-Mcp::web('/mcp/cohistograph', CoHistographServer::class)
+Mcp::web('/mcp', CoHistographServer::class)
     ->middleware(['auth:api', 'throttle:mcp']);
 
 Mcp::local('cohistograph', CoHistographServer::class);
