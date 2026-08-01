@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-edges')]
-#[Description('Search edges by EdgeType, endpoints, or text to obtain target_age_id for delete_edge or edge property actions.')]
+#[Description('Search edges by EdgeType, endpoints, or text. Use to obtain target_age_id for delete_edge or edge property actions.')]
 #[IsReadOnly]
 class SearchEdgesTool extends Tool
 {

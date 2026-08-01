@@ -13,7 +13,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('create-revision')]
-#[Description('Create an empty draft revision.')]
+#[Description('Create an empty draft revision (title required). Next: add-revision-action. Marks is_ai_assisted=true. Prefer search-revisions first if a draft may already exist.')]
 class CreateRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;

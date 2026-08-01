@@ -18,7 +18,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('update-revision-action')]
-#[Description('Update a single revision action (without reordering).')]
+#[Description('Replace fields of one draft action by action_id without changing its order. Provide the full action object for that type; then validate-revision if refs may be affected.')]
 class UpdateRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;

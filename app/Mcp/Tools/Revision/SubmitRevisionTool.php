@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('submit-revision')]
-#[Description('Submit a revision for review.')]
+#[Description('Submit a draft revision for human review. Ensure validate-revision reports no errors first; only drafts can be submitted.')]
 class SubmitRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;

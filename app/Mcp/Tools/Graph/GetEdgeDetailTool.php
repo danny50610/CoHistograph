@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get-edge-detail')]
-#[Description('Get a single edge with properties and endpoint vertex summaries.')]
+#[Description('Get one edge by age_id with properties and endpoint vertex summaries. Call after search-edges when planning edge edits.')]
 #[IsReadOnly]
 class GetEdgeDetailTool extends Tool
 {

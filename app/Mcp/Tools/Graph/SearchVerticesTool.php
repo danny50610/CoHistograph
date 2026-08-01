@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-vertices')]
-#[Description('List vertices by VertexType, or text-search vertex properties, to obtain target_age_id for later actions.')]
+#[Description('List or text-search vertices by VertexType age_label_name. Use to obtain target_age_id before delete_vertex or vertex property actions. Omit query to paginate all of that type; set property to limit search to one STRING field.')]
 #[IsReadOnly]
 class SearchVerticesTool extends Tool
 {

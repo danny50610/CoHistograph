@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-edge-types')]
-#[Description('Search EdgeTypes (optionally include properties and endpoint VertexType pairs).')]
+#[Description('Search EdgeTypes by name/label/description, optionally filter by endpoint VertexType labels. Set include_properties=true and include_vertices=true before create_edge or edge property actions.')]
 #[IsReadOnly]
 class SearchEdgeTypesTool extends Tool
 {

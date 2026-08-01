@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('validate-revision')]
-#[Description('Re-validate a draft without changing its content, and write back the validation cache.')]
+#[Description('Re-validate a draft without changing content and refresh the validation cache. Call until clean before submit-revision, and after moves/edits that may break refs.')]
 class ValidateRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;

@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list-revision-actions')]
-#[Description('List all actions of a revision (ascending by order) and the latest validation result.')]
+#[Description('List all actions of a revision in order (0-based) plus the latest validation result without re-validating. Use before editing, after moves, or to resolve target_ref_order.')]
 #[IsReadOnly]
 class ListRevisionActionsTool extends Tool
 {

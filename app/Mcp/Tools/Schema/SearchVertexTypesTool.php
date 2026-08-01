@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-vertex-types')]
-#[Description('Search VertexTypes (optionally include property definitions).')]
+#[Description('Search VertexTypes by name, description, or age_label_name. Set include_properties=true before create_vertex or vertex property actions to learn allowed age_property_name values.')]
 #[IsReadOnly]
 class SearchVertexTypesTool extends Tool
 {

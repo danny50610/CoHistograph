@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-revisions')]
-#[Description('Search revisions visible to the current user, to continue drafts or check submission status.')]
+#[Description('Search revisions visible to the current user. Prefer this before create-revision when resuming work; filter status=draft or rejected to continue editing.')]
 #[IsReadOnly]
 class SearchRevisionsTool extends Tool
 {

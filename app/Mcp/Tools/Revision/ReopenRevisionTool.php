@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('reopen-revision')]
-#[Description('Reopen a rejected revision as a draft.')]
+#[Description('Reopen a rejected revision as a draft so it can be edited again with *-revision-action tools. Required before fixing a rejected submission.')]
 class ReopenRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;

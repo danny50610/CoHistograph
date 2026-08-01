@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list-vertex-neighbors')]
-#[Description('List neighboring vertices and edges of a vertex.')]
+#[Description('List neighboring vertices and connecting edges for a vertex age_id. Useful before create_edge or delete_edge to understand existing relationships.')]
 #[IsReadOnly]
 class ListVertexNeighborsTool extends Tool
 {

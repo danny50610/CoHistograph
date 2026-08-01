@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get-vertex-detail')]
-#[Description('Get a single vertex with its properties.')]
+#[Description('Get one vertex by age_id with its properties. Call after search-vertices when you need full property values before editing.')]
 #[IsReadOnly]
 class GetVertexDetailTool extends Tool
 {

@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('update-revision')]
-#[Description('Update revision title and description (without actions).')]
+#[Description('Update draft revision title and/or description only. Does not modify actions — use *-revision-action tools for those.')]
 class UpdateRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;

@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get-revision')]
-#[Description('Get revision details including actions and the latest validation result.')]
+#[Description('Get full revision details including actions and the latest validation result. Use when resuming work on a known revision_id.')]
 #[IsReadOnly]
 class GetRevisionTool extends Tool
 {

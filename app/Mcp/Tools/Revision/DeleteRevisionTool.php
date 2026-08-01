@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('delete-revision')]
-#[Description('Delete a draft revision.')]
+#[Description('Permanently delete a draft revision (and its actions). Only drafts; use when abandoning a mistaken draft.')]
 class DeleteRevisionTool extends Tool
 {
     use AuthenticatesMcpRequests;

@@ -17,7 +17,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('add-revision-action')]
-#[Description('Add a revision action at a given position.')]
+#[Description('Insert one action into a draft at order (0-based); later actions shift down. Look up schema/graph first. For new vertices: create_vertex then create_vertex_property. Use target_age_id XOR target_ref_order as documented in server instructions.')]
 class AddRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;

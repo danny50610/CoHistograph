@@ -18,7 +18,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('move-revision-action')]
-#[Description('Move a revision action to a new position (to_order or direction).')]
+#[Description('Reorder one draft action via to_order (0-based) or direction=up|down. Resequencing can break *_ref_order references — always validate-revision after moving.')]
 class MoveRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;
