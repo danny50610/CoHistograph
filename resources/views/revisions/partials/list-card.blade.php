@@ -19,6 +19,7 @@
                 {{-- 第一行：標題 + 狀態 badge --}}
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <h5 class="card-title mb-0 flex-grow-1">{{ $revision->title }}</h5>
+                    @include('revisions.partials.ai-assisted-badge', ['revision' => $revision])
                     @include('revisions.partials.status-badge', ['status' => $revision->status])
                 </div>
 
@@ -54,6 +55,7 @@
                 {{-- 第一行：status + title + updated_at --}}
                 <div class="d-flex align-items-center gap-2 mb-2">
                     @include('revisions.partials.status-badge', ['status' => $revision->status])
+                    @include('revisions.partials.ai-assisted-badge', ['revision' => $revision])
                     <h5 class="card-title mb-0 flex-grow-1">{{ $revision->title }}</h5>
                     <span class="text-secondary small text-nowrap">{{ $revision->updated_at }}</span>
                 </div>

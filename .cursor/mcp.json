@@ -1,0 +1,21 @@
+{
+    "mcpServers": {
+      "laravel-boost": {
+        "command": "php",
+        "args": [
+          "./artisan",
+          "boost:mcp"
+        ]
+      },
+      "chrome-devtools": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "chrome-devtools-mcp@latest"
+        ]
+      },
+      "cohistograph": {
+        "url": "http://localhost:8080/mcp"
+      }
+    }
+  }

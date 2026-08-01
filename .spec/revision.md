@@ -168,6 +168,7 @@ draft → pending_review → rejected
 | description | text nullable | 選填，說明這份變更的目的 |
 | status | string | `draft`, `pending_review`, `approved`, `rejected` |
 | user_id | FK → users | 擁有者（用於授權） |
+| is_ai_assisted | boolean | 預設 `false`；經 MCP 新增或編輯內容後為 `true`（sticky） |
 | timestamps | | created_at, updated_at |
 
 **`revision_reviews` 資料表**

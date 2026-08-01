@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property array<int, list<string>>|null $last_validation_action_errors
  * @property \Illuminate\Support\Carbon|null $last_validated_at
  * @property int $user_id
+ * @property bool $is_ai_assisted
  */
 class Revision extends Model
 {
@@ -36,6 +37,7 @@ class Revision extends Model
         'last_validation_action_errors',
         'last_validated_at',
         'user_id',
+        'is_ai_assisted',
     ];
 
     protected function casts(): array
@@ -46,6 +48,7 @@ class Revision extends Model
             'last_validation_general_errors' => 'array',
             'last_validation_action_errors' => 'array',
             'last_validated_at' => 'datetime',
+            'is_ai_assisted' => 'boolean',
         ];
     }
 
