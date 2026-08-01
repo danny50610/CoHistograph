@@ -9,11 +9,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laratrust\Contracts\LaratrustUser;
 use Laratrust\Traits\HasRolesAndPermissions;
+use Laravel\Passport\Contracts\OAuthenticatable;
+use Laravel\Passport\HasApiTokens;
 
-class User extends Authenticatable implements LaratrustUser, MustVerifyEmail
+class User extends Authenticatable implements LaratrustUser, MustVerifyEmail, OAuthenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasRolesAndPermissions, Notifiable;
+    use HasApiTokens, HasFactory, HasRolesAndPermissions, Notifiable;
 
     /**
      * The attributes that are mass assignable.

@@ -39,10 +39,10 @@ class VertexTypeController extends Controller
     {
         $vertexType->load([
             'properties',
-            'startEdgeTypes',
-            'startEdgeTypes.endVertex',
-            'endEdgeTypes',
-            'endEdgeTypes.startVertex',
+            'startEdgeTypes.vertexPairs.startVertex',
+            'startEdgeTypes.vertexPairs.endVertex',
+            'endEdgeTypes.vertexPairs.startVertex',
+            'endEdgeTypes.vertexPairs.endVertex',
         ]);
 
         $propertyGroups = app(LocalizedPropertyGrouper::class)->group($vertexType->properties);

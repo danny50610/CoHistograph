@@ -100,6 +100,7 @@ class RevisionActionValidator
             'exists' => true,
             'type_label' => $label,
             'properties' => [],
+            'property_values' => [],
         ]);
     }
 
@@ -176,20 +177,22 @@ class RevisionActionValidator
             return;
         }
 
-        $expectedStart = $edgeType->startVertex?->age_label_name;
-        $expectedEnd = $edgeType->endVertex?->age_label_name;
         $actualStart = $this->resolver->vertexTypeLabel($start['key']);
         $actualEnd = $this->resolver->vertexTypeLabel($end['key']);
 
-        if ($actualStart !== $expectedStart || $actualEnd !== $expectedEnd) {
+        if (! $edgeType->allowsEndpointPair($actualStart, $actualEnd)) {
+            $allowedPairs = $edgeType->vertexPairs->map(fn ($pair) => [
+                'start' => $pair->startVertex?->age_label_name,
+                'end' => $pair->endVertex?->age_label_name,
+            ])->values()->all();
+
             $this->addActionError(
                 $result,
                 $order,
                 'EDGE_VERTEX_TYPE_MISMATCH',
                 '起訖 Vertex 類型不符合 Edge 類型定義',
                 [
-                    'expected_start' => $expectedStart,
-                    'expected_end' => $expectedEnd,
+                    'allowed_pairs' => $allowedPairs,
                     'actual_start' => $actualStart,
                     'actual_end' => $actualEnd,
                 ],
@@ -204,6 +207,7 @@ class RevisionActionValidator
             'start_key' => $start['key'],
             'end_key' => $end['key'],
             'properties' => [],
+            'property_values' => [],
         ]);
     }
 
@@ -302,6 +306,41 @@ class RevisionActionValidator
             return;
         }
 
+        if ($property->age_property_type === PropertyType::Enum) {
+            $currentOnGraph = $this->enumCurrentValues(
+                $this->resolver->getVertexPropertyValue($target['key'], $propertyName),
+            );
+            $errors = \App\Support\EnumOptions::validateSelected(
+                array_values(array_map('strval', is_array($action->value) ? $action->value : [])),
+                \App\Support\EnumOptions::normalize(is_array($property->enum_options) ? $property->enum_options : null),
+                $currentOnGraph,
+                $isCreate,
+                $property->min_selections,
+                $property->max_selections,
+            );
+
+            if ($errors !== []) {
+                $this->addActionError(
+                    $result,
+                    $order,
+                    'ENUM_VALUE_INVALID',
+                    $errors[0],
+                    ['messages' => $errors],
+                );
+
+                return;
+            }
+
+            $normalized = $this->propertyValueCaster->toStorage(
+                $action->value,
+                PropertyType::Enum,
+                \App\Support\EnumOptions::normalize(is_array($property->enum_options) ? $property->enum_options : null),
+            );
+            $this->resolver->setVertexPropertyValue($target['key'], $propertyName, $normalized);
+
+            return;
+        }
+
         $this->resolver->setVertexPropertyExists($target['key'], $propertyName, true);
     }
 
@@ -379,6 +418,41 @@ class RevisionActionValidator
                 '屬性值型別不符合定義',
                 ['expected_type' => $property->age_property_type->value],
             );
+
+            return;
+        }
+
+        if ($property->age_property_type === PropertyType::Enum) {
+            $currentOnGraph = $this->enumCurrentValues(
+                $this->resolver->getEdgePropertyValue($target['key'], $propertyName),
+            );
+            $errors = \App\Support\EnumOptions::validateSelected(
+                array_values(array_map('strval', is_array($action->value) ? $action->value : [])),
+                \App\Support\EnumOptions::normalize(is_array($property->enum_options) ? $property->enum_options : null),
+                $currentOnGraph,
+                $isCreate,
+                $property->min_selections,
+                $property->max_selections,
+            );
+
+            if ($errors !== []) {
+                $this->addActionError(
+                    $result,
+                    $order,
+                    'ENUM_VALUE_INVALID',
+                    $errors[0],
+                    ['messages' => $errors],
+                );
+
+                return;
+            }
+
+            $normalized = $this->propertyValueCaster->toStorage(
+                $action->value,
+                PropertyType::Enum,
+                \App\Support\EnumOptions::normalize(is_array($property->enum_options) ? $property->enum_options : null),
+            );
+            $this->resolver->setEdgePropertyValue($target['key'], $propertyName, $normalized);
 
             return;
         }
@@ -494,9 +568,24 @@ class RevisionActionValidator
         }
     }
 
-    private function valueMatchesType(string $value, PropertyType $propertyType): bool
+    private function valueMatchesType(mixed $value, PropertyType $propertyType): bool
     {
         return $this->propertyValueCaster->matchesType($value, $propertyType);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function enumCurrentValues(mixed $raw): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $item): string => is_string($item) ? $item : '', $raw),
+            static fn (string $item): bool => $item !== '',
+        ));
     }
 
     private function isProvided(mixed $value): bool

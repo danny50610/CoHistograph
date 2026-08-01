@@ -3,6 +3,7 @@
 @php
     $isEditMode = isset($edgeProperty);
     $methodText = $isEditMode ? '編輯' : '新增';
+    $agePropertyNameLocked = $agePropertyNameLocked ?? false;
 @endphp
 
 @section('title', $methodText . ' Edge Property')
@@ -25,16 +26,35 @@
                     @include('graph-schema.partials.property-locale-fields', [
                         'property' => $edgeProperty ?? null,
                         'isEditMode' => $isEditMode,
-                        'agePropertyNameLocked' => $agePropertyNameLocked ?? false,
+                        'agePropertyNameLocked' => $agePropertyNameLocked,
                     ])
 
-                    <x-forms.select
-                        id="age_property_type"
-                        label="Property Type"
-                        :value="$edgeProperty->age_property_type->value ?? ''"
-                        :options="\App\Enums\PropertyType::selectOptions()"
-                        required
-                    />
+                    @if ($agePropertyNameLocked)
+                        <fieldset disabled>
+                            <x-forms.select
+                                id="age_property_type"
+                                label="Property Type"
+                                :value="$edgeProperty->age_property_type->value"
+                                :options="\App\Enums\PropertyType::selectOptions()"
+                                required
+                            />
+                        </fieldset>
+                        <input type="hidden" name="age_property_type" value="{{ $edgeProperty->age_property_type->value }}">
+                    @else
+                        <x-forms.select
+                            id="age_property_type"
+                            label="Property Type"
+                            :value="$edgeProperty->age_property_type->value ?? ''"
+                            :options="\App\Enums\PropertyType::selectOptions()"
+                            required
+                        />
+                    @endif
+
+                    @include('graph-schema.partials.property-enum-options-fields', [
+                        'property' => $edgeProperty ?? null,
+                        'isEditMode' => $isEditMode,
+                        'usedEnumValues' => $usedEnumValues ?? [],
+                    ])
 
                     <div class="row mb-2">
                         <div class="col-md-10 ms-auto">

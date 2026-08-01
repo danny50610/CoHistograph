@@ -152,12 +152,12 @@ watch(
             return;
         }
 
-        const id = Number(value);
-        if (! Number.isFinite(id)) {
+        const id = normalizeAgeId(value);
+        if (id === null) {
             return;
         }
 
-        if (selected.value?.id === id) {
+        if (selected.value != null && String(selected.value.id) === id) {
             return;
         }
 
@@ -207,6 +207,22 @@ function abortInFlight() {
         abortController.abort();
         abortController = null;
     }
+}
+
+/**
+ * AGE graphids are uint64-ish; keep them as digit strings to avoid JS Number precision loss.
+ */
+function normalizeAgeId(value) {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const id = String(value);
+    if (! /^\d+$/.test(id)) {
+        return null;
+    }
+
+    return id;
 }
 
 function scheduleSearch() {
@@ -261,16 +277,19 @@ async function resolveById(id) {
         }
 
         if (item) {
-            selected.value = item;
+            selected.value = {
+                ...item,
+                id: String(item.id),
+            };
             query.value = '';
             results.value = [];
             if (hasTypeOptions.value && item.type_label) {
                 selectedType.value = item.type_label;
             }
-            emit('select', item);
+            emit('select', selected.value);
         } else {
             selected.value = {
-                id,
+                id: String(id),
                 display_name: `(ID: ${id})`,
                 type_label: null,
                 type_name: null,
@@ -283,7 +302,7 @@ async function resolveById(id) {
 
         if (seq === requestSeq) {
             selected.value = {
-                id,
+                id: String(id),
                 display_name: `(ID: ${id})`,
                 type_label: null,
                 type_name: null,
@@ -395,16 +414,20 @@ function onFocus() {
 }
 
 function choose(item) {
-    selected.value = item;
+    const normalized = {
+        ...item,
+        id: String(item.id),
+    };
+    selected.value = normalized;
     query.value = '';
     results.value = [];
     isOpen.value = false;
     highlightedIndex.value = -1;
-    if (hasTypeOptions.value && item.type_label) {
-        selectedType.value = item.type_label;
+    if (hasTypeOptions.value && normalized.type_label) {
+        selectedType.value = normalized.type_label;
     }
-    emit('update:modelValue', item.id);
-    emit('select', item);
+    emit('update:modelValue', normalized.id);
+    emit('select', normalized);
 }
 
 function clearSelection() {

@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\FaqItemController;
+use App\Http\Controllers\Admin\HomepageConfigController;
 use App\Http\Controllers\Admin\RevisionReviewController;
+use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\RoleController;
@@ -11,7 +14,7 @@ Route::get('/', [HomeController::class, 'index'])->name('index');
 
 Route::get('overview', [HomeController::class, 'overview'])->name('overview');
 
-Route::view('faq', 'footer-page.faq')->name('faq');
+Route::get('faq', [FaqController::class, 'index'])->name('faq');
 
 Route::prefix('graph-schema')->name('graph-schema.')->scopeBindings()->group(function () {
     Route::resource('vertex-type', \App\Http\Controllers\GraphSchema\VertexTypeController::class);
@@ -53,6 +56,11 @@ Route::group(['middleware' => ['auth', 'verified']], function () {
         Route::get('revisions/{revision}', [RevisionReviewController::class, 'show'])->name('revisions.show');
         Route::post('revisions/{revision}/approve', [RevisionReviewController::class, 'approve'])->name('revisions.approve');
         Route::post('revisions/{revision}/reject', [RevisionReviewController::class, 'reject'])->name('revisions.reject');
+
+        Route::get('system-config/homepage', [HomepageConfigController::class, 'edit'])->name('system-config.homepage.edit');
+        Route::put('system-config/homepage', [HomepageConfigController::class, 'update'])->name('system-config.homepage.update');
+
+        Route::resource('faq-items', FaqItemController::class)->except(['show']);
     });
 
     Route::resource('user', UserController::class)->except(['create', 'store']);

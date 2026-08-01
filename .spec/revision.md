@@ -20,7 +20,7 @@ CoHistograph 是一個協作式歷史事件知識圖譜平台，讓使用者能�
 
 1. **VertexType**（頂點類型）：定義圖中節點的種類，例如「人物」、「事件」、「地點」。每個 VertexType 有對應的 `age_label_name` 作為 Apache AGE 的標籤。
 2. **VertexProperty**（頂點屬性）：定義某 VertexType 擁有的屬性欄位，例如「人物」有「姓名」、「生卒年」等。
-3. **EdgeType**（邊類型）：定義兩個 VertexType 之間的關係種類，例如「人物」→「參與」→「事件」。支援正向名稱（name）與反向名稱（reverse_name）。
+3. **EdgeType**（邊類型）：定義關係種類（一個 AGE label），並可指定一或多組允許的起迄 VertexType 組合，例如「應援廣告」→「應援」→「VTuber／團體」。支援正向名稱（name）與反向名稱（reverse_name）。
 4. **EdgeProperty**（邊屬性）：定義某 EdgeType 擁有的屬性欄位。
 
 實際的頂點與邊資料儲存在 Apache AGE 圖資料庫中，透過 `danny50610/laravel-apache-age-driver` 套件進行 Cypher 查詢。
@@ -34,7 +34,7 @@ app/
 │   └── Graph/           # 圖資料瀏覽（Vertex 列表與詳情）
 ├── Models/              # Eloquent models
 ├── Rules/GraphSchema/   # 自訂驗證規則（AGE label/property 命名規則）
-├── Enums/               # PropertyType enum（INTEGER, FLOAT, BOOLEAN, STRING, DATE, MONTH_DAY, TIMESTAMPTZ）
+├── Enums/               # PropertyType enum（INTEGER, FLOAT, BOOLEAN, STRING, DATE, MONTH_DAY, TIMESTAMPTZ, ENUM）
 └── Services/            # MenuService
 database/
 ├── migrations/          # 關聯式 DB schema
@@ -168,6 +168,7 @@ draft → pending_review → rejected
 | description | text nullable | 選填，說明這份變更的目的 |
 | status | string | `draft`, `pending_review`, `approved`, `rejected` |
 | user_id | FK → users | 擁有者（用於授權） |
+| is_ai_assisted | boolean | 預設 `false`；經 MCP 新增或編輯內容後為 `true`（sticky） |
 | timestamps | | created_at, updated_at |
 
 **`revision_reviews` 資料表**
@@ -199,7 +200,7 @@ draft → pending_review → rejected
 | end_vertex_age_id | bigint nullable | `create_edge` 時，end vertex 的 AGE graphid（與 `end_vertex_ref_order` 互斥） |
 | end_vertex_ref_order | integer nullable | `create_edge` 時，end vertex 引用同 Revision 內 `create_vertex` action 的 order（與 `end_vertex_age_id` 互斥） |
 | age_property_name | string nullable | `*_property` 操作時使用，對應 `vertex_properties.age_property_name` 或 `edge_properties.age_property_name` |
-| value | text nullable | `create_*_property` / `update_*_property` 時使用，套用時依 `age_property_type` 轉型 |
+| value | jsonb nullable | `create_*_property` / `update_*_property` 時使用；純量為原生 JSON scalar，ENUM 為非空 string array；套用時依 `age_property_type` 寫入 AGE |
 | timestamps | | created_at, updated_at |
 
 ---
@@ -691,7 +692,8 @@ draft → pending_review → rejected
 
 | 項目 | 規則 |
 |---|---|
-| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIMESTAMPTZ 用 datetime-local + offset、STRING 用 text） |
+| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIMESTAMPTZ 用 datetime-local + offset、ENUM 用 checkbox 多選並依 `min_selections`／`max_selections` 約束、STRING 用 text） |
+
 | 欄位相依 | 需先選擇 `target`，才能正確決定 `age_property_name` 的可選範圍 |
 | 驗證錯誤 | 顯示在 modal 內，不關閉 modal |
 | Blade partial | 3 種 vertex property action 可拆成同組 partial，依 action 決定是否顯示 `value` |
@@ -737,7 +739,8 @@ draft → pending_review → rejected
 
 | 項目 | 規則 |
 |---|---|
-| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIMESTAMPTZ 用 datetime-local + offset、STRING 用 text） |
+| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIMESTAMPTZ 用 datetime-local + offset、ENUM 用 checkbox 多選並依 `min_selections`／`max_selections` 約束、STRING 用 text） |
+
 | 欄位相依 | 需先選擇 `target`，才能正確決定 `age_property_name` 的可選範圍 |
 | 驗證錯誤 | 顯示在 modal 內，不關閉 modal |
 | Blade partial | 3 種 edge property action 可拆成同組 partial，依 action 決定是否顯示 `value` |

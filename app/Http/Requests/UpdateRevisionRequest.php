@@ -20,16 +20,18 @@ class UpdateRevisionRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'actions' => ['present', 'array'],
             'actions.*.action' => ['required', new Enum(RevisionActionType::class)],
-            'actions.*.target_age_id' => ['nullable', 'integer'],
+            'actions.*.target_age_id' => ['nullable', 'numeric'],
             'actions.*.target_ref_order' => ['nullable', 'integer'],
             'actions.*.vertex_type_label' => ['nullable', 'string', 'max:64'],
             'actions.*.edge_type_label' => ['nullable', 'string', 'max:64'],
-            'actions.*.start_vertex_age_id' => ['nullable', 'integer'],
+            'actions.*.start_vertex_age_id' => ['nullable', 'numeric'],
             'actions.*.start_vertex_ref_order' => ['nullable', 'integer'],
-            'actions.*.end_vertex_age_id' => ['nullable', 'integer'],
+            'actions.*.end_vertex_age_id' => ['nullable', 'numeric'],
             'actions.*.end_vertex_ref_order' => ['nullable', 'integer'],
             'actions.*.age_property_name' => ['nullable', 'string', 'max:64'],
-            'actions.*.value' => ['nullable', 'string'],
+            // Scalars (string/number/bool) or ENUM string arrays; deeper checks in RevisionValidationService.
+            'actions.*.value' => ['nullable'],
+            'actions.*.value.*' => ['string'],
         ];
     }
 

@@ -40,4 +40,12 @@ return [
         ],
     ],
 
+    'google_analytics' => [
+        'id' => env('GOOGLE_ANALYTICS_ID'),
+    ],
+
+    'google_adsense' => [
+        'client' => env('GOOGLE_ADSENSE_CLIENT'),
+    ],
+
 ];

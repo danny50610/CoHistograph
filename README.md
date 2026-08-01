@@ -5,3 +5,17 @@
 
 A collaborative platform for building, managing, and exploring historical event knowledge graphs.  
 一個協作式平台，用於構建、管理及探索歷史事件知識圖譜。
+
+## mcp.json
+
+在專案的 `mcp.json`（端點為 `/mcp`，與品牌顯示名稱無關）：
+
+```json
+{
+  "mcpServers": {
+    "cohistograph": {
+      "url": "http://<your domain>/mcp"
+    }
+  }
+}
+```

@@ -14,6 +14,11 @@ enum PropertyType: string
     case MonthDay = 'MONTH_DAY';
     /** Instant with timezone, stored as ISO-8601 string with offset in AGE. */
     case Timestamptz = 'TIMESTAMPTZ';
+    /**
+     * Multi-select enum: AGE stores agtype list of option values;
+     * allowed options live on the property as `enum_options` JSON.
+     */
+    case Enum = 'ENUM';
 
     /**
      * @return list<array{value: string, label: string}>
@@ -24,5 +29,10 @@ enum PropertyType: string
             fn (self $type) => ['value' => $type->value, 'label' => $type->value],
             self::cases(),
         );
+    }
+
+    public function allowsLocale(): bool
+    {
+        return $this !== self::Enum;
     }
 }

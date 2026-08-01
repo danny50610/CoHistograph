@@ -77,7 +77,7 @@ class RevisionController extends Controller
         ]);
 
         $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
-        $edgeTypes = EdgeType::with(['startVertex', 'endVertex', 'properties'])->orderBy('name')->get();
+        $edgeTypes = EdgeType::with(['vertexPairs.startVertex', 'vertexPairs.endVertex', 'properties'])->orderBy('name')->get();
 
         return Inertia::render('Revisions/Edit', [
             'revision' => $revision,

@@ -1,5 +1,6 @@
 @php
     use App\Enums\RevisionActionType;
+    use App\Support\EnumPropertyDiff;
     use App\Support\LocalizedPropertyLabelResolver;
 
     $actionLabels = [
@@ -52,16 +53,38 @@
         );
     }
 
+    $enumDiff = null;
+    $valueDisplay = $action->value;
+    if (isset($revisionActions, $vertexTypes, $edgeTypes)) {
+        $enumDiff = app(EnumPropertyDiff::class)->forAction(
+            $action,
+            $revisionActions,
+            $vertexTypes,
+            $edgeTypes,
+        );
+        if ($enumDiff !== null) {
+            $valueDisplay = $enumDiff['value_labels'];
+        } elseif (is_array($action->value)) {
+            $valueDisplay = implode(', ', array_map('strval', $action->value));
+        } elseif (is_bool($action->value)) {
+            $valueDisplay = $action->value ? 'true' : 'false';
+        }
+    } elseif (is_array($action->value)) {
+        $valueDisplay = implode(', ', array_map('strval', $action->value));
+    } elseif (is_bool($action->value)) {
+        $valueDisplay = $action->value ? 'true' : 'false';
+    }
+
     $summary = match ($action->action) {
         RevisionActionType::CreateVertex         => '新增 Vertex：' . ($action->vertex_type_label ?? '—'),
         RevisionActionType::DeleteVertex         => '刪除 Vertex：' . ($targetLabel ?? '—'),
         RevisionActionType::CreateEdge           => '新增 Edge：' . ($startLabel ?? '—') . ' - ' . ($action->edge_type_label ?? '—') . ' - ' . ($endLabel ?? '—'),
         RevisionActionType::DeleteEdge           => '刪除 Edge：' . ($targetLabel ?? '—'),
-        RevisionActionType::CreateVertexProperty => '新增 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
-        RevisionActionType::UpdateVertexProperty => '修改 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
+        RevisionActionType::CreateVertexProperty => '新增 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($valueDisplay ?? '—'),
+        RevisionActionType::UpdateVertexProperty => '修改 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($valueDisplay ?? '—'),
         RevisionActionType::DeleteVertexProperty => '刪除 Vertex 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName,
-        RevisionActionType::CreateEdgeProperty   => '新增 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
-        RevisionActionType::UpdateEdgeProperty   => '修改 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($action->value ?? '—'),
+        RevisionActionType::CreateEdgeProperty   => '新增 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($valueDisplay ?? '—'),
+        RevisionActionType::UpdateEdgeProperty   => '修改 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName . ' = ' . ($valueDisplay ?? '—'),
         RevisionActionType::DeleteEdgeProperty   => '刪除 Edge 屬性：' . ($targetLabel ?? '—') . '.' . $propertyName,
     };
 @endphp
@@ -95,6 +118,27 @@
             @endif
         </div>
         <div class="small">{{ $summary }}</div>
+
+        @if ($enumDiff !== null)
+            <div class="small mt-2 ps-1 border-start border-2">
+                <div>
+                    <span class="text-body-secondary">現有：</span>{{ $enumDiff['before_labels'] }}
+                    @if ($enumDiff['is_create_ref_target'])
+                        <div class="text-body-secondary">此目標於本修訂新建，圖上尚無值</div>
+                    @endif
+                </div>
+                @if ($enumDiff['added_labels'] !== '')
+                    <div class="text-success">
+                        <span class="text-body-secondary">新增：</span>{{ $enumDiff['added_labels'] }}
+                    </div>
+                @endif
+                @if ($enumDiff['removed_labels'] !== '')
+                    <div class="text-danger">
+                        <span class="text-body-secondary">移除：</span>{{ $enumDiff['removed_labels'] }}
+                    </div>
+                @endif
+            </div>
+        @endif
 
         @if ($hasError ?? false)
             @foreach ($actionErrors ?? [] as $error)

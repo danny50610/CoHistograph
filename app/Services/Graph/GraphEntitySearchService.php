@@ -20,7 +20,7 @@ class GraphEntitySearchService
 
     /**
      * @param  list<string>|null  $typeLabels
-     * @return list<array{id:int,display_name:string,type_label:string,type_name:string}>
+     * @return list<array{id:string,display_name:string,type_label:string,type_name:string}>
      */
     public function searchVertices(string $query = '', ?array $typeLabels = null, int $limit = 20): array
     {
@@ -54,7 +54,8 @@ class GraphEntitySearchService
                 }
 
                 $results[] = [
-                    'id' => $id,
+                    // String avoids JS Number precision loss for AGE graphids.
+                    'id' => (string) $id,
                     'display_name' => $displayName !== '' ? $displayName : "(ID: {$id})",
                     'type_label' => $vertexType->age_label_name,
                     'type_name' => $vertexType->name,
@@ -70,7 +71,7 @@ class GraphEntitySearchService
     }
 
     /**
-     * @return array{id:int,display_name:string,type_label:string,type_name:string}|null
+     * @return array{id:string,display_name:string,type_label:string,type_name:string}|null
      */
     public function findVertex(int $id): ?array
     {
@@ -101,7 +102,7 @@ class GraphEntitySearchService
         );
 
         return [
-            'id' => (int) $vertex->id,
+            'id' => (string) ((int) $vertex->id),
             'display_name' => $displayName !== '' ? $displayName : "(ID: {$id})",
             'type_label' => $vertexType->age_label_name,
             'type_name' => $vertexType->name,
@@ -110,7 +111,7 @@ class GraphEntitySearchService
 
     /**
      * @param  list<string>|null  $typeLabels
-     * @return list<array{id:int,display_name:string,type_label:string,type_name:string,start_vertex_id:int,end_vertex_id:int}>
+     * @return list<array{id:string,display_name:string,type_label:string,type_name:string,start_vertex_id:string,end_vertex_id:string}>
      */
     public function searchEdges(string $query = '', ?array $typeLabels = null, int $limit = 20): array
     {
@@ -136,8 +137,8 @@ class GraphEntitySearchService
                 $end = $row->t;
                 $id = (int) $edge->id;
 
-                $startVertex = $edgeType->startVertex;
-                $endVertex = $edgeType->endVertex;
+                $startVertex = $this->vertexTypeByLabel($start->label ?? null);
+                $endVertex = $this->vertexTypeByLabel($end->label ?? null);
 
                 $startName = $this->displayNameResolver->resolve(
                     $startVertex?->show_property_name,
@@ -159,12 +160,13 @@ class GraphEntitySearchService
                 }
 
                 $results[] = [
-                    'id' => $id,
+                    // String avoids JS Number precision loss for AGE graphids.
+                    'id' => (string) $id,
                     'display_name' => $displayName,
                     'type_label' => $edgeType->age_label_name,
                     'type_name' => $edgeType->name,
-                    'start_vertex_id' => (int) $start->id,
-                    'end_vertex_id' => (int) $end->id,
+                    'start_vertex_id' => (string) ((int) $start->id),
+                    'end_vertex_id' => (string) ((int) $end->id),
                 ];
 
                 if (count($results) >= $limit) {
@@ -177,7 +179,7 @@ class GraphEntitySearchService
     }
 
     /**
-     * @return array{id:int,display_name:string,type_label:string,type_name:string,start_vertex_id:int,end_vertex_id:int}|null
+     * @return array{id:string,display_name:string,type_label:string,type_name:string,start_vertex_id:string,end_vertex_id:string}|null
      */
     public function findEdge(int $id): ?array
     {
@@ -199,7 +201,6 @@ class GraphEntitySearchService
         $end = $record->t;
 
         $edgeType = EdgeType::query()
-            ->with(['startVertex.properties', 'endVertex.properties'])
             ->where('age_label_name', $edge->label)
             ->first();
 
@@ -207,8 +208,8 @@ class GraphEntitySearchService
             return null;
         }
 
-        $startVertex = $edgeType->startVertex;
-        $endVertex = $edgeType->endVertex;
+        $startVertex = $this->vertexTypeByLabel($start->label ?? null);
+        $endVertex = $this->vertexTypeByLabel($end->label ?? null);
 
         $startName = $this->displayNameResolver->resolve(
             $startVertex?->show_property_name,
@@ -225,12 +226,12 @@ class GraphEntitySearchService
         $endLabel = $endName !== '' ? $endName : 'ID:'.((int) $end->id);
 
         return [
-            'id' => (int) $edge->id,
+            'id' => (string) ((int) $edge->id),
             'display_name' => "{$startLabel} → {$endLabel}",
             'type_label' => $edgeType->age_label_name,
             'type_name' => $edgeType->name,
-            'start_vertex_id' => (int) $start->id,
-            'end_vertex_id' => (int) $end->id,
+            'start_vertex_id' => (string) ((int) $start->id),
+            'end_vertex_id' => (string) ((int) $end->id),
         ];
     }
 
@@ -256,7 +257,7 @@ class GraphEntitySearchService
     private function resolveEdgeTypes(?array $typeLabels): Collection
     {
         $query = EdgeType::query()
-            ->with(['startVertex.properties', 'endVertex.properties'])
+            ->with(['vertexPairs.startVertex.properties', 'vertexPairs.endVertex.properties'])
             ->orderBy('name');
 
         if ($typeLabels !== null && $typeLabels !== []) {
@@ -282,20 +283,44 @@ class GraphEntitySearchService
      */
     private function loadEdgesByType(EdgeType $edgeType): Collection
     {
-        $startLabel = $edgeType->startVertex?->age_label_name;
-        $endLabel = $edgeType->endVertex?->age_label_name;
-
-        if ($startLabel === null || $endLabel === null) {
+        if ($edgeType->vertexPairs->isEmpty()) {
             return collect();
         }
 
-        return $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($edgeType, $startLabel, $endLabel) {
-            return $builder
-                ->matchNode('s', $startLabel)
-                ->withMatchEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
-                ->withMatchNode('t', $endLabel)
-                ->return(['e', 's', 't']);
-        })->get();
+        $rows = collect();
+
+        foreach ($edgeType->vertexPairs as $pair) {
+            $startLabel = $pair->startVertex?->age_label_name;
+            $endLabel = $pair->endVertex?->age_label_name;
+
+            if ($startLabel === null || $endLabel === null) {
+                continue;
+            }
+
+            $pairRows = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($edgeType, $startLabel, $endLabel) {
+                return $builder
+                    ->matchNode('s', $startLabel)
+                    ->withMatchEdge(Direction::RIGHT, 'e', $edgeType->age_label_name)
+                    ->withMatchNode('t', $endLabel)
+                    ->return(['e', 's', 't']);
+            })->get();
+
+            $rows = $rows->concat($pairRows);
+        }
+
+        return $rows;
+    }
+
+    private function vertexTypeByLabel(?string $label): ?VertexType
+    {
+        if ($label === null || $label === '') {
+            return null;
+        }
+
+        return VertexType::query()
+            ->with('properties')
+            ->where('age_label_name', $label)
+            ->first();
     }
 
     private function matchesVertexQuery(

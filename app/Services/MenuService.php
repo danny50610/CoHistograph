@@ -40,6 +40,12 @@ class MenuService
                     'revision.review' => function (\Lavary\Menu\Item $adminMenu) {
                         $adminMenu->add('修訂審核', ['route' => 'admin.revisions.index'])->active('admin/revisions*');
                     },
+                    'system-config.manage' => function (\Lavary\Menu\Item $adminMenu) {
+                        $adminMenu->add('首頁設定', ['route' => 'admin.system-config.homepage.edit'])->active('admin/system-config*');
+                    },
+                    'faq.manage' => function (\Lavary\Menu\Item $adminMenu) {
+                        $adminMenu->add('常見問題管理', ['route' => 'admin.faq-items.index'])->active('admin/faq-items*');
+                    },
                 ];
                 foreach ($adminPermissions as $permission => $callback) {
                     if ($user->hasPermission($permission)) {

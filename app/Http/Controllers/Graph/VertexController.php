@@ -98,23 +98,23 @@ class VertexController extends Controller
 
         $vertexType->load([
             'startEdgeTypes.properties',
-            'startEdgeTypes.endVertex.properties',
+            'startEdgeTypes.vertexPairs.startVertex.properties',
+            'startEdgeTypes.vertexPairs.endVertex.properties',
             'endEdgeTypes.properties',
-            'endEdgeTypes.startVertex.properties',
+            'endEdgeTypes.vertexPairs.startVertex.properties',
+            'endEdgeTypes.vertexPairs.endVertex.properties',
         ]);
 
         $outgoingEdges = $this->buildEdgeInfo(
             $vertexType,
             $id,
             $vertexType->startEdgeTypes,
-            'endVertex',
             Direction::RIGHT,
         );
         $incomingEdges = $this->buildEdgeInfo(
             $vertexType,
             $id,
             $vertexType->endEdgeTypes,
-            'startVertex',
             Direction::LEFT,
         );
 
@@ -130,19 +130,30 @@ class VertexController extends Controller
 
     /**
      * @param  Collection<int, EdgeType>  $edgeTypeList
-     * @return array<int, array{type: EdgeType, vertex_type: VertexType, edges: list<array{edge: object, vertex: object, displayName: string}>}>
+     * @return array<string, array{type: EdgeType, vertex_type: VertexType, edges: list<array{edge: object, vertex: object, displayName?: string}>}>
      */
-    protected function buildEdgeInfo(VertexType $vertexType, int $id, Collection $edgeTypeList, string $targetVertexName, Direction $direction): array
+    protected function buildEdgeInfo(VertexType $vertexType, int $id, Collection $edgeTypeList, Direction $direction): array
     {
+        /** @var array<string, array{type: EdgeType, vertex_type: VertexType, edges: list<array{edge: object, vertex: object, displayName?: string}>}> $edgeInfoList */
         $edgeInfoList = [];
 
         /** @var EdgeType $edgeType */
         foreach ($edgeTypeList as $edgeType) {
-            $edgeInfoList[$edgeType->id] = [
-                'type' => $edgeType,
-                'vertex_type' => $edgeType->{$targetVertexName},
-                'edges' => [],
-            ];
+            foreach ($edgeType->vertexPairs as $pair) {
+                $selfVertex = $direction === Direction::RIGHT ? $pair->startVertex : $pair->endVertex;
+                $relatedVertex = $direction === Direction::RIGHT ? $pair->endVertex : $pair->startVertex;
+
+                if ($selfVertex === null || $relatedVertex === null || $selfVertex->id !== $vertexType->id) {
+                    continue;
+                }
+
+                $key = $edgeType->id.':'.$relatedVertex->id;
+                $edgeInfoList[$key] = [
+                    'type' => $edgeType,
+                    'vertex_type' => $relatedVertex,
+                    'edges' => [],
+                ];
+            }
         }
 
         $edgeList = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($id, $vertexType, $direction) {
@@ -157,10 +168,10 @@ class VertexController extends Controller
             $edge = $item->e;
             $vertex = $item->m;
 
-            foreach ($edgeInfoList as $edgeTypeId => $info) {
+            foreach ($edgeInfoList as $key => $info) {
                 if ($edge->label === $info['type']->age_label_name && $vertex->label === $info['vertex_type']->age_label_name) {
                     // TODO: 未來需要支援排序，例如歌曲的主唱順序
-                    $edgeInfoList[$edgeTypeId]['edges'][] = [
+                    $edgeInfoList[$key]['edges'][] = [
                         'edge' => $edge,
                         'vertex' => $vertex,
                     ];
@@ -169,11 +180,11 @@ class VertexController extends Controller
             }
         }
 
-        foreach ($edgeInfoList as $edgeTypeId => $edgeInfo) {
+        foreach ($edgeInfoList as $key => $edgeInfo) {
             $relatedVertexType = $edgeInfo['vertex_type'];
 
             foreach ($edgeInfo['edges'] as $index => $edgeItem) {
-                $edgeInfoList[$edgeTypeId]['edges'][$index]['displayName'] = $this->displayNameResolver->resolve(
+                $edgeInfoList[$key]['edges'][$index]['displayName'] = $this->displayNameResolver->resolve(
                     $relatedVertexType->show_property_name,
                     $this->normalizeAgeProperties($edgeItem['vertex']->properties ?? []),
                     $relatedVertexType->properties,
