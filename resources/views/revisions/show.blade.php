@@ -152,36 +152,10 @@
         </div>
 
         {{-- Reviews history --}}
-        @if ($revision->reviews->isNotEmpty())
-            <div class="card mb-3">
-                <div class="card-header fw-semibold">審核紀錄</div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        @foreach ($revision->reviews->sortByDesc('created_at') as $review)
-                            <li class="list-group-item">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <div class="fw-semibold">
-                                        {{ $review->actorUser?->name ?? '(已刪除使用者)' }}
-                                        &nbsp;
-                                        @if ($review->action === \App\Enums\RevisionReviewAction::Approved)
-                                            <span class="badge text-bg-success">接受</span>
-                                        @else
-                                            <span class="badge text-bg-danger">退回</span>
-                                        @endif
-                                    </div>
-                                    <div class="small text-secondary">
-                                        {{ $review->created_at }}
-                                    </div>
-                                </div>
-                                @if ($review->comment)
-                                    <div class="small text-secondary">{{ $review->comment }}</div>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-        @endif
+        @include('revisions.partials.review-history', [
+            'revision' => $revision,
+            'showEmptyState' => false,
+        ])
     </div>
 
 @endsection

@@ -38,6 +38,7 @@ class RevisionReviewService
 
             $this->revisionApplyService->apply($revision);
 
+            // 通過只記審核者／時間，不存 actions_snapshot（退回才需要快照）。
             DB::transaction(function () use ($revision, $reviewer): void {
                 $revision->update(['status' => RevisionStatus::Approved]);
 

@@ -160,40 +160,10 @@
         </div>
 
         {{-- Reviews history --}}
-        <div class="card mb-3">
-            <div class="card-header fw-semibold">審核紀錄</div>
-            <div class="card-body p-0">
-                @if ($revision->reviews->isNotEmpty())
-                    <ul class="list-group list-group-flush">
-                        @foreach ($revision->reviews->sortByDesc('created_at') as $review)
-                            <li class="list-group-item">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <div class="fw-semibold">
-                                        {{ $review->actorUser?->name ?? '(已刪除使用者)' }}
-                                        &nbsp;
-                                        @if ($review->action === \App\Enums\RevisionReviewAction::Approved)
-                                            <span class="badge text-bg-success">接受</span>
-                                        @else
-                                            <span class="badge text-bg-danger">退回</span>
-                                        @endif
-                                    </div>
-                                    <div class="small text-secondary">
-                                        {{ $review->created_at }}
-                                    </div>
-                                </div>
-                                @if ($review->comment)
-                                    <div class="small text-secondary">{{ $review->comment }}</div>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <div class="text-secondary text-center py-4">
-                        目前尚無任何審核紀錄
-                    </div>
-                @endif
-            </div>
-        </div>
+        @include('revisions.partials.review-history', [
+            'revision' => $revision,
+            'showEmptyState' => true,
+        ])
     </div>
 
     @if ($revision->isPendingReview())

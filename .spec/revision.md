@@ -180,7 +180,7 @@ draft → pending_review → rejected
 | actor_user_id | FK → users | 執行此動作的操作者（approved/rejected 為審核者） |
 | action | string | `approved`, `rejected` |
 | comment | text nullable | 退回時必填 |
-| actions_snapshot | jsonb nullable | 僅 `rejected` 時填入，儲存當次提交的完整 `revision_actions` 陣列快照，每筆 action 為 jsonb 物件 |
+| actions_snapshot | jsonb nullable | 僅 `rejected` 時填入，儲存當次提交的完整 `revision_actions` 陣列快照，每筆 action 為 jsonb 物件；`approved` 不存快照（通過為終態，以現況 actions 為準） |
 | timestamps | | created_at, updated_at |
 
 **`revision_actions` 資料表**
@@ -776,7 +776,7 @@ draft → pending_review → rejected
 | 紀錄類型 | 顯示內容 |
 |---|---|
 | `rejected` | 審核者、退回時間、退回理由 |
-| `approved` | 審核者、接受時間 |
+| `approved` | 審核者、通過時間（無 actions_snapshot；若歷史缺 `revision_reviews` 列，UI 可由 `status=approved` + `updated_at` 合成顯示） |
 
 **標題下方操作規則：**
 
@@ -980,9 +980,10 @@ draft → pending_review → rejected
 1. 取得 `Cache::lock`（graph 層級），確保同一時間只有一份 Revision 在套用；取不到 lock 則回傳錯誤，管理員稍後再試
 2. 重新驗證所有 RevisionAction（與進入審核頁時相同的驗證規則）
 3. 依 `order` 順序依序執行每個 RevisionAction 對 Apache AGE 的操作，使用資料庫 transaction 確保原子性；過程中維護 `order → 實際 AGE graphid` 的對應表，供後續引用 `target_ref_order` / `*_vertex_ref_order` 的 action 使用
-4. 套用成功後將 Revision 狀態更新為 `approved`，同時寫入一筆 `action=approved` 的 `revision_reviews` 紀錄，釋放 Redis lock
+4. 套用成功後將 Revision 狀態更新為 `approved`，同時寫入一筆 `action=approved` 的 `revision_reviews` 紀錄（`comment` / `actions_snapshot` 為 null），釋放 Redis lock
 5. reject 時寫入一筆 `action=rejected` 的 `revision_reviews` 紀錄並更新 Revision 狀態為 `rejected`
 6. submit 時僅將 Revision 狀態更新為 `pending_review`，不寫入 `revision_reviews` 紀錄
+7. 審核歷程 UI：顯示所有 `revision_reviews`；若 `status=approved` 但缺少 `action=approved` 列，另以 `updated_at` 合成一筆「通過」紀錄（不另建表、不強制回填）
 
 ---
 
