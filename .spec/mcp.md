@@ -419,10 +419,13 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
     "general_errors": [],
     "action_errors": {
       "0": ["頂點類型 event 的屬性 year 為必填"]
-    }
+    },
+    "action_warnings": {}
   }
 }
 ```
+
+`action_warnings` 為軟性警告（如 `DUPLICATE_EDGE` / `DUPLICATE_VERTEX`），結構為 `{ order: [{ code, message, meta }, ...] }`；**不影響** `is_valid`，也不阻擋 `submit-revision`。
 
 **委派**：各 Tool 完成資料庫操作後，呼叫 `RevisionValidationService::validate`，並將結果寫回 `revision.last_validation_*` 欄位（與現有 `RevisionService::update` 行為一致）。
 
