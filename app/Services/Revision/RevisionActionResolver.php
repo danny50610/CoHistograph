@@ -54,7 +54,7 @@ class RevisionActionResolver
     }
 
     /**
-     * @return array{exists:bool,type_label:string,properties:array<string,bool>}|null
+     * @return array{exists:bool,type_label:string,properties:array<string,bool>,property_values?:array<string, mixed>}|null
      */
     public function getVertexState(string $key): ?array
     {
@@ -62,7 +62,7 @@ class RevisionActionResolver
     }
 
     /**
-     * @return array{exists:bool,type_label:string,start_key:string,end_key:string,properties:array<string,bool>}|null
+     * @return array{exists:bool,type_label:string,start_key:string,end_key:string,properties:array<string,bool>,property_values?:array<string, mixed>}|null
      */
     public function getEdgeState(string $key): ?array
     {
@@ -70,7 +70,7 @@ class RevisionActionResolver
     }
 
     /**
-     * @param  array{exists:bool,type_label:string,properties:array<string,bool>}  $state
+     * @param  array{exists:bool,type_label:string,properties:array<string,bool>,property_values?:array<string, mixed>}  $state
      */
     public function setVertexState(string $key, array $state): void
     {
@@ -78,7 +78,7 @@ class RevisionActionResolver
     }
 
     /**
-     * @param  array{exists:bool,type_label:string,start_key:string,end_key:string,properties:array<string,bool>}  $state
+     * @param  array{exists:bool,type_label:string,start_key:string,end_key:string,properties:array<string,bool>,property_values?:array<string, mixed>}  $state
      */
     public function setEdgeState(string $key, array $state): void
     {

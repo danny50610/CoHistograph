@@ -54,13 +54,13 @@ class RevisionDuplicateWarningChecker
 
             $selfKey = 'ref:'.$order;
             $state = $resolver->getEdgeState($selfKey);
-            if ($state === null || ($state['exists'] ?? false) !== true) {
+            if ($state === null || $state['exists'] !== true) {
                 continue;
             }
 
-            $edgeLabel = (string) ($state['type_label'] ?? '');
-            $startKey = (string) ($state['start_key'] ?? '');
-            $endKey = (string) ($state['end_key'] ?? '');
+            $edgeLabel = $state['type_label'];
+            $startKey = $state['start_key'];
+            $endKey = $state['end_key'];
             if ($edgeLabel === '' || $startKey === '' || $endKey === '') {
                 continue;
             }
@@ -72,14 +72,14 @@ class RevisionDuplicateWarningChecker
                     continue;
                 }
 
-                if (($edgeState['exists'] ?? false) !== true) {
+                if ($edgeState['exists'] !== true) {
                     continue;
                 }
 
                 if (
-                    ($edgeState['type_label'] ?? null) === $edgeLabel
-                    && ($edgeState['start_key'] ?? null) === $startKey
-                    && ($edgeState['end_key'] ?? null) === $endKey
+                    $edgeState['type_label'] === $edgeLabel
+                    && $edgeState['start_key'] === $startKey
+                    && $edgeState['end_key'] === $endKey
                 ) {
                     $conflicts[] = $this->describeEdgeConflict($edgeKey);
                 }
@@ -90,7 +90,8 @@ class RevisionDuplicateWarningChecker
             if ($startAgeId !== null && $endAgeId !== null) {
                 foreach ($this->graphManager->findEdgeIdsByEndpoints($edgeLabel, $startAgeId, $endAgeId) as $edgeId) {
                     $ageKey = 'age:'.$edgeId;
-                    if (($resolver->getEdgeState($ageKey)['exists'] ?? true) === false) {
+                    $existing = $resolver->getEdgeState($ageKey);
+                    if ($existing !== null && $existing['exists'] === false) {
                         continue;
                     }
 
@@ -142,11 +143,11 @@ class RevisionDuplicateWarningChecker
 
             $selfKey = 'ref:'.$order;
             $state = $resolver->getVertexState($selfKey);
-            if ($state === null || ($state['exists'] ?? false) !== true) {
+            if ($state === null || $state['exists'] !== true) {
                 continue;
             }
 
-            $typeLabel = (string) ($state['type_label'] ?? '');
+            $typeLabel = $state['type_label'];
             $vertexType = $this->graphManager->getVertexTypeByLabel()[$typeLabel] ?? null;
             if ($vertexType === null) {
                 continue;
@@ -169,11 +170,11 @@ class RevisionDuplicateWarningChecker
                     continue;
                 }
 
-                if (($vertexState['exists'] ?? false) !== true) {
+                if ($vertexState['exists'] !== true) {
                     continue;
                 }
 
-                if (($vertexState['type_label'] ?? null) !== $typeLabel) {
+                if ($vertexState['type_label'] !== $typeLabel) {
                     continue;
                 }
 
@@ -190,7 +191,8 @@ class RevisionDuplicateWarningChecker
 
             foreach ($this->graphManager->loadVerticesByType($typeLabel) as $vertex) {
                 $ageKey = 'age:'.$vertex['age_id'];
-                if (($resolver->getVertexState($ageKey)['exists'] ?? true) === false) {
+                $existing = $resolver->getVertexState($ageKey);
+                if ($existing !== null && $existing['exists'] === false) {
                     continue;
                 }
 
