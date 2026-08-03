@@ -13,15 +13,8 @@
                     <li class="list-group-item">
                         <div class="d-flex align-items-center justify-content-between mb-1">
                             <div class="fw-semibold">
-                                @if ($entry['actor_name'])
-                                    {{ $entry['actor_name'] }}
-                                    &nbsp;
-                                @elseif ($entry['action'] === \App\Enums\RevisionReviewAction::Approved)
-                                    {{-- 合成的通過列可能沒有審核者 --}}
-                                @else
-                                    (已刪除使用者)
-                                    &nbsp;
-                                @endif
+                                {{ $entry['actor_name'] ?? '(已刪除使用者)' }}
+                                &nbsp;
                                 @if ($entry['action'] === \App\Enums\RevisionReviewAction::Approved)
                                     <span class="badge text-bg-success">通過</span>
                                 @else

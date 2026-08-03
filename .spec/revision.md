@@ -776,7 +776,7 @@ draft → pending_review → rejected
 | 紀錄類型 | 顯示內容 |
 |---|---|
 | `rejected` | 審核者、退回時間、退回理由 |
-| `approved` | 審核者、通過時間（無 actions_snapshot；若歷史缺 `revision_reviews` 列，UI 可由 `status=approved` + `updated_at` 合成顯示） |
+| `approved` | 審核者、通過時間（無 actions_snapshot） |
 
 **標題下方操作規則：**
 
@@ -983,7 +983,7 @@ draft → pending_review → rejected
 4. 套用成功後將 Revision 狀態更新為 `approved`，同時寫入一筆 `action=approved` 的 `revision_reviews` 紀錄（`comment` / `actions_snapshot` 為 null），釋放 Redis lock
 5. reject 時寫入一筆 `action=rejected` 的 `revision_reviews` 紀錄並更新 Revision 狀態為 `rejected`
 6. submit 時僅將 Revision 狀態更新為 `pending_review`，不寫入 `revision_reviews` 紀錄
-7. 審核歷程 UI：顯示所有 `revision_reviews`；若 `status=approved` 但缺少 `action=approved` 列，另以 `updated_at` 合成一筆「通過」紀錄（不另建表、不強制回填）
+7. 審核歷程 UI：顯示所有 `revision_reviews`（通過／退回）；歷史缺 `action=approved` 列者由 migration 回填，不在 UI 合成
 
 ---
 

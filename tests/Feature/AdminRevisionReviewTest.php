@@ -165,33 +165,25 @@ class AdminRevisionReviewTest extends TestCase
             ->assertSee('Approver Eve');
     }
 
-    public function test_admin_detail_synthesizes_approval_in_history_when_review_row_missing(): void
-    {
-        $reviewer = $this->createReviewer();
-        $owner = User::factory()->createOne();
-        $revision = $this->createRevision($owner, 'Approved Without Row', RevisionStatus::Approved);
-
-        $this->actingAs($reviewer)
-            ->get(route('admin.revisions.show', $revision))
-            ->assertOk()
-            ->assertSee('審核紀錄')
-            ->assertSee('通過')
-            ->assertSee((string) $revision->updated_at)
-            ->assertDontSee('目前尚無任何審核紀錄');
-    }
-
-    public function test_admin_list_shows_latest_review_time_for_approved_without_review_row(): void
+    public function test_admin_list_shows_latest_review_time_for_approved_revision(): void
     {
         $reviewer = $this->createReviewer();
         $owner = User::factory()->createOne();
         $revision = $this->createRevision($owner, 'Approved List Card', RevisionStatus::Approved);
+
+        $review = RevisionReview::query()->create([
+            'revision_id' => $revision->id,
+            'actor_user_id' => $reviewer->id,
+            'action' => RevisionReviewAction::Approved,
+            'comment' => null,
+        ]);
 
         $this->actingAs($reviewer)
             ->get(route('admin.revisions.index'))
             ->assertOk()
             ->assertSee('Approved List Card')
             ->assertSee('最近一次審核')
-            ->assertSee((string) $revision->updated_at);
+            ->assertSee((string) $review->created_at);
     }
 
     public function test_admin_detail_does_not_show_review_actions_for_approved_revision(): void

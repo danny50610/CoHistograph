@@ -101,10 +101,7 @@ class Revision extends Model
     }
 
     /**
-     * 審核歷程（時間倒序）。
-     *
-     * 以 revision_reviews 為主（退回含理由／快照；通過僅審核者／時間）。
-     * 若 status=approved 但尚無 action=approved 列（歷史缺資料），由 updated_at 合成一筆通過紀錄。
+     * 審核歷程（時間倒序），來自 revision_reviews。
      *
      * @return list<array{
      *     actor_name: string|null,
@@ -137,49 +134,6 @@ class Revision extends Model
             ];
         }
 
-        $hasStoredApproval = $reviews->contains(
-            fn (RevisionReview $review): bool => $review->action === RevisionReviewAction::Approved,
-        );
-
-        if ($this->isApproved() && ! $hasStoredApproval && $this->updated_at !== null) {
-            array_unshift($entries, [
-                'actor_name' => null,
-                'action' => RevisionReviewAction::Approved,
-                'comment' => null,
-                'occurred_at' => $this->updated_at,
-            ]);
-        }
-
-        usort(
-            $entries,
-            fn (array $left, array $right): int => $right['occurred_at'] <=> $left['occurred_at'],
-        );
-
         return $entries;
-    }
-
-    /**
-     * 列表「最近一次審核」時間：有 revision_reviews 用其最新；
-     * 已通過且無審核列時，改以 updated_at（通過當下）表示。
-     */
-    public function latestReviewAt(): ?Carbon
-    {
-        /** @var Collection<int, RevisionReview> $reviews */
-        $reviews = $this->relationLoaded('reviews')
-            ? $this->reviews
-            : $this->reviews()->get();
-
-        /** @var RevisionReview|null $latestStored */
-        $latestStored = $reviews->sortByDesc('created_at')->first();
-
-        if ($latestStored?->created_at !== null) {
-            return $latestStored->created_at;
-        }
-
-        if ($this->isApproved()) {
-            return $this->updated_at;
-        }
-
-        return null;
     }
 }

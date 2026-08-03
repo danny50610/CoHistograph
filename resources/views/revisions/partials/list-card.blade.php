@@ -6,7 +6,9 @@
         ? route('admin.revisions.show', $revision)
         : route('revisions.show', $revision);
 
-    $latestReviewAt = $revision->latestReviewAt();
+    $latestReview = $revision->relationLoaded('reviews')
+        ? $revision->reviews->sortByDesc('created_at')->first()
+        : $revision->latestReview();
 @endphp
 
 <a href="{{ $showRoute }}"
@@ -39,8 +41,8 @@
                 {{-- 第五行：最近一次審核時間 --}}
                 <div class="text-secondary small mb-2">
                     最近一次審核：
-                    @if ($latestReviewAt)
-                        {{ $latestReviewAt }}
+                    @if ($latestReview)
+                        {{ $latestReview->created_at }}
                     @else
                         —
                     @endif
