@@ -102,12 +102,12 @@ class RevisionController extends Controller
 
         return response()->json([
             'is_valid' => $validationResult->isValid(),
-            'summary' => $validationResult->isValid()
-                ? '檢查通過'
-                : '檢查未通過，請修正錯誤後再繼續',
+            'summary' => $validationResult->checkSummary(),
             'general_errors' => $validationResult->generalErrors(),
             'action_messages' => $validationResult->actionMessages(),
             'action_errors' => $validationResult->actionErrors(),
+            'action_warning_messages' => $validationResult->actionWarningMessages(),
+            'action_warnings' => $validationResult->actionWarnings(),
         ]);
     }
 
@@ -135,12 +135,14 @@ class RevisionController extends Controller
                 ->withErrors($validationResult->toMessageBag())
                 ->with('revision_error_summary', $validationResult->summary())
                 ->with('revision_action_errors', $validationResult->actionMessages())
-                ->with('revision_action_error_details', $validationResult->actionErrors());
+                ->with('revision_action_error_details', $validationResult->actionErrors())
+                ->with('revision_action_warnings', $validationResult->actionWarnings());
         }
 
         return redirect()
             ->route('revisions.show', $revision)
-            ->with('global', '修訂已提交審核');
+            ->with('global', '修訂已提交審核')
+            ->with('revision_action_warnings', $validationResult->actionWarnings());
     }
 
     public function reopen(Revision $revision): RedirectResponse

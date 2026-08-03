@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $last_validation_summary
  * @property array<int, string>|null $last_validation_general_errors
  * @property array<int, list<string>>|null $last_validation_action_errors
+ * @property array<int, array<int, array{code:string,message:string,meta:array<string,mixed>}>>|null $last_validation_action_warnings
  * @property \Illuminate\Support\Carbon|null $last_validated_at
  * @property int $user_id
  * @property bool $is_ai_assisted
@@ -35,6 +36,7 @@ class Revision extends Model
         'last_validation_summary',
         'last_validation_general_errors',
         'last_validation_action_errors',
+        'last_validation_action_warnings',
         'last_validated_at',
         'user_id',
         'is_ai_assisted',
@@ -47,6 +49,7 @@ class Revision extends Model
             'last_validation_is_valid' => 'boolean',
             'last_validation_general_errors' => 'array',
             'last_validation_action_errors' => 'array',
+            'last_validation_action_warnings' => 'array',
             'last_validated_at' => 'datetime',
             'is_ai_assisted' => 'boolean',
         ];

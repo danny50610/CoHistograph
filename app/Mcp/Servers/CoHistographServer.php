@@ -60,6 +60,7 @@ RevisionAction.action values and fields (omit unrelated fields):
 - delete_edge_property: target_age_id XOR target_ref_order; age_property_name
 
 After moves or edits that affect *_ref_order, call validate-revision — broken references surface as validation errors.
+validation.action_warnings (DUPLICATE_EDGE / DUPLICATE_VERTEX) are soft notices only — they do not set is_valid=false and do not block submit-revision.
 INSTRUCTIONS)]
 class CoHistographServer extends Server
 {

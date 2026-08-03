@@ -191,6 +191,22 @@ class RevisionActionResolver
     }
 
     /**
+     * @return array<string, array{exists:bool,type_label:string,properties:array<string,bool>,property_values?:array<string, mixed>}>
+     */
+    public function getAllVertexStates(): array
+    {
+        return $this->vertexStates;
+    }
+
+    /**
+     * @return array<string, array{exists:bool,type_label:string,start_key:string,end_key:string,properties:array<string,bool>,property_values?:array<string, mixed>}>
+     */
+    public function getAllEdgeStates(): array
+    {
+        return $this->edgeStates;
+    }
+
+    /**
      * @return array{key:string,is_ref:bool}|null
      */
     public function resolveVertexTarget(
