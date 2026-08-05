@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Prompts\DraftRevisionPrompt;
 use App\Mcp\Prompts\ExploreVertexContextPrompt;
 use App\Mcp\Tools\Graph\GetEdgeDetailTool;
 use App\Mcp\Tools\Graph\GetVertexDetailTool;
@@ -99,5 +100,6 @@ class CoHistographServer extends Server
      */
     protected array $prompts = [
         ExploreVertexContextPrompt::class,
+        DraftRevisionPrompt::class,
     ];
 }
