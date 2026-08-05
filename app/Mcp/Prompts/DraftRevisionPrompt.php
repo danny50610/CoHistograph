@@ -55,7 +55,7 @@ TEXT;
 
         return [
             Response::text(
-                'You are drafting a collaborative historical-event knowledge-graph revision. Prefer CoHistograph tools. All graph changes go through the Revision workflow. Revisions created or edited via MCP are marked is_ai_assisted=true.'
+                'You are drafting a collaborative historical-event knowledge-graph revision. Prefer CoHistograph tools. Never write Apache AGE directly — all graph changes go through the Revision workflow. Revisions created or edited via MCP are marked is_ai_assisted=true.'
             )->asAssistant(),
             Response::text($userMessage),
         ];
