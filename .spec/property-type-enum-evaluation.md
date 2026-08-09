@@ -300,7 +300,7 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 | G9 | Schema Visualization／列表是否展示 options | ✅ **B**：badge 旁顯示 labels（停用標「已停用」） |
 | G10 | list 成員「是否被使用」AGE 查詢語意 | ✅ **A**：Cypher `$v IN prop` LIMIT 1；與 list spike 一併驗證 |
 | G11 | 同修訂 `create_vertex` ref 目標的審核 diff | ✅ **A**：現有（無）＋說明「本修訂新建，圖上尚無值」 |
-| G12 | MCP／對外讀取 ENUM | ✅ **C：先不處理**（不阻塞核心實作） |
+| G12 | MCP／對外讀取 ENUM | ✅ **A：value list + schema 帶 enum_options**（已實作於 CoHistograph MCP） |
 
 ### 低／實作細節（可不開題）
 
@@ -542,25 +542,25 @@ label 轉換與「、」連接同 Q16。create 可將「現有」固定為無；
 
 | 選項 | 含義 |
 |------|------|
-| A. value list + schema 帶 enum_options | |
+| **A. value list + schema 帶 enum_options（已選／已實作）** | MCP schema search 回傳 `enum_options`／min／max；action `value` 為 option value 的 `string[]` |
 | B. 值用 value+label 物件 | |
-| **C. 先不處理（已選）** | v1 評估不鎖定 MCP 形狀 |
+| C. 先不處理 | v1 評估曾暫緩，不阻塞 ENUM 核心 |
 
-**決定：C。** 留給 MCP／對外 API 實作或後續評估；本文件不阻塞 ENUM 核心實作。搜尋仍可維持既有 STRING-only，直到另開題。
+**決定：A。** CoHistograph MCP：`search-*-types`（`include_properties=true`）帶 `enum_options`／`min_selections`／`max_selections`；`add/update-revision-action` 的 `value` schema 為 `string|integer|number|boolean|array`，ENUM 寫入非空 `string[]`。搜尋文字仍維持 STRING-only（另開題）。
 
-### 中優先缺口 G6–G12 已收斂（G12 延後）。
+### 中優先缺口 G6–G12 已收斂。
 
 ### Q32 — G12：MCP／對外讀取 ENUM 回傳形狀？ ✅
 
 | 選項 | 含義 |
 |------|------|
-| A. value list + schema 帶 enum_options | |
+| **A. value list + schema 帶 enum_options（已選／已實作）** | 同上 |
 | B. 值用 value+label 物件 | |
-| **C. 先不處理（已選）** | v1 評估不鎖定 MCP 形狀 |
+| C. 先不處理 | |
 
-**決定：C。** 留給 MCP／對外 API 實作或後續評估；本文件不阻塞 ENUM 核心實作。搜尋仍可維持既有 STRING-only，直到另開題。
+**決定：A。** 同上。
 
-### 中優先缺口 G6–G12 已收斂（G12 延後）。
+### 中優先缺口 G6–G12 已收斂。
 
 ### Q33 — 低優先／整份評估是否收斂？ ✅
 

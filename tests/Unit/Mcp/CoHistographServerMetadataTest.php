@@ -67,6 +67,30 @@ class CoHistographServerMetadataTest extends TestCase
 
         $this->assertSame(RevisionActionType::values(), $schema['properties']['action']['enum']);
         $this->assertStringContainsString('create_vertex', $schema['properties']['action']['description']);
+        $this->assertSame(
+            ['string', 'integer', 'number', 'boolean', 'array'],
+            $schema['properties']['value']['type'],
+        );
+        $this->assertStringContainsString('ENUM', $schema['properties']['value']['description']);
+    }
+
+    #[Test]
+    public function server_instructions_document_enum_property_values(): void
+    {
+        $instructions = $this->attributeValue(CoHistographServer::class, Instructions::class);
+
+        $this->assertStringContainsString('enum_options', $instructions);
+        $this->assertStringContainsString('non-empty string array', $instructions);
+        $this->assertStringContainsString('Do not send a single string for ENUM', $instructions);
+    }
+
+    #[Test]
+    public function schema_search_tool_descriptions_mention_enum_options(): void
+    {
+        $this->assertStringContainsString(
+            'enum_options',
+            $this->attributeValue(SearchVertexTypesTool::class, Description::class),
+        );
     }
 
     /**
