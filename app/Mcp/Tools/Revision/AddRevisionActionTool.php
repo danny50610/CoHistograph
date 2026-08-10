@@ -17,7 +17,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('add-revision-action')]
-#[Description('Insert one action into a draft at order (0-based); later actions shift down. Look up schema/graph first. For new vertices: create_vertex then create_vertex_property. Use target_age_id XOR target_ref_order as documented in server instructions.')]
+#[Description('Insert one action into a draft at order (0-based); later actions shift down. Look up schema/graph first. For new vertices: create_vertex then create_vertex_property. For ENUM properties, value must be a JSON array of option values (e.g. ["rock","jazz"]), not a scalar string. Use target_age_id XOR target_ref_order as documented in server instructions. Response includes refreshed validation.')]
 class AddRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;
