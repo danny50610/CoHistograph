@@ -34,7 +34,7 @@ app/
 │   └── Graph/           # 圖資料瀏覽（Vertex 列表與詳情）
 ├── Models/              # Eloquent models
 ├── Rules/GraphSchema/   # 自訂驗證規則（AGE label/property 命名規則）
-├── Enums/               # PropertyType enum（INTEGER, FLOAT, BOOLEAN, STRING, DATE, MONTH_DAY, TIMESTAMPTZ, ENUM）
+├── Enums/               # PropertyType enum（INTEGER, FLOAT, BOOLEAN, STRING, DATE, MONTH_DAY, TIME, TIMESTAMPTZ, ENUM）
 └── Services/            # MenuService
 database/
 ├── migrations/          # 關聯式 DB schema
@@ -692,7 +692,7 @@ draft → pending_review → rejected
 
 | 項目 | 規則 |
 |---|---|
-| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIMESTAMPTZ 用 datetime-local + offset、ENUM 用 checkbox 多選並依 `min_selections`／`max_selections` 約束、STRING 用 text） |
+| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIME 用 time、TIMESTAMPTZ 用 datetime-local + offset、ENUM 用 checkbox 多選並依 `min_selections`／`max_selections` 約束、STRING 用 text） |
 
 | 欄位相依 | 需先選擇 `target`，才能正確決定 `age_property_name` 的可選範圍 |
 | 驗證錯誤 | 顯示在 modal 內，不關閉 modal |
@@ -739,7 +739,7 @@ draft → pending_review → rejected
 
 | 項目 | 規則 |
 |---|---|
-| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIMESTAMPTZ 用 datetime-local + offset、ENUM 用 checkbox 多選並依 `min_selections`／`max_selections` 約束、STRING 用 text） |
+| 表單元件 | `target`、`age_property_name` 優先使用既有 select 元件；`value` 依型別決定輸入元件（`PropertyValueInput.vue`：INTEGER/FLOAT 用 number、BOOLEAN 用 select、DATE 用 date、MONTH_DAY 用月日 select、TIME 用 time、TIMESTAMPTZ 用 datetime-local + offset、ENUM 用 checkbox 多選並依 `min_selections`／`max_selections` 約束、STRING 用 text） |
 
 | 欄位相依 | 需先選擇 `target`，才能正確決定 `age_property_name` 的可選範圍 |
 | 驗證錯誤 | 顯示在 modal 內，不關閉 modal |

@@ -36,10 +36,12 @@ class PropertyValueCasterTest extends TestCase
     }
 
     #[Test]
-    public function to_storage_keeps_date_month_day_and_timestamptz_as_strings(): void
+    public function to_storage_keeps_date_month_day_time_and_timestamptz_as_strings(): void
     {
         $this->assertSame('2024-07-22', $this->caster->toStorage('2024-07-22', PropertyType::Date));
         $this->assertSame('07-22', $this->caster->toStorage('07-22', PropertyType::MonthDay));
+        $this->assertSame('14:30:00', $this->caster->toStorage('14:30:00', PropertyType::Time));
+        $this->assertSame('09:05:00', $this->caster->toStorage('09:05', PropertyType::Time));
         $this->assertSame(
             '2024-07-22T14:30:00+08:00',
             $this->caster->toStorage('2024-07-22T14:30:00+08:00', PropertyType::Timestamptz),
@@ -80,6 +82,21 @@ class PropertyValueCasterTest extends TestCase
     }
 
     #[Test]
+    public function from_storage_converts_time_to_carbon_immutable(): void
+    {
+        $result = $this->caster->fromStorage('14:30:05', PropertyType::Time);
+
+        $this->assertInstanceOf(CarbonImmutable::class, $result);
+        $this->assertSame(2000, $result->year);
+        $this->assertSame(1, $result->month);
+        $this->assertSame(1, $result->day);
+        $this->assertSame(14, $result->hour);
+        $this->assertSame(30, $result->minute);
+        $this->assertSame(5, $result->second);
+        $this->assertSame('14:30:05', $this->caster->formatForDisplay($result, PropertyType::Time));
+    }
+
+    #[Test]
     public function from_storage_converts_timestamptz_preserving_offset(): void
     {
         $result = $this->caster->fromStorage('2024-07-22T14:30:00+08:00', PropertyType::Timestamptz);
@@ -99,6 +116,7 @@ class PropertyValueCasterTest extends TestCase
     public function from_storage_leaves_corrupt_temporal_strings_unchanged(): void
     {
         $this->assertSame('bad', $this->caster->fromStorage('bad', PropertyType::Date));
+        $this->assertSame('bad', $this->caster->fromStorage('bad', PropertyType::Time));
         $this->assertSame('bad', $this->caster->fromStorage('bad', PropertyType::Timestamptz));
     }
 
@@ -107,10 +125,12 @@ class PropertyValueCasterTest extends TestCase
     {
         $date = $this->caster->fromStorage('2024-07-22', PropertyType::Date);
         $monthDay = $this->caster->fromStorage('07-22', PropertyType::MonthDay);
+        $time = $this->caster->fromStorage('14:30:00', PropertyType::Time);
         $ts = $this->caster->fromStorage('2024-07-22T14:30:00+08:00', PropertyType::Timestamptz);
 
         $this->assertSame('2024-07-22', $this->caster->formatForDisplay($date, PropertyType::Date));
         $this->assertSame('07-22', $this->caster->formatForDisplay($monthDay, PropertyType::MonthDay));
+        $this->assertSame('14:30:00', $this->caster->formatForDisplay($time, PropertyType::Time));
         $this->assertSame('2024-07-22T14:30:00+08:00', $this->caster->formatForDisplay($ts, PropertyType::Timestamptz));
         $this->assertSame('', $this->caster->formatForDisplay(null, PropertyType::Date));
         $this->assertSame('42', $this->caster->formatForDisplay(42, PropertyType::Integer));
@@ -129,6 +149,10 @@ class PropertyValueCasterTest extends TestCase
             'date' => [PropertyType::Date, '2024-02-29'],
             'month day' => [PropertyType::MonthDay, '07-22'],
             'month day leap' => [PropertyType::MonthDay, '02-29'],
+            'time with seconds' => [PropertyType::Time, '14:30:00'],
+            'time without seconds' => [PropertyType::Time, '09:05'],
+            'time midnight' => [PropertyType::Time, '00:00:00'],
+            'time end of day' => [PropertyType::Time, '23:59:59'],
             'timestamptz offset' => [PropertyType::Timestamptz, '2024-07-22T14:30:00+08:00'],
             'timestamptz z' => [PropertyType::Timestamptz, '2024-07-22T06:30:00Z'],
             'timestamptz compact offset' => [PropertyType::Timestamptz, '2024-07-22T14:30:00+0800'],
@@ -149,6 +173,12 @@ class PropertyValueCasterTest extends TestCase
             'month day invalid' => [PropertyType::MonthDay, '02-30'],
             'month day with year' => [PropertyType::MonthDay, '2024-07-22'],
             'month day unpadded' => [PropertyType::MonthDay, '7-22'],
+            'time hour overflow' => [PropertyType::Time, '24:00:00'],
+            'time minute overflow' => [PropertyType::Time, '12:60:00'],
+            'time second overflow' => [PropertyType::Time, '12:00:60'],
+            'time with date' => [PropertyType::Time, '2024-07-22T14:30:00'],
+            'time unpadded' => [PropertyType::Time, '9:05:00'],
+            'time with timezone' => [PropertyType::Time, '14:30:00+08:00'],
             'timestamptz without tz' => [PropertyType::Timestamptz, '2024-07-22T14:30:00'],
             'timestamptz date only' => [PropertyType::Timestamptz, '2024-07-22'],
         ];
