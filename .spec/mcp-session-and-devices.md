@@ -127,16 +127,15 @@ MCP 客戶端常透過 `/oauth/register` **每次註冊新 client**。同一個�
 | **B. 依 client 聚合**（推薦） | 使用者好理解「這個 Cursor」 | 撤銷需撤該 client 下所有 token |
 | **C. 依 client.name 聚合** | 同名客戶端合併 | 可能誤傷不同安裝實例 |
 
-**推薦 B**：一列一個 `oauth_clients`（僅顯示該使用者仍有未撤銷 token 的 client），撤銷 = 撤銷該 client 下此使用者的所有 access + refresh token。可選：一併 `revoked=true` 該 client（較激進，需評估是否影響其他使用者——MCP 動態 client 通常無 owner 或與註冊流程綁定，需查實際 owner 欄位）。
+**推薦 B**：一列一個 `oauth_clients`（僅顯示該使用者仍有未撤銷 token 的 client），撤銷 = 撤銷該 client 下此使用者的所有 access + refresh token。
 
-### 建議 UI 位置
+### 實作狀態（已落地）
 
-- 使用者下拉選單新增「已授權應用」（啟用被註解的個人區入口附近）
-- 路由例如：`GET /settings/authorized-apps`、`DELETE /settings/authorized-apps/{token|client}`
-- 畫面欄位：應用名稱、授權時間、到期、scope、（可選）最近 MCP client 版本
-- 授權成功後可導向或提示：「可至『已授權應用』撤銷」
-
-對齊現有 Bootstrap 5 卡片風格（參考 `mcp/authorize.blade.php`、`user/edit.blade.php`）。
+- 路由：`GET/DELETE settings/authorized-apps`
+- 選單：使用者下拉「已授權應用」
+- `oauth_access_tokens` 新增 `last_used_at` / `last_used_ip` / `last_used_user_agent`
+- MCP Web middleware `RecordMcpTokenUsage`：同一 IP+UA 60 秒內不重寫
+- 列表依 client 聚合；最近使用取該 client 下 token 的最新一筆
 
 ### Laravel 官方建議對照
 

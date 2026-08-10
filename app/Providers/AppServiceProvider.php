@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Passport\Token;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -40,6 +41,8 @@ class AppServiceProvider extends ServiceProvider
                 ->action('驗證信箱', $url)
                 ->line('若您沒有註冊帳號，請忽略此信。');
         });
+
+        Passport::useTokenModel(Token::class);
 
         Passport::authorizationView(function (array $parameters) {
             return response()->view('mcp.authorize', $parameters);
