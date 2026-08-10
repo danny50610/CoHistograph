@@ -17,7 +17,7 @@ use Laravel\Mcp\Server\Tool;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Name('delete-revision-action')]
-#[Description('Delete one draft action by action_id and resequence remaining orders. May invalidate *_ref_order on later actions — call validate-revision afterwards.')]
+#[Description('Delete one draft action by action_id and resequence remaining orders. May break *_ref_order on later actions — response includes refreshed validation; check validation.is_valid / action_errors.')]
 class DeleteRevisionActionTool extends Tool
 {
     use AuthenticatesMcpRequests;

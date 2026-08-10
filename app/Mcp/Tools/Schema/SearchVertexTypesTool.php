@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\Schema;
 
 use App\Mcp\Concerns\AuthenticatesMcpRequests;
+use App\Mcp\Concerns\FormatsMcpSchemaProperties;
 use App\Models\VertexType;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -14,11 +15,12 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-vertex-types')]
-#[Description('Search VertexTypes by name, description, or age_label_name. Set include_properties=true before create_vertex or vertex property actions to learn allowed age_property_name values.')]
+#[Description('Search VertexTypes by name, description, or age_label_name. Set include_properties=true before create_vertex or vertex property actions to learn age_property_name, age_property_type, and for ENUM: enum_options / min_selections / max_selections.')]
 #[IsReadOnly]
 class SearchVertexTypesTool extends Tool
 {
     use AuthenticatesMcpRequests;
+    use FormatsMcpSchemaProperties;
 
     public function handle(Request $request): Response|ResponseFactory
     {
@@ -66,13 +68,10 @@ class SearchVertexTypesTool extends Tool
                 ];
 
                 if ($includeProperties) {
-                    $payload['properties'] = $vertexType->properties->map(fn ($property) => [
-                        'id' => $property->id,
-                        'name' => $property->name,
-                        'age_property_name' => $property->age_property_name,
-                        'age_property_type' => $property->age_property_type->value,
-                        'description' => $property->description,
-                    ])->values()->all();
+                    $payload['properties'] = $vertexType->properties
+                        ->map(fn ($property) => $this->formatSchemaProperty($property))
+                        ->values()
+                        ->all();
                 }
 
                 return $payload;

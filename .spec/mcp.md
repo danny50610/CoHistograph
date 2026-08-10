@@ -288,6 +288,7 @@ Tools 是 AI 可主動呼叫的可執行功能。每個 Tool 須具備：
 
 - 未提供 `query` 時，依 `id` 升序分頁列出（非一次回傳全部）
 - `query` 長度 1–100 字元，前後空白 trim
+- `include_properties=true` 時，每個 property 含 `age_property_type`、`locale`；若型別為 `ENUM`，另含 `enum_options`（`[{value, label, active}, …]`）、`min_selections`、`max_selections`；非 ENUM 時這三欄為 `null`
 
 **回應**：
 
@@ -328,6 +329,7 @@ Tools 是 AI 可主動呼叫的可執行功能。每個 Tool 須具備：
 - 未提供 `query` 時，依 `id` 升序分頁列出
 - `start_vertex_type_label` / `end_vertex_type_label` 可與 `query` 併用
 - `query` 長度 1–100 字元，前後空白 trim
+- `include_properties=true` 時 property 欄位與 `search-vertex-types` 相同（含 ENUM 的 `enum_options`／min／max）
 
 **回應**：
 
@@ -373,7 +375,7 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 | `end_vertex_age_id` | integer | `create_edge` 終點（與 `end_vertex_ref_order` 互斥） |
 | `end_vertex_ref_order` | integer | `create_edge` 終點引用同 Revision 內 `create_vertex` 的 `order` |
 | `age_property_name` | string | property 相關 action 時必填 |
-| `value` | mixed | 屬性值或 `create_vertex` 初始屬性（JSON） |
+| `value` | mixed | 屬性值：依 `age_property_type` 為 scalar，或（`ENUM`）非空 JSON array，例如 `["rock","jazz"]`（不可傳純量字串 `"rock"`）；清空請用 `delete_*_property` |
 
 | action | 說明 |
 |--------|------|
@@ -561,6 +563,8 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 
 在不修改內容的情況下重新驗證草稿，並寫回 `last_validation_*` 欄位。
 
+mutating Tool（`add/update/delete/move-revision-action`、`update-revision` 等）回應已含 `validation`；agent 應先看該結果。本 Tool 用於**無內容變更**時重新檢查（例如 `reopen-revision` 之後，或手上只有過期驗證快照）。
+
 | 參數 | 型別 | 必填 | 說明 |
 |------|------|------|------|
 | `revision_id` | integer | 是 | 修訂 ID |
@@ -607,6 +611,8 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 #### `submit-revision`
 
 提交修訂至待審核狀態。
+
+`submit` 會再次驗證；若未通過則不改狀態，MCP 回應 `submitted=false` 並附 `validation`。當最近一次 edit／`validate-revision` 回應已是 `validation.is_valid=true` 時，不必為了提交再強制多呼叫一次 `validate-revision`。
 
 | 參數 | 型別 | 必填 | 說明 |
 |------|------|------|------|

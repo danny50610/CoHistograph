@@ -272,6 +272,25 @@ function updateTimestamptz(local, offset) {
     emitValue(`${withSeconds}${offset}`);
 }
 
+function emitTime(value) {
+    if (!value) {
+        emitValue(null);
+
+        return;
+    }
+
+    // Some browsers emit HH:mm even with step="1"; storage expects HH:mm:ss.
+    emitValue(/^\d{2}:\d{2}$/.test(value) ? `${value}:00` : value);
+}
+
+const timeInputValue = computed(() => {
+    if (/^\d{2}:\d{2}$/.test(stringValue.value)) {
+        return `${stringValue.value}:00`;
+    }
+
+    return stringValue.value;
+});
+
 const hint = computed(() => {
     switch (props.propertyType) {
         case 'INTEGER':
@@ -284,6 +303,8 @@ const hint = computed(() => {
             return '完整日期（年-月-日）';
         case 'MONTH_DAY':
             return '僅月份與日期，儲存為 MM-DD';
+        case 'TIME':
+            return '僅時間（時:分:秒），儲存為 HH:mm:ss';
         case 'TIMESTAMPTZ':
             return '日期時間需指定時區偏移，儲存為 ISO-8601';
         case 'STRING':
@@ -409,6 +430,17 @@ const noActiveEnumOptions = computed(
                 </select>
             </div>
         </div>
+
+        <!-- TIME -->
+        <input
+            v-else-if="propertyType === 'TIME'"
+            type="time"
+            step="1"
+            class="form-control"
+            :value="timeInputValue"
+            required
+            @input="emitTime($event.target.value)"
+        />
 
         <!-- TIMESTAMPTZ -->
         <div v-else-if="propertyType === 'TIMESTAMPTZ'" class="row g-2">

@@ -33,8 +33,8 @@ trait ProvidesRevisionActionSchema
                 ->description('create_edge end: order of create_vertex in the same revision. Mutually exclusive with end_vertex_age_id.'),
             'age_property_name' => $schema->string()
                 ->description('Required for *_property actions: property age_property_name from schema search tools.'),
-            'value' => $schema->string()
-                ->description('Required for create/update *_property: property value as a string; type follows the schema property definition.'),
+            'value' => $schema->union(['array', 'string', 'integer', 'number', 'boolean'])
+                ->description('Required for create/update *_property. JSON type follows age_property_type from schema search: ENUM → JSON array of option value strings from enum_options, e.g. ["rock","jazz"] (never a scalar string); STRING/DATE/MONTH_DAY/TIMESTAMPTZ → string; INTEGER → integer; FLOAT → number; BOOLEAN → boolean. For ENUM respect min_selections/max_selections and prefer active options. Empty array is invalid — use delete_*_property to clear.'),
         ])->description('Single RevisionAction fields. Include only fields required for the chosen action type.');
     }
 }
