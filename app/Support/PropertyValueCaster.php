@@ -14,10 +14,20 @@ class PropertyValueCaster
     private const MONTH_DAY_PATTERN = '/^\d{2}-\d{2}$/';
 
     /**
+     * Time of day: `HH:mm` or `HH:mm:ss` (24-hour, zero-padded).
+     */
+    private const TIME_PATTERN = '/^\d{2}:\d{2}(?::\d{2})?$/';
+
+    /**
      * Leap year used as a sentinel when materializing month-day as Carbon.
      * Allows valid Feb 29 values without attaching a real year.
      */
     private const MONTH_DAY_SENTINEL_YEAR = 2000;
+
+    /**
+     * Sentinel date used when materializing time-of-day as Carbon.
+     */
+    private const TIME_SENTINEL_DATE = '2000-01-01';
 
     /**
      * ISO-8601 datetime with explicit timezone offset or Z.
@@ -58,6 +68,7 @@ class PropertyValueCaster
             PropertyType::String => true,
             PropertyType::Date => $this->isValidDate($value),
             PropertyType::MonthDay => $this->isValidMonthDay($value),
+            PropertyType::Time => $this->isValidTime($value),
             PropertyType::Timestamptz => $this->isValidTimestamptz($value),
         };
     }
@@ -65,7 +76,7 @@ class PropertyValueCaster
     /**
      * Convert a revision/input value into the PHP/AGE storage value.
      *
-     * DATE / MONTH_DAY / TIMESTAMPTZ stay as normalized strings in AGE (agtype string).
+     * DATE / MONTH_DAY / TIME / TIMESTAMPTZ stay as normalized strings in AGE (agtype string).
      * ENUM becomes a sorted list of option value strings when $enumOptions is provided.
      *
      * @param  list<array{value: string, label: string, active: bool}>|null  $enumOptions
@@ -113,6 +124,7 @@ class PropertyValueCaster
             PropertyType::String => $stringValue,
             PropertyType::Date => $stringValue,
             PropertyType::MonthDay => $stringValue,
+            PropertyType::Time => $this->normalizeTime($stringValue),
             PropertyType::Timestamptz => $this->normalizeTimestamptz($stringValue),
         };
     }
@@ -122,6 +134,7 @@ class PropertyValueCaster
      *
      * DATE → CarbonImmutable (date-only, midnight UTC)
      * MONTH_DAY → CarbonImmutable (sentinel year 2000, midnight UTC)
+     * TIME → CarbonImmutable (sentinel date 2000-01-01 UTC)
      * TIMESTAMPTZ → CarbonImmutable (timezone preserved from stored offset)
      * ENUM → list<string>
      */
@@ -138,6 +151,7 @@ class PropertyValueCaster
             PropertyType::String => $value,
             PropertyType::Date => $this->parseDate($value),
             PropertyType::MonthDay => $this->parseMonthDay($value),
+            PropertyType::Time => $this->parseTime($value),
             PropertyType::Timestamptz => $this->parseTimestamptz($value),
             PropertyType::Enum => $this->normalizeEnumFromStorage($value),
         };
@@ -164,6 +178,7 @@ class PropertyValueCaster
             return match ($propertyType) {
                 PropertyType::Date => $carbon->toDateString(),
                 PropertyType::MonthDay => $carbon->format('m-d'),
+                PropertyType::Time => $carbon->format('H:i:s'),
                 PropertyType::Timestamptz => $carbon->toIso8601String(),
                 default => $carbon->toIso8601String(),
             };
@@ -237,6 +252,22 @@ class PropertyValueCaster
         return checkdate($month, $day, self::MONTH_DAY_SENTINEL_YEAR);
     }
 
+    private function isValidTime(string $value): bool
+    {
+        if (preg_match(self::TIME_PATTERN, $value) !== 1) {
+            return false;
+        }
+
+        $parts = array_map('intval', explode(':', $value));
+        $hour = $parts[0];
+        $minute = $parts[1];
+        $second = $parts[2] ?? 0;
+
+        return $hour >= 0 && $hour <= 23
+            && $minute >= 0 && $minute <= 59
+            && $second >= 0 && $second <= 59;
+    }
+
     private function isValidTimestamptz(string $value): bool
     {
         if (preg_match(self::TIMESTAMPTZ_PATTERN, $value) !== 1) {
@@ -250,6 +281,16 @@ class PropertyValueCaster
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    private function normalizeTime(string $value): string
+    {
+        $parts = explode(':', $value);
+        $hour = $parts[0];
+        $minute = $parts[1];
+        $second = $parts[2] ?? '00';
+
+        return sprintf('%s:%s:%s', $hour, $minute, $second);
     }
 
     private function normalizeTimestamptz(string $value): string
@@ -285,6 +326,24 @@ class PropertyValueCaster
         return CarbonImmutable::createFromFormat(
             '!Y-m-d',
             self::MONTH_DAY_SENTINEL_YEAR.'-'.$value,
+            'UTC',
+        );
+    }
+
+    private function parseTime(mixed $value): mixed
+    {
+        if ($value instanceof DateTimeInterface) {
+            return CarbonImmutable::instance($value)
+                ->setDate(2000, 1, 1);
+        }
+
+        if (! is_string($value) || ! $this->isValidTime($value)) {
+            return $value;
+        }
+
+        return CarbonImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            self::TIME_SENTINEL_DATE.' '.$this->normalizeTime($value),
             'UTC',
         );
     }

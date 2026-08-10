@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\Schema;
 
 use App\Mcp\Concerns\AuthenticatesMcpRequests;
+use App\Mcp\Concerns\FormatsMcpSchemaProperties;
 use App\Models\EdgeType;
 use App\Models\EdgeTypeVertexPair;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,11 +16,12 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('search-edge-types')]
-#[Description('Search EdgeTypes by name/label/description, optionally filter by endpoint VertexType labels. Set include_properties=true and include_vertices=true before create_edge or edge property actions.')]
+#[Description('Search EdgeTypes by name/label/description, optionally filter by endpoint VertexType labels. Set include_properties=true before create_edge or edge property actions to learn age_property_name, age_property_type, and for ENUM: enum_options / min_selections / max_selections.')]
 #[IsReadOnly]
 class SearchEdgeTypesTool extends Tool
 {
     use AuthenticatesMcpRequests;
+    use FormatsMcpSchemaProperties;
 
     public function handle(Request $request): Response|ResponseFactory
     {
@@ -113,12 +115,10 @@ class SearchEdgeTypesTool extends Tool
                 }
 
                 if ($includeProperties) {
-                    $payload['properties'] = $edgeType->properties->map(fn ($property) => [
-                        'id' => $property->id,
-                        'name' => $property->name,
-                        'age_property_name' => $property->age_property_name,
-                        'age_property_type' => $property->age_property_type->value,
-                    ])->values()->all();
+                    $payload['properties'] = $edgeType->properties
+                        ->map(fn ($property) => $this->formatSchemaProperty($property))
+                        ->values()
+                        ->all();
                 }
 
                 return $payload;
