@@ -7,6 +7,7 @@ use App\Mcp\Concerns\ProvidesRevisionActionSchema;
 use App\Mcp\Servers\CoHistographServer;
 use App\Mcp\Tools\Revision\AddRevisionActionTool;
 use App\Mcp\Tools\Revision\SubmitRevisionTool;
+use App\Mcp\Tools\Revision\ValidateRevisionTool;
 use App\Mcp\Tools\Schema\SearchVertexTypesTool;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -24,9 +25,12 @@ class CoHistographServerMetadataTest extends TestCase
 
         $this->assertStringContainsString('Never write Apache AGE directly', $instructions);
         $this->assertStringContainsString('Recommended workflow:', $instructions);
+        $this->assertStringContainsString('validation.is_valid', $instructions);
         $this->assertStringContainsString('validate-revision', $instructions);
         $this->assertStringContainsString('submit-revision', $instructions);
         $this->assertStringContainsString('target_age_id XOR target_ref_order', $instructions);
+        $this->assertStringContainsString('do not assume you must call validate-revision after every edit', $instructions);
+        $this->assertStringContainsString('submitted=false', $instructions);
 
         foreach (RevisionActionType::values() as $action) {
             $this->assertStringContainsString($action, $instructions);
@@ -45,8 +49,16 @@ class CoHistographServerMetadataTest extends TestCase
             $this->attributeValue(AddRevisionActionTool::class, Description::class),
         );
         $this->assertStringContainsString(
-            'validate-revision',
+            'JSON array',
+            $this->attributeValue(AddRevisionActionTool::class, Description::class),
+        );
+        $this->assertStringContainsString(
+            'submitted=false',
             $this->attributeValue(SubmitRevisionTool::class, Description::class),
+        );
+        $this->assertStringContainsString(
+            'Prefer checking validation from the latest',
+            $this->attributeValue(ValidateRevisionTool::class, Description::class),
         );
     }
 
@@ -68,10 +80,12 @@ class CoHistographServerMetadataTest extends TestCase
         $this->assertSame(RevisionActionType::values(), $schema['properties']['action']['enum']);
         $this->assertStringContainsString('create_vertex', $schema['properties']['action']['description']);
         $this->assertSame(
-            ['string', 'integer', 'number', 'boolean', 'array'],
+            ['array', 'string', 'integer', 'number', 'boolean'],
             $schema['properties']['value']['type'],
         );
         $this->assertStringContainsString('ENUM', $schema['properties']['value']['description']);
+        $this->assertStringContainsString('["rock","jazz"]', $schema['properties']['value']['description']);
+        $this->assertStringContainsString('never a scalar string', $schema['properties']['value']['description']);
     }
 
     #[Test]
@@ -80,8 +94,9 @@ class CoHistographServerMetadataTest extends TestCase
         $instructions = $this->attributeValue(CoHistographServer::class, Instructions::class);
 
         $this->assertStringContainsString('enum_options', $instructions);
-        $this->assertStringContainsString('non-empty string array', $instructions);
-        $this->assertStringContainsString('Do not send a single string for ENUM', $instructions);
+        $this->assertStringContainsString('JSON array of option value strings', $instructions);
+        $this->assertStringContainsString('["rock","jazz"]', $instructions);
+        $this->assertStringContainsString('never a scalar string', $instructions);
     }
 
     #[Test]
