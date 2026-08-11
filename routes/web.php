@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\HomepageConfigController;
 use App\Http\Controllers\Admin\RevisionReviewController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -40,6 +41,10 @@ Route::prefix('graph')->name('graph.')->group(function () {
 Route::auth(['verify' => true]);
 
 Route::group(['middleware' => ['auth', 'verified']], function () {
+    Route::get('profile', [ProfileController::class, 'edit'])->name('profile');
+    Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
     Route::get('revisions', [RevisionController::class, 'index'])->name('revisions.index');
     Route::get('revisions/create', [RevisionController::class, 'create'])->name('revisions.create');
     Route::post('revisions', [RevisionController::class, 'store'])->name('revisions.store');
