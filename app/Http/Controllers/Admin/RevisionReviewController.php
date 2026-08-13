@@ -12,6 +12,7 @@ use App\Models\VertexType;
 use App\Services\Revision\RevisionReviewService;
 use App\Services\Revision\RevisionValidationResult;
 use App\Services\Revision\RevisionValidationService;
+use App\Support\RevisionActionVertexLabelResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -54,8 +55,16 @@ class RevisionReviewController extends Controller
 
         $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
         $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
+        $vertexLabels = app(RevisionActionVertexLabelResolver::class)
+            ->labelsForActions($revision->actions);
 
-        return view('admin.revisions.show', compact('revision', 'validationResult', 'vertexTypes', 'edgeTypes'));
+        return view('admin.revisions.show', compact(
+            'revision',
+            'validationResult',
+            'vertexTypes',
+            'edgeTypes',
+            'vertexLabels',
+        ));
     }
 
     public function approve(Revision $revision): RedirectResponse

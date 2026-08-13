@@ -4,10 +4,15 @@ namespace Tests\Feature;
 
 use App\Enums\RevisionReviewAction;
 use App\Enums\RevisionStatus;
+use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\RevisionReview;
 use App\Models\User;
+use App\Models\VertexProperty;
+use App\Models\VertexType;
+use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AdminRevisionReviewTest extends TestCase
@@ -179,6 +184,60 @@ class AdminRevisionReviewTest extends TestCase
             ->assertDontSee('進入頁面時重新驗證');
     }
 
+    public function test_admin_detail_shows_create_edge_vertex_display_names(): void
+    {
+        $reviewer = $this->createReviewer();
+        $owner = User::factory()->createOne();
+
+        $personType = VertexType::factory()->create([
+            'name' => '人物',
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($personType)->create([
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $eventType = VertexType::factory()->create([
+            'name' => '事件',
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'title',
+        ]);
+        VertexProperty::factory()->for($eventType)->create([
+            'name' => '標題',
+            'age_property_name' => 'title',
+            'locale' => null,
+        ]);
+
+        $edgeType = EdgeType::factory()->create([
+            'name' => '參加',
+            'age_label_name' => $this->graphLabel(),
+            'start_vertex_id' => $personType->id,
+            'end_vertex_id' => $eventType->id,
+        ]);
+
+        $startId = $this->createAgeVertex($personType->age_label_name, ['name' => '白居易']);
+        $endId = $this->createAgeVertex($eventType->age_label_name, ['title' => '曲江宴會']);
+
+        $revision = $this->createRevision($owner, 'Edge Display Names', RevisionStatus::PendingReview);
+        $revision->actions()->create([
+            'order' => 0,
+            'action' => 'create_edge',
+            'edge_type_label' => $edgeType->age_label_name,
+            'start_vertex_age_id' => (string) $startId,
+            'end_vertex_age_id' => (string) $endId,
+        ]);
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.revisions.show', $revision))
+            ->assertOk()
+            ->assertSee('新增 Edge：白居易 - '.$edgeType->age_label_name.' - 曲江宴會')
+            ->assertDontSee('ID:'.$startId)
+            ->assertDontSee('ID:'.$endId);
+    }
+
     private function createReviewer(): User
     {
         $reviewer = User::factory()->createOne();
@@ -209,5 +268,27 @@ class AdminRevisionReviewTest extends TestCase
         }
 
         return $revision;
+    }
+
+    /**
+     * @param  array<string, mixed>  $properties
+     */
+    private function createAgeVertex(string $label, array $properties = []): int
+    {
+        $connection = (string) config('cohistograph.app.graph.connection-name');
+        $graphName = (string) config('cohistograph.app.graph.name');
+
+        $result = DB::connection($connection)
+            ->apacheAgeCypher($graphName, function (Builder $builder) use ($label, $properties) {
+                return $builder->createNode('v', $label, $properties)->return('v');
+            })
+            ->first();
+
+        return (int) $result->v->id;
+    }
+
+    private function graphLabel(): string
+    {
+        return 'label_'.fake()->unique()->lexify('??????');
     }
 }
