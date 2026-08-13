@@ -35,6 +35,16 @@ const localForm = ref(emptyForm());
  */
 const backdropPointerDown = ref(false);
 
+/** Snapshot of type + form when the modal opened; used to detect unsaved edits on close. */
+const initialStateSnapshot = ref(null);
+
+function serializeState() {
+    return JSON.stringify({
+        selectedType: selectedType.value,
+        form: localForm.value,
+    });
+}
+
 function emptyForm() {
     return {
         action: null,
@@ -70,6 +80,8 @@ watch(
                 selectedType.value = null;
                 localForm.value = emptyForm();
             }
+
+            initialStateSnapshot.value = serializeState();
         }
     },
 );
@@ -154,6 +166,13 @@ function confirm() {
 }
 
 function close() {
+    if (
+        initialStateSnapshot.value !== serializeState()
+        && !window.confirm('有未儲存的變更，確定要關閉？')
+    ) {
+        return;
+    }
+
     emit('close');
 }
 
