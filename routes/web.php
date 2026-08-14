@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\FaqItemController;
 use App\Http\Controllers\Admin\HomepageConfigController;
 use App\Http\Controllers\Admin\RevisionReviewController;
+use App\Http\Controllers\AuthorizedAppController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\RevisionController;
@@ -40,6 +41,11 @@ Route::prefix('graph')->name('graph.')->group(function () {
 Route::auth(['verify' => true]);
 
 Route::group(['middleware' => ['auth', 'verified']], function () {
+    Route::get('settings/authorized-apps', [AuthorizedAppController::class, 'index'])
+        ->name('settings.authorized-apps.index');
+    Route::delete('settings/authorized-apps/{client}', [AuthorizedAppController::class, 'destroy'])
+        ->name('settings.authorized-apps.destroy');
+
     Route::get('revisions', [RevisionController::class, 'index'])->name('revisions.index');
     Route::get('revisions/create', [RevisionController::class, 'create'])->name('revisions.create');
     Route::post('revisions', [RevisionController::class, 'store'])->name('revisions.store');

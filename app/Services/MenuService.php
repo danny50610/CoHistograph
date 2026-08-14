@@ -61,6 +61,8 @@ class MenuService
                 $userMenu = $menu->add($user->name, 'javascript:void(0)');
                 // $userMenu->add('個人資料', ['route' => 'profile'])->active('profile/*');
                 $userMenu->add('我的修訂', ['route' => 'revisions.index'])->active('revisions*');
+                $userMenu->add('已授權應用', ['route' => 'settings.authorized-apps.index'])
+                    ->active('settings/authorized-apps*');
                 $userMenu->add('登出', ['route' => 'logout'])->data(['method' => 'POST']);
             } else {
                 // 遊客

@@ -795,4 +795,5 @@ php artisan mcp:inspect cohistograph   # Local Server
 - [Laravel MCP 官方文件](https://laravel.com/docs/mcp)
 - [Model Context Protocol 規格](https://modelcontextprotocol.io/docs/getting-started/intro)
 - 本專案：`.spec/revision.md`（Revision 工作流詳細規格）
+- 本專案：`.spec/mcp-session-and-devices.md`（MCP Session vs 已授權應用／裝置管理研究）
 - 本專案：`AGENTS.md`（Laravel Boost MCP 開發指引）
