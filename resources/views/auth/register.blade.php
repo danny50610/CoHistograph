@@ -12,9 +12,7 @@
                         <form role="form" method="POST" action="{{ route('register') }}" onsubmit="return handleSubmit(this);">
                             @csrf
 
-                            <x-forms.input id="name" label="名稱" required autofocus />
-
-                            <x-forms.input id="email" label="信箱" type="email" required />
+                            <x-forms.input id="email" label="信箱" type="email" required autofocus />
 
                             <x-forms.input
                                 id="password"

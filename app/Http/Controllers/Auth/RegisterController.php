@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\HomeController;
 use App\Models\User;
+use App\Support\UniqueUserNameGenerator;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -15,10 +16,11 @@ class RegisterController extends Controller
 
     protected $redirectTo = HomeController::AUTHENTICATED_REDIRECT;
 
+    public function __construct(private UniqueUserNameGenerator $uniqueUserNameGenerator) {}
+
     protected function validator(array $data): \Illuminate\Contracts\Validation\Validator
     {
         return Validator::make($data, [
-            'name' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email:rfc,dns,filter|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             // 'g-recaptcha-response' => 'required|captcha',
@@ -28,7 +30,7 @@ class RegisterController extends Controller
     protected function create(array $data)
     {
         return User::create([
-            'name' => $data['name'],
+            'name' => $this->uniqueUserNameGenerator->fromEmail($data['email']),
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
         ]);
