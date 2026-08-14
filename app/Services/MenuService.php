@@ -59,7 +59,7 @@ class MenuService
 
                 /** @var \Lavary\Menu\Item $userMenu */
                 $userMenu = $menu->add($user->name, 'javascript:void(0)');
-                // $userMenu->add('個人資料', ['route' => 'profile'])->active('profile/*');
+                $userMenu->add('個人資料', ['route' => 'profile'])->active('profile*');
                 $userMenu->add('我的修訂', ['route' => 'revisions.index'])->active('revisions*');
                 $userMenu->add('登出', ['route' => 'logout'])->data(['method' => 'POST']);
             } else {

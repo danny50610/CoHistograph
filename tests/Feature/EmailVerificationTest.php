@@ -64,10 +64,10 @@ class EmailVerificationTest extends TestCase
     {
         Notification::fake();
 
-        $email = fake()->unique()->userName().'@gmail.com';
+        $localPart = fake()->unique()->userName();
+        $email = $localPart.'@gmail.com';
 
         $this->post(route('register'), [
-            'name' => 'Test User',
             'email' => $email,
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -77,28 +77,10 @@ class EmailVerificationTest extends TestCase
         $user = User::where('email', $email)->first();
 
         $this->assertNotNull($user);
+        $this->assertSame($localPart, $user->name);
         $this->assertNull($user->email_verified_at);
 
         Notification::assertSentTo($user, VerifyEmail::class);
-    }
-
-    public function test_register_fails_when_name_already_taken(): void
-    {
-        User::factory()->create([
-            'name' => 'Taken Name',
-        ]);
-
-        $this->from(route('register'))
-            ->post(route('register'), [
-                'name' => 'Taken Name',
-                'email' => fake()->unique()->userName().'@gmail.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
-            ])
-            ->assertRedirect(route('register'))
-            ->assertSessionHasErrors(['name' => 'The name has already been taken.']);
-
-        $this->assertSame(1, User::query()->where('name', 'Taken Name')->count());
     }
 
     public function test_email_can_be_verified(): void
