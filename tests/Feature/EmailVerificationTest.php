@@ -82,6 +82,25 @@ class EmailVerificationTest extends TestCase
         Notification::assertSentTo($user, VerifyEmail::class);
     }
 
+    public function test_register_fails_when_name_already_taken(): void
+    {
+        User::factory()->create([
+            'name' => 'Taken Name',
+        ]);
+
+        $this->from(route('register'))
+            ->post(route('register'), [
+                'name' => 'Taken Name',
+                'email' => fake()->unique()->userName().'@gmail.com',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ])
+            ->assertRedirect(route('register'))
+            ->assertSessionHasErrors(['name' => 'The name has already been taken.']);
+
+        $this->assertSame(1, User::query()->where('name', 'Taken Name')->count());
+    }
+
     public function test_email_can_be_verified(): void
     {
         $user = User::factory()->unverified()->create();
