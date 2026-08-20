@@ -31,6 +31,7 @@ class VertexPropertyFactory extends Factory
                 PropertyType::String,
                 PropertyType::Date,
                 PropertyType::MonthDay,
+                PropertyType::Time,
                 PropertyType::Timestamptz,
             ]),
             'locale' => null,

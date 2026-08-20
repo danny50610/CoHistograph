@@ -22,6 +22,17 @@ class HomepageConfigTest extends TestCase
             ->assertSee(HomepageConfig::DEFAULT_TAGLINE, false);
     }
 
+    public function test_authenticated_homepage_shows_revision_cta_instead_of_login(): void
+    {
+        $user = User::factory()->createOne();
+
+        $this->actingAs($user)
+            ->get(route('index'))
+            ->assertOk()
+            ->assertSee(route('revisions.create'), false)
+            ->assertDontSee('>登入</a>', false);
+    }
+
     public function test_homepage_shows_stored_tagline(): void
     {
         SystemConfig::query()->updateOrCreate(

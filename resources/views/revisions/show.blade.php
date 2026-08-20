@@ -174,6 +174,7 @@
                         'revisionActions' => $revision->actions,
                         'vertexTypes' => $vertexTypes,
                         'edgeTypes' => $edgeTypes,
+                        'vertexLabels' => $vertexLabels,
                     ])
                 @empty
                     <div class="text-secondary text-center py-4">

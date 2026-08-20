@@ -24,14 +24,16 @@ class PropertyTypeTest extends TestCase
     }
 
     #[Test]
-    public function includes_date_month_day_and_timestamptz(): void
+    public function includes_date_month_day_time_and_timestamptz(): void
     {
         $this->assertSame('DATE', PropertyType::Date->value);
         $this->assertSame('MONTH_DAY', PropertyType::MonthDay->value);
+        $this->assertSame('TIME', PropertyType::Time->value);
         $this->assertSame('TIMESTAMPTZ', PropertyType::Timestamptz->value);
         $this->assertSame('ENUM', PropertyType::Enum->value);
-        $this->assertCount(8, PropertyType::cases());
+        $this->assertCount(9, PropertyType::cases());
         $this->assertFalse(PropertyType::Enum->allowsLocale());
         $this->assertTrue(PropertyType::String->allowsLocale());
+        $this->assertTrue(PropertyType::Time->allowsLocale());
     }
 }

@@ -2,7 +2,7 @@
 
 ## 現況
 
-`PropertyType` enum（`app/Enums/PropertyType.php`）定義屬性型別。目前共 **8** 種：
+`PropertyType` enum（`app/Enums/PropertyType.php`）定義屬性型別。目前共 **9** 種：
 
 | Enum case | 儲存值 | AGE 實際型別 | PHP 讀出型別 |
 |-----------|--------|--------------|--------------|
@@ -12,10 +12,11 @@
 | `String` | `STRING` | agtype string | `string` |
 | `Date` | `DATE` | **agtype string**（`Y-m-d`） | `Carbon\CarbonImmutable` |
 | `MonthDay` | `MONTH_DAY` | **agtype string**（`m-d`，如 `07-22`） | `Carbon\CarbonImmutable`（sentinel year `2000`） |
+| `Time` | `TIME` | **agtype string**（`H:i:s`，如 `14:30:00`） | `Carbon\CarbonImmutable`（sentinel date `2000-01-01`） |
 | `Timestamptz` | `TIMESTAMPTZ` | **agtype string**（ISO-8601 + offset） | `Carbon\CarbonImmutable` |
 | `Enum` | `ENUM` | **agtype list of string**（option `value`） | `list<string>` |
 
-`DATE` 對應完整日期；`MONTH_DAY` 只存月日（週年／紀念日等，不綁年份）；`TIMESTAMPTZ` 為帶時區的時間點；`ENUM` 為多選預定義選項（詳見 `.spec/property-type-enum-evaluation.md`）。
+`DATE` 對應完整日期；`MONTH_DAY` 只存月日（週年／紀念日等，不綁年份）；`TIME` 只存當日時間（營業時間等，不綁日期與時區）；`TIMESTAMPTZ` 為帶時區的時間點；`ENUM` 為多選預定義選項（詳見 `.spec/property-type-enum-evaluation.md`）。
 
 ## 字串儲存／讀出轉換
 
@@ -23,11 +24,13 @@
 
 - `matchesType()`：Revision 驗證（`RevisionActionValidator`）
 - `toStorage()`：寫入 AGE 前轉換（`RevisionApplyService`）
-  - `DATE` / `MONTH_DAY` / `TIMESTAMPTZ` **維持字串**（不把 Carbon 丟進 Cypher SET）
+  - `DATE` / `MONTH_DAY` / `TIME` / `TIMESTAMPTZ` **維持字串**（不把 Carbon 丟進 Cypher SET）
+  - `TIME` 會正規化成 `HH:mm:ss`（輸入可為 `HH:mm`）
   - `TIMESTAMPTZ` 會正規化成 ISO-8601（例如 `2024-07-22T14:30:00+08:00`）
 - `fromStorage()`：從 AGE 讀出後轉換（`LocalizedPropertyGrouper`）
   - `DATE` → `CarbonImmutable`（UTC midnight）
   - `MONTH_DAY` → `CarbonImmutable`（year 固定 `2000`，以便支援 `02-29`）
+  - `TIME` → `CarbonImmutable`（date 固定 `2000-01-01` UTC）
   - `TIMESTAMPTZ` → `CarbonImmutable`（保留原始 offset）
 - `formatForDisplay()`：Blade 顯示用
 
@@ -35,6 +38,7 @@
 
 - `DATE`：嚴格 `YYYY-MM-DD`，且須為有效曆日
 - `MONTH_DAY`：嚴格 `MM-DD`（零填充），以 leap year `2000` 驗證曆日（允許 `02-29`）
+- `TIME`：`HH:mm` 或 `HH:mm:ss`（零填充、24 小時制），範圍 `00:00:00`–`23:59:59`；禁止日期或時區
 - `TIMESTAMPTZ`：必須帶時區（`Z` 或 `±HH:MM` / `±HHMM`），禁止無時區的 naive datetime
 
 修訂編輯 UI（`resources/js/Pages/Revisions/Partials/PropertyValueInput.vue`）依型別切換輸入元件，仍寫入上述字串格式。
@@ -73,7 +77,7 @@
 | 希望 agtype annotation（若未來 AGE 支援）還原成 Carbon | `Parser/AgtypeBaseListenerImpl.php` 的 `exitTypeAnnotation` / string value 路徑 |
 | 希望 CREATE/SET 產生 AGE 原生 temporal（若版本支援） | 查 AGE 文件後改 Cypher 產生方式；**不要**在應用層假設 driver 會回 Carbon |
 
-若只是新增屬性型別（如 DATE / MONTH_DAY / TIMESTAMPTZ）：
+若只是新增屬性型別（如 DATE / MONTH_DAY / TIME / TIMESTAMPTZ）：
 
 1. 擴充 `App\Enums\PropertyType`
 2. 更新 `PropertyValueCaster` 的 `match` 分支

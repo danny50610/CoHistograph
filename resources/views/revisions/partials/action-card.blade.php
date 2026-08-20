@@ -26,18 +26,22 @@
         $targetLabel = 'ID:' . $action->target_age_id;
     }
 
+    $vertexLabels = $vertexLabels ?? [];
+
     $startLabel = null;
     if (!is_null($action->start_vertex_ref_order)) {
         $startLabel = '#' . ($action->start_vertex_ref_order + 1) . ' 建立的 Vertex';
     } elseif (!is_null($action->start_vertex_age_id)) {
-        $startLabel = 'ID:' . $action->start_vertex_age_id;
+        $startLabel = $vertexLabels[(string) $action->start_vertex_age_id]
+            ?? ('ID:' . $action->start_vertex_age_id);
     }
 
     $endLabel = null;
     if (!is_null($action->end_vertex_ref_order)) {
         $endLabel = '#' . ($action->end_vertex_ref_order + 1) . ' 建立的 Vertex';
     } elseif (!is_null($action->end_vertex_age_id)) {
-        $endLabel = 'ID:' . $action->end_vertex_age_id;
+        $endLabel = $vertexLabels[(string) $action->end_vertex_age_id]
+            ?? ('ID:' . $action->end_vertex_age_id);
     }
 
     $propertyName = $action->age_property_name ?? '—';

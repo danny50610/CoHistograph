@@ -161,6 +161,10 @@ class RevisionShowLocalizedPropertyTest extends TestCase
             'age_property_type' => PropertyType::MonthDay,
         ]);
         VertexProperty::factory()->for($vertexType)->create([
+            'age_property_name' => 'opens_at',
+            'age_property_type' => PropertyType::Time,
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
             'age_property_name' => 'recorded_at',
             'age_property_type' => PropertyType::Timestamptz,
         ]);
@@ -185,6 +189,7 @@ class RevisionShowLocalizedPropertyTest extends TestCase
 
                     return ($byName['occurred_on']['age_property_type'] ?? null) === PropertyType::Date->value
                         && ($byName['anniversary']['age_property_type'] ?? null) === PropertyType::MonthDay->value
+                        && ($byName['opens_at']['age_property_type'] ?? null) === PropertyType::Time->value
                         && ($byName['recorded_at']['age_property_type'] ?? null) === PropertyType::Timestamptz->value;
                 })
             );

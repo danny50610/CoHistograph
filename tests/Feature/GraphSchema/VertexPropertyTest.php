@@ -320,6 +320,16 @@ class VertexPropertyTest extends TestCase
 
         $this->actingAs($this->user)
             ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
+                'name' => 'Opens At',
+                'description' => '',
+                'age_property_name' => 'opens_at',
+                'age_property_type' => PropertyType::Time->value,
+            ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->user)
+            ->post("/graph-schema/vertex-type/{$vertexType->id}/vertex-property", [
                 'name' => 'Recorded At',
                 'description' => '',
                 'age_property_name' => 'recorded_at',
@@ -335,6 +345,10 @@ class VertexPropertyTest extends TestCase
         $this->assertEquals(
             PropertyType::MonthDay,
             VertexProperty::where('age_property_name', 'anniversary')->firstOrFail()->age_property_type,
+        );
+        $this->assertEquals(
+            PropertyType::Time,
+            VertexProperty::where('age_property_name', 'opens_at')->firstOrFail()->age_property_type,
         );
         $this->assertEquals(
             PropertyType::Timestamptz,

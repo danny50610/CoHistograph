@@ -64,10 +64,10 @@ class EmailVerificationTest extends TestCase
     {
         Notification::fake();
 
-        $email = fake()->unique()->userName().'@gmail.com';
+        $localPart = fake()->unique()->userName();
+        $email = $localPart.'@gmail.com';
 
         $this->post(route('register'), [
-            'name' => 'Test User',
             'email' => $email,
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -77,6 +77,7 @@ class EmailVerificationTest extends TestCase
         $user = User::where('email', $email)->first();
 
         $this->assertNotNull($user);
+        $this->assertSame($localPart, $user->name);
         $this->assertNull($user->email_verified_at);
 
         Notification::assertSentTo($user, VerifyEmail::class);

@@ -8,6 +8,7 @@ use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\VertexType;
 use App\Services\RevisionService;
+use App\Support\RevisionActionVertexLabelResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -62,8 +63,10 @@ class RevisionController extends Controller
 
         $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
         $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
+        $vertexLabels = app(RevisionActionVertexLabelResolver::class)
+            ->labelsForActions($revision->actions);
 
-        return view('revisions.show', compact('revision', 'vertexTypes', 'edgeTypes'));
+        return view('revisions.show', compact('revision', 'vertexTypes', 'edgeTypes', 'vertexLabels'));
     }
 
     public function edit(Revision $revision): InertiaResponse
