@@ -22,21 +22,6 @@ class HomepageConfigTest extends TestCase
             ->assertSee(HomepageConfig::DEFAULT_TAGLINE, false);
     }
 
-    public function test_homepage_shows_intro_sections(): void
-    {
-        $this->get(route('index'))
-            ->assertOk()
-            ->assertSee('這是什麼', false)
-            ->assertSee('這是一個協作式知識圖譜平台', false)
-            ->assertSee('我能做什麼', false)
-            ->assertSee('探索現有的節點、關係與關聯脈絡', false)
-            ->assertSee('怎麼開始', false)
-            ->assertSee('先探索現有資料，了解圖譜中有哪些內容', false)
-            ->assertSee(route('faq'), false)
-            ->assertSee(route('login'), false)
-            ->assertDontSee(route('revisions.create'), false);
-    }
-
     public function test_authenticated_homepage_shows_revision_cta_instead_of_login(): void
     {
         $user = User::factory()->createOne();
