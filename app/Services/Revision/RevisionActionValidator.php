@@ -341,7 +341,7 @@ class RevisionActionValidator
             return;
         }
 
-        $this->resolver->setVertexPropertyExists($target['key'], $propertyName, true);
+        $this->resolver->setVertexPropertyValue($target['key'], $propertyName, $action->value);
     }
 
     private function validateEdgePropertyAction(
@@ -457,7 +457,7 @@ class RevisionActionValidator
             return;
         }
 
-        $this->resolver->setEdgePropertyExists($target['key'], $propertyName, true);
+        $this->resolver->setEdgePropertyValue($target['key'], $propertyName, $action->value);
     }
 
     private function validateAllowedFields(RevisionAction $action, RevisionValidationResult $result): void

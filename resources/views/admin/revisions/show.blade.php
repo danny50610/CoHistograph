@@ -6,11 +6,13 @@
     @php
         /** @var array<int, list<string>> $actionErrorsByOrder */
         $actionErrorsByOrder = session('revision_action_errors') ?? $validationResult->actionMessages();
+        $actionWarningsByOrder = $validationResult->actionWarningMessages();
         $generalErrors = $validationResult->generalErrors();
         if ($errors->isNotEmpty() && session()->has('revision_error_summary')) {
             $generalErrors = $errors->all();
         }
         $isValidationValid = $validationResult->isValid();
+        $hasWarnings = $actionWarningsByOrder !== [];
         $submittedAt = $revision->isDraft() ? null : $revision->updated_at;
     @endphp
 
@@ -75,7 +77,9 @@
                     <dt class="col-md-2">驗證結果</dt>
                     <dd class="col-md-10">
                         @if ($isValidationValid)
-                            <span class="text-success fw-semibold">驗證通過</span>
+                            <span class="{{ $hasWarnings ? 'text-warning-emphasis' : 'text-success' }} fw-semibold">
+                                {{ $hasWarnings ? '驗證通過（有警告）' : '驗證通過' }}
+                            </span>
                         @else
                             <span class="text-danger fw-semibold">驗證未通過</span>
                         @endif
@@ -122,6 +126,11 @@
                     <p class="mb-0">部分操作項目有問題，請查看下方標記的操作卡片。</p>
                 @endif
             </div>
+        @elseif ($hasWarnings)
+            <div class="alert alert-warning mb-3">
+                <div class="fw-semibold mb-1">驗證通過（有警告）</div>
+                <p class="mb-0">部分操作可能重複，請查看下方標記的操作卡片。警告不會阻擋接受。</p>
+            </div>
         @endif
 
         @if ($errors->has('lock'))
@@ -147,6 +156,8 @@
                         'isEditable'   => false,
                         'hasError'     => isset($actionErrorsByOrder[$action->order]),
                         'actionErrors' => $actionErrorsByOrder[$action->order] ?? [],
+                        'hasWarning'   => isset($actionWarningsByOrder[$action->order]),
+                        'actionWarnings' => $actionWarningsByOrder[$action->order] ?? [],
                         'revisionActions' => $revision->actions,
                         'vertexTypes' => $vertexTypes,
                         'edgeTypes' => $edgeTypes,

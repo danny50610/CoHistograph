@@ -194,11 +194,18 @@ class RevisionService
 
         $revision->load('actions');
         $validationResult = $this->revisionValidationService->validate($revision);
-        if (! $validationResult->isValid()) {
-            return $validationResult;
-        }
 
-        $revision->update(['status' => RevisionStatus::PendingReview]);
+        $revision->update([
+            'last_validation_is_valid' => $validationResult->isValid(),
+            'last_validation_summary' => $validationResult->checkSummary(),
+            'last_validation_general_errors' => $validationResult->generalErrors(),
+            'last_validation_action_errors' => $validationResult->actionMessages(),
+            'last_validation_action_warnings' => $validationResult->actionWarnings(),
+            'last_validated_at' => now(),
+            ...($validationResult->isValid()
+                ? ['status' => RevisionStatus::PendingReview]
+                : []),
+        ]);
 
         return $validationResult;
     }
@@ -245,7 +252,8 @@ class RevisionService
      *         is_valid: bool|null,
      *         summary: string|null,
      *         general_errors: array<int, string>,
-     *         action_errors: array<int, list<string>>
+     *         action_errors: array<int, list<string>>,
+     *         action_warnings: array<int, array<int, array{code:string,message:string,meta:array<string,mixed>}>>
      *     }
      * }
      */
@@ -271,6 +279,7 @@ class RevisionService
                 'summary' => $revision->last_validation_summary,
                 'general_errors' => $revision->last_validation_general_errors ?? [],
                 'action_errors' => $revision->last_validation_action_errors ?? [],
+                'action_warnings' => $revision->last_validation_action_warnings ?? [],
             ],
         ];
     }
@@ -283,11 +292,10 @@ class RevisionService
 
         $revision->update([
             'last_validation_is_valid' => $validationResult->isValid(),
-            'last_validation_summary' => $validationResult->isValid()
-                ? '檢查通過'
-                : '檢查未通過，請修正錯誤後再繼續',
+            'last_validation_summary' => $validationResult->checkSummary(),
             'last_validation_general_errors' => $validationResult->generalErrors(),
             'last_validation_action_errors' => $validationResult->actionMessages(),
+            'last_validation_action_warnings' => $validationResult->actionWarnings(),
             'last_validated_at' => now(),
         ]);
 

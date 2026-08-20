@@ -17,6 +17,33 @@
             ? $sessionActionErrorsByOrder
             : $cachedActionErrorsByOrder;
 
+        $warningSource = session('revision_action_warnings');
+        if (! is_array($warningSource)) {
+            $warningSource = is_array($revision->last_validation_action_warnings)
+                ? $revision->last_validation_action_warnings
+                : [];
+        }
+
+        /** @var array<int, list<string>> $actionWarningsByOrder */
+        $actionWarningsByOrder = [];
+        foreach ($warningSource as $order => $warnings) {
+            if (! is_array($warnings)) {
+                continue;
+            }
+
+            $actionWarningsByOrder[(int) $order] = array_values(array_map(
+                static function (mixed $warning): string {
+                    if (is_array($warning) && isset($warning['message']) && is_string($warning['message'])) {
+                        return $warning['message'];
+                    }
+
+                    return is_string($warning) ? $warning : '';
+                },
+                $warnings,
+            ));
+            $actionWarningsByOrder[(int) $order] = array_values(array_filter($actionWarningsByOrder[(int) $order]));
+        }
+
         /** @var array<int, string> $cachedGeneralErrors */
         $cachedGeneralErrors = is_array($revision->last_validation_general_errors)
             ? $revision->last_validation_general_errors
@@ -27,6 +54,7 @@
         $isSubmitValidationError = session()->has('revision_error_summary') || $errors->isNotEmpty();
         $hasCachedValidation = !is_null($revision->last_validated_at);
         $isValidationPass = !$isSubmitValidationError && $revision->last_validation_is_valid === true;
+        $hasWarnings = $actionWarningsByOrder !== [];
         $showValidationResult = $isSubmitValidationError || $hasCachedValidation;
     @endphp
 
@@ -101,9 +129,9 @@
         </div>
 
         @if ($showValidationResult)
-            <div class="alert {{ $isValidationPass ? 'alert-success' : 'alert-danger' }} mb-3">
+            <div class="alert {{ $isValidationPass ? ($hasWarnings ? 'alert-warning' : 'alert-success') : 'alert-danger' }} mb-3">
                 <div class="fw-semibold mb-1">
-                    {{ $revisionErrorSummary ?? ($isValidationPass ? '檢查通過' : '檢查未通過，請修正以下問題。') }}
+                    {{ $revisionErrorSummary ?? ($isValidationPass ? ($hasWarnings ? '檢查通過（有警告）' : '檢查通過') : '檢查未通過，請修正以下問題。') }}
                 </div>
 
                 @if ($errors->isNotEmpty())
@@ -118,6 +146,8 @@
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>
+                @elseif ($isValidationPass && $hasWarnings)
+                    <p class="mb-0">部分操作可能重複，請查看下方標記的操作卡片。警告不會阻擋提交。</p>
                 @endif
 
                 @if ($hasCachedValidation)
@@ -139,6 +169,8 @@
                         'isEditable'   => false,
                         'hasError'     => isset($actionErrorsByOrder[$action->order]),
                         'actionErrors' => $actionErrorsByOrder[$action->order] ?? [],
+                        'hasWarning'   => isset($actionWarningsByOrder[$action->order]),
+                        'actionWarnings' => $actionWarningsByOrder[$action->order] ?? [],
                         'revisionActions' => $revision->actions,
                         'vertexTypes' => $vertexTypes,
                         'edgeTypes' => $edgeTypes,

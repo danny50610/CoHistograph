@@ -155,6 +155,14 @@ draft → pending_review → rejected
 
 驗證失敗時，回傳哪些 RevisionAction 有問題及原因。
 
+**軟性警告（warnings，不影響 `is_valid`，不阻擋 submit／approve）：**
+
+- `create_edge`：若 AGE 或同份 Revision 內已存在相同 `edge_type_label` + 起點 + 終點的邊，發出 `DUPLICATE_EDGE` 警告（方向敏感；不比較 edge property）
+- `create_vertex`：若該類型設有 `show_property_name`，且模擬後顯示名稱（trim）非空，且 AGE 或同份 Revision 內已有同類型同顯示名稱的節點，發出 `DUPLICATE_VERTEX` 警告
+- 顯示名稱為空、或未設定 `show_property_name`：不警告
+- 本 Revision 內先前已 `delete_edge`／`delete_vertex` 的對象不計入衝突
+- 警告結構與 error 相同：`{ code, message, meta }`；草稿／審核 UI 以黃色呈現；快取欄位 `last_validation_action_warnings` 完整儲存 code／message／meta
+
 ---
 
 #### 資料模型

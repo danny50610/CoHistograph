@@ -93,7 +93,7 @@
     };
 @endphp
 
-<div class="card mb-2 {{ $hasError ?? false ? 'border-danger' : '' }}"
+<div class="card mb-2 {{ ($hasError ?? false) ? 'border-danger' : (($hasWarning ?? false) ? 'border-warning' : '') }}"
      id="action-card-{{ $action->order }}">
     <div class="card-body py-2 px-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
@@ -148,6 +148,14 @@
             @foreach ($actionErrors ?? [] as $error)
                 <div class="text-danger small mt-1">
                     <i class="fa-solid fa-circle-exclamation"></i> {{ $error }}
+                </div>
+            @endforeach
+        @endif
+
+        @if ($hasWarning ?? false)
+            @foreach ($actionWarnings ?? [] as $warning)
+                <div class="text-warning-emphasis small mt-1">
+                    <i class="fa-solid fa-triangle-exclamation"></i> {{ $warning }}
                 </div>
             @endforeach
         @endif
