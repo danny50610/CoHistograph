@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateRevisionRequest;
 use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\VertexType;
+use App\Services\Revision\RevisionGraphPreviewBuilder;
 use App\Services\RevisionService;
 use App\Support\RevisionActionVertexLabelResolver;
 use Illuminate\Contracts\View\View;
@@ -19,7 +20,10 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class RevisionController extends Controller
 {
-    public function __construct(private RevisionService $revisionService) {}
+    public function __construct(
+        private RevisionService $revisionService,
+        private RevisionGraphPreviewBuilder $graphPreviewBuilder,
+    ) {}
 
     public function index(): View
     {
@@ -65,8 +69,9 @@ class RevisionController extends Controller
         $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
         $vertexLabels = app(RevisionActionVertexLabelResolver::class)
             ->labelsForActions($revision->actions);
+        $graphPreview = $this->graphPreviewBuilder->build($revision->actions);
 
-        return view('revisions.show', compact('revision', 'vertexTypes', 'edgeTypes', 'vertexLabels'));
+        return view('revisions.show', compact('revision', 'vertexTypes', 'edgeTypes', 'vertexLabels', 'graphPreview'));
     }
 
     public function edit(Revision $revision): InertiaResponse
@@ -87,9 +92,11 @@ class RevisionController extends Controller
             'vertexTypes' => $vertexTypes,
             'edgeTypes' => $edgeTypes,
             'graphLocales' => config('cohistograph.app.graph.locales'),
+            'graphPreview' => $this->graphPreviewBuilder->build($revision->actions),
             'routeShow' => route('revisions.show', $revision),
             'routeUpdate' => route('revisions.update', $revision),
             'routeValidate' => route('revisions.validate', $revision),
+            'routeGraphPreview' => route('revisions.graph-preview', $revision),
             'routeSearchVertices' => route('graph.search.vertices'),
             'routeSearchEdges' => route('graph.search.edges'),
         ]);
@@ -112,6 +119,17 @@ class RevisionController extends Controller
             'action_warning_messages' => $validationResult->actionWarningMessages(),
             'action_warnings' => $validationResult->actionWarnings(),
         ]);
+    }
+
+    public function graphPreview(UpdateRevisionRequest $request, Revision $revision): JsonResponse
+    {
+        $this->authorize('update', $revision);
+
+        abort_unless($revision->isDraft(), 403, '只有草稿狀態可以預覽');
+
+        return response()->json(
+            $this->graphPreviewBuilder->buildFromPayloads($request->validated('actions') ?? []),
+        );
     }
 
     public function update(UpdateRevisionRequest $request, Revision $revision): SymfonyResponse

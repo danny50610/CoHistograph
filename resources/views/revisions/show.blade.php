@@ -158,31 +158,33 @@
             </div>
         @endif
 
-        <h2>操作清單</h2>
+        <h2 class="visually-hidden">操作清單與視覺化</h2>
 
-        {{-- Actions list --}}
-        <div class="card mb-3">
-            <div class="card-body">
-                @forelse ($revision->actions as $action)
-                    @include('revisions.partials.action-card', [
-                        'action'       => $action,
-                        'isEditable'   => false,
-                        'hasError'     => isset($actionErrorsByOrder[$action->order]),
-                        'actionErrors' => $actionErrorsByOrder[$action->order] ?? [],
-                        'hasWarning'   => isset($actionWarningsByOrder[$action->order]),
-                        'actionWarnings' => $actionWarningsByOrder[$action->order] ?? [],
-                        'revisionActions' => $revision->actions,
-                        'vertexTypes' => $vertexTypes,
-                        'edgeTypes' => $edgeTypes,
-                        'vertexLabels' => $vertexLabels,
-                    ])
-                @empty
-                    <div class="text-secondary text-center py-4">
-                        尚無任何操作
-                    </div>
-                @endforelse
+        <x-revision-graph-tabs :graph-preview="$graphPreview">
+            {{-- Actions list --}}
+            <div class="card mb-3">
+                <div class="card-body">
+                    @forelse ($revision->actions as $action)
+                        @include('revisions.partials.action-card', [
+                            'action'       => $action,
+                            'isEditable'   => false,
+                            'hasError'     => isset($actionErrorsByOrder[$action->order]),
+                            'actionErrors' => $actionErrorsByOrder[$action->order] ?? [],
+                            'hasWarning'   => isset($actionWarningsByOrder[$action->order]),
+                            'actionWarnings' => $actionWarningsByOrder[$action->order] ?? [],
+                            'revisionActions' => $revision->actions,
+                            'vertexTypes' => $vertexTypes,
+                            'edgeTypes' => $edgeTypes,
+                            'vertexLabels' => $vertexLabels,
+                        ])
+                    @empty
+                        <div class="text-secondary text-center py-4">
+                            尚無任何操作
+                        </div>
+                    @endforelse
+                </div>
             </div>
-        </div>
+        </x-revision-graph-tabs>
 
         {{-- Reviews history --}}
         @if ($revision->reviews->isNotEmpty())
