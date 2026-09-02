@@ -283,7 +283,7 @@ class RevisionToolsTest extends TestCase
         });
     }
 
-    public function test_move_action_to_order_and_ref_order_invalid_after_reorder(): void
+    public function test_move_action_to_order_remaps_ref_order_and_fails_when_create_is_no_longer_previous(): void
     {
         $user = User::factory()->createOne();
         $vertexType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
@@ -323,8 +323,66 @@ class RevisionToolsTest extends TestCase
         ]);
         $move->assertOk();
         $move->assertStructuredContent(function (AssertableJson $json) {
+            $json->where('actions.0.target_ref_order', 1)
+                ->where('actions.1.action', 'create_vertex')
+                ->where('validation.is_valid', false)
+                ->etc();
 
-            $json->where('validation.is_valid', false)->etc();
+            return true;
+        });
+    }
+
+    public function test_delete_action_remaps_later_ref_orders(): void
+    {
+        $user = User::factory()->createOne();
+        $vertexType = VertexType::factory()->createOne(['age_label_name' => $this->graphLabel()]);
+
+        $revision = Revision::factory()->createOne([
+            'user_id' => $user->id,
+            'status' => RevisionStatus::Draft,
+            'title' => '刪除重對應',
+        ]);
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 0,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertOk();
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 1,
+            'action' => [
+                'action' => 'create_vertex',
+                'vertex_type_label' => $vertexType->age_label_name,
+            ],
+        ])->assertOk();
+
+        CoHistographServer::actingAs($user)->tool(AddRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'order' => 2,
+            'action' => [
+                'action' => 'create_vertex_property',
+                'target_ref_order' => 1,
+                'age_property_name' => 'missing_prop',
+                'value' => 'x',
+            ],
+        ])->assertOk();
+
+        $firstActionId = $revision->actions()->where('order', 0)->firstOrFail()->id;
+
+        $delete = CoHistographServer::actingAs($user)->tool(DeleteRevisionActionTool::class, [
+            'revision_id' => $revision->id,
+            'action_id' => $firstActionId,
+        ]);
+        $delete->assertOk();
+        $delete->assertStructuredContent(function (AssertableJson $json) {
+            $json->where('actions.0.action', 'create_vertex')
+                ->where('actions.1.target_ref_order', 0)
+                ->etc();
 
             return true;
         });
