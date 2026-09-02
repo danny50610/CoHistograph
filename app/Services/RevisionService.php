@@ -8,6 +8,8 @@ use App\Models\RevisionAction;
 use App\Models\User;
 use App\Services\Revision\RevisionValidationResult;
 use App\Services\Revision\RevisionValidationService;
+use App\Support\RevisionActionRefOrderRemapper;
+use App\Support\RevisionActionValueNormalizer;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -15,7 +17,8 @@ class RevisionService
 {
     public function __construct(
         private RevisionValidationService $revisionValidationService,
-        private \App\Support\RevisionActionValueNormalizer $actionValueNormalizer,
+        private RevisionActionValueNormalizer $actionValueNormalizer,
+        private RevisionActionRefOrderRemapper $refOrderRemapper,
     ) {}
 
     public function create(User $user, array $data, bool $aiAssisted = false): Revision
@@ -76,14 +79,15 @@ class RevisionService
         $action = DB::transaction(function () use ($revision, $order, $actionData) {
             $actions = $revision->actions()->orderBy('order')->get();
             $insertAt = max(0, min($order, $actions->count()));
+            $mapping = $this->refOrderRemapper->mappingForInsert($actions->count(), $insertAt);
 
             foreach ($actions as $existing) {
-                if ($existing->order >= $insertAt) {
-                    $existing->update(['order' => $existing->order + 1]);
-                }
+                $this->applyOrderAndRefMapping($existing, $mapping);
             }
 
-            return $revision->actions()->create($this->actionAttributes($actionData, $insertAt));
+            return $revision->actions()->create(
+                $this->actionAttributes($this->refOrderRemapper->remapAction($actionData, $mapping), $insertAt),
+            );
         });
 
         $this->refreshValidation($revision);
@@ -116,14 +120,18 @@ class RevisionService
         $this->markAiAssisted($revision);
 
         DB::transaction(function () use ($revision, $action) {
-            $deletedOrder = $action->order;
+            $actions = $revision->actions()->orderBy('order')->get();
+            $mapping = $this->refOrderRemapper->mappingForDelete($actions->count(), (int) $action->order);
+
             $action->delete();
 
-            $revision->actions()
-                ->where('order', '>', $deletedOrder)
-                ->orderBy('order')
-                ->get()
-                ->each(fn (RevisionAction $existing) => $existing->update(['order' => $existing->order - 1]));
+            foreach ($actions as $existing) {
+                if ($existing->id === $action->id) {
+                    continue;
+                }
+
+                $this->applyOrderAndRefMapping($existing, $mapping);
+            }
         });
 
         $this->refreshValidation($revision);
@@ -153,28 +161,22 @@ class RevisionService
                     throw new InvalidArgumentException('direction must be up or down');
                 }
 
-                $swapWith = $direction === 'up' ? $fromIndex - 1 : $fromIndex + 1;
-                if ($swapWith < 0 || $swapWith >= $actions->count()) {
+                $targetIndex = $direction === 'up' ? $fromIndex - 1 : $fromIndex + 1;
+                if ($targetIndex < 0 || $targetIndex >= $actions->count()) {
                     throw new InvalidArgumentException($direction === 'up' ? 'Already the first action' : 'Already the last action');
                 }
+            } else {
+                $targetIndex = max(0, min((int) $toOrder, $actions->count() - 1));
+            }
 
-                $current = $actions[$fromIndex];
-                $neighbor = $actions[$swapWith];
-                $currentOrder = $current->order;
-                $neighborOrder = $neighbor->order;
-                $current->update(['order' => $neighborOrder]);
-                $neighbor->update(['order' => $currentOrder]);
-
+            if ($targetIndex === $fromIndex) {
                 return;
             }
 
-            $targetIndex = max(0, min((int) $toOrder, $actions->count() - 1));
-            $moving = $actions->pull($fromIndex);
-            $actions = $actions->values();
-            $actions->splice($targetIndex, 0, [$moving]);
+            $mapping = $this->refOrderRemapper->mappingForMove($actions->count(), $fromIndex, $targetIndex);
 
-            foreach ($actions->values() as $index => $item) {
-                $item->update(['order' => $index]);
+            foreach ($actions as $existing) {
+                $this->applyOrderAndRefMapping($existing, $mapping);
             }
         });
 
@@ -312,6 +314,27 @@ class RevisionService
         }
 
         $revision->forceFill(['is_ai_assisted' => true])->save();
+    }
+
+    /**
+     * @param  array<int, int|null>  $oldToNew
+     */
+    private function applyOrderAndRefMapping(RevisionAction $action, array $oldToNew): void
+    {
+        $newOrder = $oldToNew[(int) $action->order] ?? null;
+
+        if ($newOrder === null) {
+            return;
+        }
+
+        $action->update([
+            'order' => $newOrder,
+            ...$this->refOrderRemapper->remapAction([
+                'target_ref_order' => $action->target_ref_order,
+                'start_vertex_ref_order' => $action->start_vertex_ref_order,
+                'end_vertex_ref_order' => $action->end_vertex_ref_order,
+            ], $oldToNew),
+        ]);
     }
 
     /**

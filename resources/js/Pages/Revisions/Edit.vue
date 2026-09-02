@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ActionModal from './Partials/ActionModal.vue';
+import { mappingForDelete, mappingForMove, remapActions } from './remapRevisionActionRefOrders';
 
 const props = defineProps({
     revision: Object,
@@ -325,8 +326,10 @@ function onDrop(index) {
         return;
     }
     const arr = form.actions;
+    const mapping = mappingForMove(arr.length, dragSrcIndex.value, index);
     const [moved] = arr.splice(dragSrcIndex.value, 1);
     arr.splice(index, 0, moved);
+    remapActions(arr, mapping);
     renumber();
     dragSrcIndex.value = null;
     dragOverIndex.value = null;
@@ -341,7 +344,9 @@ function deleteAction(index) {
     if (!confirm('確認刪除此操作？')) {
         return;
     }
+    const mapping = mappingForDelete(form.actions.length, index);
     form.actions.splice(index, 1);
+    remapActions(form.actions, mapping);
     renumber();
 }
 

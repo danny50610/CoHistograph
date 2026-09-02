@@ -28,6 +28,7 @@ class CoHistographServerMetadataTest extends TestCase
         $this->assertStringContainsString('validation.is_valid', $instructions);
         $this->assertStringContainsString('validate-revision', $instructions);
         $this->assertStringContainsString('submit-revision', $instructions);
+        $this->assertStringContainsString('remap *_ref_order', $instructions);
         $this->assertStringContainsString('target_age_id XOR target_ref_order', $instructions);
         $this->assertStringContainsString('do not assume you must call validate-revision after every edit', $instructions);
         $this->assertStringContainsString('submitted=false', $instructions);
