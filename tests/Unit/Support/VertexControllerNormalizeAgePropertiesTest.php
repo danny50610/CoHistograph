@@ -23,6 +23,11 @@ class VertexControllerNormalizeAgePropertiesTest extends TestCase
             $controller->callNormalizeAgeProperties((object) ['name_zh_tw' => '李白']),
         );
 
+        $this->assertSame(
+            ['name' => "O'Brien"],
+            $controller->callNormalizeAgeProperties(['name' => addslashes("O'Brien")]),
+        );
+
         $this->assertSame([], $controller->callNormalizeAgeProperties(null));
         $this->assertSame([], $controller->callNormalizeAgeProperties('invalid'));
     }

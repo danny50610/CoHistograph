@@ -58,6 +58,27 @@ class GraphEntitySearchTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
+    public function test_search_returns_display_name_without_apostrophe_escape_slash(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'name' => '人物',
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $vertexId = $this->createAgeVertex($vertexType->age_label_name, ['name' => "O'Brien"]);
+
+        $this->getJson(route('graph.search.vertices', ['q' => "O'Brien"]))
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (string) $vertexId)
+            ->assertJsonPath('data.0.display_name', "O'Brien");
+    }
+
     public function test_can_resolve_vertex_by_id(): void
     {
         $vertexType = VertexType::factory()->create([

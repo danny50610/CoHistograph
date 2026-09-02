@@ -4,6 +4,7 @@ namespace App\Services\Graph;
 
 use App\Models\EdgeType;
 use App\Models\VertexType;
+use App\Support\AgePropertyNormalizer;
 use App\Support\VertexDisplayNameResolver;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
@@ -375,15 +376,7 @@ class GraphEntitySearchService
      */
     private function normalizeProperties(mixed $properties): array
     {
-        if (is_array($properties)) {
-            return $properties;
-        }
-
-        if (is_object($properties)) {
-            return (array) $properties;
-        }
-
-        return [];
+        return (new AgePropertyNormalizer)->normalize($properties);
     }
 
     private function graphConnection(): PostgresConnection
