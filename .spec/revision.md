@@ -466,6 +466,8 @@ draft → pending_review → rejected
 | `刪除 action` | 放在 action card 內，刪除單一 RevisionAction |
 | `調整順序` | 放在 action card 內，支援上移、下移 |
 
+- 刪除或調整順序時，其餘 action 的 `target_ref_order` / `start_vertex_ref_order` / `end_vertex_ref_order` 會跟著指向同一個被引用的 action
+- 若被引用的 action 被刪除，對應引用會清空（驗證會失敗直到使用者修正）
 - `draft` 狀態下才顯示上述互動控制項
 - `pending_review`、`rejected`、`approved` 狀態下，Action 清單區僅供檢視
 - 管理員經由 `GET /revisions/{revision}` 進入此頁時，即使 Revision 為 `draft` 也僅供檢視
