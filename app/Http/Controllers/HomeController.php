@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\VertexType;
 use App\Services\SystemConfigService;
+use App\Support\AgePropertyNormalizer;
 use App\Support\VertexDisplayNameResolver;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -63,14 +64,6 @@ class HomeController extends Controller
      */
     private function normalizeAgeProperties(mixed $properties): array
     {
-        if (is_array($properties)) {
-            return $properties;
-        }
-
-        if (is_object($properties)) {
-            return (array) $properties;
-        }
-
-        return [];
+        return (new AgePropertyNormalizer)->normalize($properties);
     }
 }

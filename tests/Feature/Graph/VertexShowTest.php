@@ -66,6 +66,51 @@ class VertexShowTest extends TestCase
             ->assertDontSee('name_zh_tw');
     }
 
+    public function test_show_displays_apostrophes_without_escape_slashes(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $vertexId = $this->createAgeVertex($vertexType->age_label_name, [
+            'name' => "O'Brien",
+        ]);
+
+        $this->get(route('graph.vertex.show', ['vertex' => $vertexId]))
+            ->assertOk()
+            ->assertSee("O'Brien")
+            ->assertDontSee("O\\'Brien");
+    }
+
+    public function test_show_html_escapes_property_values_that_contain_quotes(): void
+    {
+        $vertexType = VertexType::factory()->create([
+            'age_label_name' => $this->graphLabel(),
+            'show_property_name' => 'name',
+        ]);
+        VertexProperty::factory()->for($vertexType)->create([
+            'name' => '名稱',
+            'age_property_name' => 'name',
+            'locale' => null,
+        ]);
+
+        $payload = "<script>alert('xss')</script>";
+        $vertexId = $this->createAgeVertex($vertexType->age_label_name, [
+            'name' => $payload,
+        ]);
+
+        $this->get(route('graph.vertex.show', ['vertex' => $vertexId]))
+            ->assertOk()
+            ->assertSee($payload)
+            ->assertDontSee($payload, false);
+    }
+
     public function test_show_displays_grouped_edge_properties_per_edge_instance(): void
     {
         $personType = VertexType::factory()->create([

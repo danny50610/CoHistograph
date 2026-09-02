@@ -4,6 +4,7 @@ namespace App\Services\Revision;
 
 use App\Models\EdgeType;
 use App\Models\VertexType;
+use App\Support\AgePropertyNormalizer;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
 use Danny50610\LaravelApacheAgeDriver\Query\Builder;
 use Illuminate\Database\PostgresConnection;
@@ -318,10 +319,6 @@ class AgeGraphStateManager
      */
     private function normalizeProperties(array|object $properties): array
     {
-        if (is_array($properties)) {
-            return $properties;
-        }
-
-        return (array) $properties;
+        return (new AgePropertyNormalizer)->normalize($properties);
     }
 }

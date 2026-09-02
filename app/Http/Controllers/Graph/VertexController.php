@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Graph;
 use App\Http\Controllers\Controller;
 use App\Models\EdgeType;
 use App\Models\VertexType;
+use App\Support\AgePropertyNormalizer;
 use App\Support\LocalizedPropertyGrouper;
 use App\Support\VertexDisplayNameResolver;
 use Danny50610\LaravelApacheAgeDriver\Enums\Direction;
@@ -200,15 +201,7 @@ class VertexController extends Controller
      */
     protected function normalizeAgeProperties(mixed $properties): array
     {
-        if (is_array($properties)) {
-            return $properties;
-        }
-
-        if (is_object($properties)) {
-            return (array) $properties;
-        }
-
-        return [];
+        return (new AgePropertyNormalizer)->normalize($properties);
     }
 
     /**
