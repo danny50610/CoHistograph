@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RevisionStatus;
 use App\Http\Requests\StoreRevisionRequest;
 use App\Http\Requests\UpdateRevisionRequest;
 use App\Models\EdgeType;
@@ -12,6 +13,7 @@ use App\Support\RevisionActionVertexLabelResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -21,17 +23,28 @@ class RevisionController extends Controller
 {
     public function __construct(private RevisionService $revisionService) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
+        $statusValue = $request->query('status');
+        $currentStatus = null;
+
+        if (is_string($statusValue) && $statusValue !== '') {
+            $currentStatus = RevisionStatus::tryFrom($statusValue);
+            abort_if($currentStatus === null, 404);
+        }
 
         $revisions = Revision::where('user_id', $user->id)
+            ->when($currentStatus instanceof RevisionStatus, fn ($query) => $query->where('status', $currentStatus))
             ->withCount('actions')
             ->with('reviews')
             ->orderByDesc('updated_at')
-            ->paginate();
+            ->paginate()
+            ->withQueryString();
 
-        return view('revisions.index', compact('revisions'));
+        $statusFilters = RevisionStatus::cases();
+
+        return view('revisions.index', compact('revisions', 'currentStatus', 'statusFilters'));
     }
 
     public function create(): View
