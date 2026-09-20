@@ -104,7 +104,7 @@
 - `display_locale`：解析顯示名稱時優先使用的 locale
 - `display_locale_fallback`：當優先 locale 無值時，依序嘗試的 locale 列表（值須為 `locales` config 的 key）
 
-> 本階段**不**綁定 Laravel `APP_LOCALE`，站點顯示語言由 graph config 統一控制。未來若要做 per-user locale，再擴充 resolver 參數即可。
+> 本階段**不**綁定 Laravel `APP_LOCALE`，站點顯示語言由 graph config 統一控制。介面多語系與 per-user locale 見 [`ui-i18n.md`](./ui-i18n.md)（resolver 已預留 `$locale` 參數）。
 
 ### 3. `VertexDisplayNameResolver`（新建 Service）
 
@@ -255,7 +255,7 @@ flowchart TD
 
 ## 明確排除（本階段不做）
 
-- 依登入使用者或 `APP_LOCALE` 動態切換顯示語言（resolver 已預留 `$locale` 參數，日後擴充）
+- 依登入使用者或 UI locale 動態切換顯示語言：改由 [`ui-i18n.md`](./ui-i18n.md) 階段 6 處理（resolver 已預留 `$locale` 參數）
 - Edge 的顯示名稱（EdgeType 目前無 `show_property_name`）
 - Revision 表單內的 Vertex 參照顯示（若有，另開議題）
 

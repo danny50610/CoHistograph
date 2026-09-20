@@ -28,6 +28,10 @@ v.birth_year = 701
 
 `VertexType.show_property_name` 如何搭配多語系 property 顯示（列表標題、詳情頁 h1 等）**不在本文件範圍**，另見 [`show-property-name.md`](./show-property-name.md)。建議先完成本文件，再實作顯示名稱解析。
 
+## 範圍外：介面多語系
+
+選單、按鈕、flash、驗證訊息、Vue 文案等 **UI chrome** 的翻譯**不在本文件範圍**。圖譜 `locale` 與 Laravel `APP_LOCALE` 分開。介面切換語言見 [`ui-i18n.md`](./ui-i18n.md)。
+
 ---
 
 ## 最大優勢：Revision 流程零改動
