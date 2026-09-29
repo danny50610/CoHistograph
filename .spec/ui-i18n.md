@@ -65,10 +65,11 @@
 
 1. **單一翻譯來源**：Laravel `lang/`，Blade / PHP / Vue 共用，不維護兩套目錄
 2. **可切換**：訪客用 cookie；登入使用者另持久化偏好
-3. **預設與現況一致**：未選擇時仍是繁中，既有 `assertSee('登入')` 類測試不需一次全改
-4. **與 graph locale 對齊**：介面語言切換後，Vertex 顯示名稱跟著解析
-5. **不新增套件**：不用 `vue-i18n`、不用 `laravel-lang/*`（驗證譯文可手動抄需要的檔，不引入套件）
-6. **分階段落地**：先基建 + chrome，再逐頁抽字串；禁止「一次改完全站」的巨型 PR
+3. **可自訂 fallback**：登入使用者可排序內容找不到時要試的語言；站台預設為繁中 → 日文 → 英文
+4. **預設與現況一致**：未選擇時仍是繁中，既有 `assertSee('登入')` 類測試不需一次全改
+5. **與 graph locale 對齊**：介面語言切換後，Vertex 顯示名稱跟著解析，再依使用者 fallback 取值
+6. **不新增套件**：不用 `vue-i18n`、不用 `laravel-lang/*`（驗證譯文可手動抄需要的檔，不引入套件）
+7. **分階段落地**：先基建 + chrome，再逐頁抽字串；禁止「一次改完全站」的巨型 PR
 
 ---
 
@@ -114,8 +115,9 @@
 | `en` | English | `en` | `en_us` |
 | `ja` | 日本語 | `ja` | `ja_jp` |
 
-- **預設 / fallback：** `zh_TW`（現況介面語言）
-- 變更：`config/app.php` 與 `.env.example` 的 `APP_LOCALE`、`APP_FALLBACK_LOCALE` 改為 `zh_TW`
+- **預設介面語言：** `zh_TW`（現況介面語言）
+- **預設 fallback 鏈：** `zh_TW` → `ja` → `en`（繁中 → 日文 → 英文）。與現況 graph config `display_locale_fallback = [zh_tw, en_us, ja_jp]` 不同，以本文件為準
+- 變更：`config/app.php` 與 `.env.example` 的 `APP_LOCALE`、`APP_FALLBACK_LOCALE` 改為 `zh_TW`（Laravel 只支援單一 chrome fallback；內容解析另走 §6 鏈）
 - UI locale **不是** graph 的 `zh_tw` 小寫格式。對照集中在一處（見 §6），禁止各處手寫 mapping
 
 設定放 `config/cohistograph/ui.php`（新建），**不要**擴充 `config/cohistograph/app.php` 的 `graph` 區塊：
@@ -142,10 +144,13 @@ return [
         ],
     ],
     'default' => 'zh_TW',
+    'fallback_locales' => ['zh_TW', 'ja', 'en'],
 ];
 ```
 
 `native_label` 永遠以該語言自己的名稱顯示（語言切換器慣例）。
+
+`fallback_locales` 是**站台預設內容 fallback 鏈**（繁中 → 日文 → 英文）。登入使用者可覆寫，見 §3。
 
 ### 2. Locale 解析順序
 
@@ -167,12 +172,12 @@ Cookie 名稱：`ui_locale`；`httpOnly`、`SameSite=Lax`、一年。不放進 s
 
 ### 3. 持久化
 
-| 身分 | 儲存 |
-|------|------|
-| 訪客 | 僅 cookie |
-| 登入使用者 | cookie **加上** `users.preferred_locale`（nullable string） |
+| 身分 | 介面語言 | 內容 fallback 鏈 |
+|------|----------|------------------|
+| 訪客 | cookie `ui_locale` | 站台預設（不可自訂） |
+| 登入使用者 | cookie **加上** `users.preferred_locale` | `users.fallback_locales`（nullable JSON）；`null` = 站台預設 |
 
-切換語言（`POST /locale`）：
+切換語言（`POST /locale`）只改**介面語言**，不改 fallback 鏈：
 
 1. 驗證 locale ∈ `config('cohistograph.ui.locales')` keys
 2. 寫 cookie
@@ -181,7 +186,40 @@ Cookie 名稱：`ui_locale`；`httpOnly`、`SameSite=Lax`、一年。不放進 s
 
 `User` 實作 `Illuminate\Contracts\Translation\HasLocalePreference`，回傳 `preferred_locale`，讓驗證信等 notification 用使用者偏好而非當下 request cookie。
 
-Profile 頁可另放 `<select>` 綁同一欄位；navbar 切換器仍是主要入口。兩個入口寫同一欄 + cookie，避免分叉。
+Profile 頁可另放介面語言 `<select>` 綁 `preferred_locale`；navbar 切換器仍是主要入口。兩個入口寫同一欄 + cookie，避免分叉。
+
+#### 3.1 使用者自訂 fallback
+
+**用途：** 目前介面語言對應的圖譜內容（Vertex 顯示名稱等）沒有值時，依此順序再試其他語言。
+
+**站台預設（訪客與未設定的使用者）：**
+
+1. 繁體中文（`zh_TW` → `zh_tw`）
+2. 日本語（`ja` → `ja_jp`）
+3. English（`en` → `en_us`）
+
+**解析順序：** `unique([目前介面語言, ...fallback 鏈])`。介面語言永遠最先試；fallback 裡若重複則略過。
+
+| 介面語言 | 使用預設 fallback 時的實際順序 |
+|----------|--------------------------------|
+| `zh_TW` | `zh_TW` → `ja` → `en` |
+| `ja` | `ja` → `zh_TW` → `en` |
+| `en` | `en` → `zh_TW` → `ja` |
+
+**儲存：** `users.fallback_locales` 為 UI locale key 的有序陣列，例如 `["ja","zh_TW","en"]`。
+
+驗證：
+
+- 每個元素必須是 `config('cohistograph.ui.locales')` 的 key
+- 不可重複
+- 必須剛好包含**全部**支援語言（三種都在，只改順序）。不提供「關掉某語言」——沒值本來就會跳下一項
+- `null` / 省略 = 使用站台預設，不寫死一份副本進 DB
+
+**設定 UI：** Profile（階段 3）。可排序清單（上移／下移），顯示各語言 `native_label`。Navbar 語言切換器**不**暴露此設定。
+
+`POST /profile`（或獨立 `PATCH /profile/locale-fallback`）更新此欄。與改顯示名稱／密碼分開較清楚，但也可併進現有 `UpdateProfileRequest`。
+
+**不做：** 訪客 cookie 記 fallback（進階設定，登入後再改即可）。MCP / Artisan 無使用者時，繼續用 graph config 的 `display_locale` + `display_locale_fallback`（階段 6 把後者預設改成 `['zh_tw', 'ja_jp', 'en_us']` 以對齊）。
 
 ### 4. 語言切換器 UI
 
@@ -231,16 +269,30 @@ lang/
 ```php
 public static function current(): string { /* App::getLocale()，非法則 default */ }
 
-public static function graphLocale(): string
-{
-    return config('cohistograph.ui.locales')[self::current()]['graph_locale']
-        ?? config('cohistograph.app.graph.display_locale');
-}
+/** @return list<string> UI locale keys，已含目前語言且 unique */
+public static function resolveOrder(?User $user = null): array { /* current + fallback */ }
+
+public static function graphLocale(): string { /* current 對應的 graph locale */ }
+
+/** @return list<string> graph locale keys，對應 resolveOrder() */
+public static function graphLocaleOrder(?User $user = null): array { /* mapping */ }
+
+/** @return list<string> 不含 current 的 graph fallback，給 resolver 第二參數 */
+public static function graphFallbackLocales(?User $user = null): array { /* … */ }
 ```
 
-所有 `VertexDisplayNameResolver::resolve(...)` 呼叫改傳 `UiLocale::graphLocale()`（或 resolver 內部預設改讀 UI mapping，config `display_locale` 只當 mapping 缺失時的後備）。
+`fallbackLocales()` 來源：登入使用者的 `fallback_locales`（通過驗證才用），否則 `config('cohistograph.ui.fallback_locales')`。
 
-`display_locale_fallback` 維持不變：某語言沒有值時，仍依 `zh_tw` → `en_us` → `ja_jp` 取第一個非空值。
+Web 請求裡所有 `VertexDisplayNameResolver::resolve(...)` 改為：
+
+- `$locale` = `UiLocale::graphLocale()`
+- 新增（或使用既有 fallback 參數）`$fallbackLocales` = `UiLocale::graphFallbackLocales()`
+
+現有 resolver 已是 `unique([$primary, ...$fallback])`，與 §3.1 一致。未傳 fallback 時（MCP / console）仍讀 `config('cohistograph.app.graph.display_locale_fallback')`。
+
+階段 6 將該 config 預設由 `['zh_tw', 'en_us', 'ja_jp']` 改為 `['zh_tw', 'ja_jp', 'en_us']`，與站台 UI 預設對齊。HTTP 路徑以使用者／UI config 為準，不再依賴這份 graph config 當登入使用者的來源。
+
+**UI chrome `__()`：** Laravel 只能設一個 `fallback_locale`。維持 `zh_TW`（預設鏈的第一項）。**不**為選單／按鈕實作三語逐級查找。使用者自訂的鏈只影響**圖譜內容**解析。
 
 **瀏覽頁的屬性列表**（`LocalizedPropertyGrouper`）**維持列出所有已定義 locale**。編輯／審核需要看到缺譯；瀏覽端若只顯示當前語言會藏資料。標題／列表卡片走 resolver 即可。若之後要「只看我的語言」，另開議題。
 
@@ -311,8 +363,8 @@ MCP tool / prompt / instructions 維持英文（給模型看，不是給使用�
 - `config/cohistograph/ui.php`
 - `App\Support\UiLocale`
 - `SetUiLocale` middleware
-- `users.preferred_locale` migration + factory
-- `POST locale.update` + navbar 切換器
+- `users.preferred_locale`、`users.fallback_locales` migration + factory
+- `POST locale.update` + navbar 切換器（只改介面語言）
 - `lang/zh_TW` + `lang/en` 先覆蓋 nav / common / auth 最小集合；`ja` 可先複製 zh_TW 或留空靠 fallback
 - 預設 `APP_LOCALE=zh_TW`
 - 修正 `<html lang>`
@@ -328,6 +380,8 @@ MCP tool / prompt / instructions 維持英文（給模型看，不是給使用�
 
 登入註冊驗證、重設密碼、`VerifyEmail` MailMessage、Form Request 與自訂 Rule。此階段會修掉密碼重設英文 flash 的既有 bug。
 
+Profile 加上 fallback 可排序清單（§3.1），寫入 `users.fallback_locales`。未儲存時 DB 保持 `null`，解析走站台預設。
+
 ### 階段 4 — Graph 瀏覽 + Graph Schema Blade
 
 `graph/*`、`graph-schema/*`、overview。Schema 管理畫面保留 Vertex / Edge 英文術語。
@@ -338,7 +392,9 @@ MCP tool / prompt / instructions 維持英文（給模型看，不是給使用�
 
 ### 階段 6 — 綁定 graph display locale
 
-呼叫端傳入 `UiLocale::graphLocale()`；補 `VertexDisplayNameResolver` 與 Feature 測試：UI=`en` 且存在 `name_en_us` 時標題為英文。
+呼叫端傳入 `UiLocale::graphLocale()` 與 `graphFallbackLocales()`；將 graph `display_locale_fallback` 預設改為 `zh_tw` → `ja_jp` → `en_us`。
+
+補測試：UI=`en` 且存在 `name_en_us` 時標題為英文；無英文時依預設鏈先繁中再日文（`unique([en, zh_TW, ja])`）。
 
 更新 [`show-property-name.md`](./show-property-name.md)「明確排除」：此項改由本文件階段 6 負責。
 
@@ -353,9 +409,9 @@ MCP tool / prompt / instructions 維持英文（給模型看，不是給使用�
 - `app/Http/Middleware/SetUiLocale.php`（新建）
 - `bootstrap/app.php` — web 加入 SetUiLocale（在 Inertia 之前）
 - `config/app.php`、`.env.example` — `APP_LOCALE` / `APP_FALLBACK_LOCALE` = `zh_TW`
-- `database/migrations/xxxx_add_preferred_locale_to_users_table.php`（新建）
-- `app/Models/User.php` — fillable、`HasLocalePreference`
-- `database/factories/UserFactory.php`
+- `database/migrations/xxxx_add_preferred_locale_and_fallback_locales_to_users_table.php`（新建）
+- `app/Models/User.php` — fillable、casts、`HasLocalePreference`
+- `database/factories/UserFactory.php` — `preferred_locale` / `fallback_locales` 預設 `null`
 - `app/Http/Controllers/LocaleController.php`（新建）
 - `routes/web.php` — `POST /locale`
 - `resources/views/layouts/app.blade.php` — `html lang`
@@ -382,11 +438,19 @@ MCP tool / prompt / instructions 維持英文（給模型看，不是給使用�
 6. 已有 `preferred_locale=en` 且無 cookie → 介面為英文
 7. 未切換時既有頁面（login、home）繁中文案不變
 
+### 階段 3
+
+8. 登入使用者把 fallback 排成 `en` → `ja` → `zh_TW` 後，`users.fallback_locales` 為該順序
+9. 非法值（缺一種、重複、未知 key）→ validation error，DB 不變
+10. 從未儲存過 fallback（`null`）→ `UiLocale::fallbackLocales()` 回傳 `['zh_TW', 'ja', 'en']`
+
 ### 階段 6
 
-8. UI=`en`、Vertex 有 `name_en_us` 與 `name_zh_tw` → 列表／詳情標題用英文
-9. UI=`en` 但僅有 `name_zh_tw` → fallback 繁中（`display_locale_fallback`）
-10. 未傳 locale 時行為與現況相同（測試設 `zh_TW`）
+11. UI=`en`、Vertex 有 `name_en_us` 與 `name_zh_tw` → 列表／詳情標題用英文
+12. UI=`en`、無 `name_en_us`、有 `name_ja_jp` 與 `name_zh_tw`、fallback 為預設 → 標題用繁中（`en` → `zh_TW` → `ja`）
+13. UI=`en`、無英文與繁中、有 `name_ja_jp`、fallback 為預設 → 標題用日文
+14. 使用者自訂 fallback 為 `ja` → `en` → `zh_TW`，UI=`en`，無英文、有日文與繁中 → 標題用日文（略過已試的 `en` 後先日文）
+15. MCP / 未傳 locale 時走 graph config fallback（階段 6 後為 `zh_tw` → `ja_jp` → `en_us`）
 
 ### 測試策略（全階段）
 
@@ -405,6 +469,8 @@ MCP tool / prompt / instructions 維持英文（給模型看，不是給使用�
 - 瀏覽頁屬性列表依 UI locale 過濾（Grouper 維持全 locale）
 - 一次抽完全站字串的巨型 PR
 - 改 graph locale key 格式（繼續 `zh_tw`）
+- 訪客自訂 fallback（僅登入使用者；訪客用站台預設）
+- 訪客自訂 fallback（僅登入使用者；訪客用站台預設）
 
 ---
 
@@ -418,7 +484,11 @@ MCP tool / prompt / instructions 維持英文（給模型看，不是給使用�
 | Vue | Inertia share + `t()` | 零新依賴、單一 catalog |
 | 訪客狀態 | cookie，不用 session | 登出後仍記住 |
 | 自動偵測瀏覽器語言 | 不做 | 繁中優先產品 |
-| Vertex 標題 | 跟 UI locale | 兌現 show-property-name 預留參數 |
+| Vertex 標題 | 目前 UI locale，再走使用者 fallback | 兌現 show-property-name 預留參數 |
+| 內容 fallback 預設 | 繁中 → 日文 → 英文 | 產品內容常見優先序；與舊 graph config（繁中→英文→日文）不同 |
+| 內容 fallback 誰能改 | 僅登入使用者（Profile 排序） | 訪客用站台預設；navbar 只切介面語言 |
+| fallback 可否拿掉語言 | 否，三種都要、只改順序 | 沒值本來就會往下一項 |
+| UI chrome 缺譯 | 固定 fallback `zh_TW` | Laravel 單一 fallback；三語鏈只用於圖譜內容 |
 | 屬性列表 | 仍顯示所有 locale | 避免藏起未譯資料 |
 | 術語 Vertex/Edge | 不翻譯 | 與現況管理介面一致 |
-| 日文完整度 | 允許 fallback 到繁中 | 降低第一波成本；英文須與繁中齊 |
+| 日文 UI 完整度 | 允許缺 key 時顯示繁中 | 降低第一波成本；英文須與繁中齊 |
