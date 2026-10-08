@@ -8,6 +8,7 @@
                     @php
                         $pages = [
                             ['href' => route('faq'), 'name' => '常見問題'],
+                            ['href' => route('changelog'), 'name' => '更新紀錄'],
                         ];
                     @endphp
                     @foreach($pages as $page)

@@ -14,6 +14,8 @@ class FooterTest extends TestCase
             ->assertSee('CoHistograph', false)
             ->assertSee('https://github.com/danny50610/CoHistograph', false)
             ->assertSee('target="_blank"', false)
-            ->assertSee('rel="noopener noreferrer"', false);
+            ->assertSee('rel="noopener noreferrer"', false)
+            ->assertSee('更新紀錄')
+            ->assertSee(route('changelog'), false);
     }
 }

@@ -4,6 +4,9 @@
             <li class="breadcrumb-item">
                 {{ html()->a(route('faq'), '常見問題') }}
             </li>
+            <li class="breadcrumb-item">
+                {{ html()->a(route('changelog'), '更新紀錄') }}
+            </li>
         </ol>
         <div class="powered-by">
             Powered by {{ html()->a('https://github.com/danny50610/CoHistograph', 'CoHistograph')->target('_blank')->attribute('rel', 'noopener noreferrer') }}

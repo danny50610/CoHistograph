@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\FaqItemController;
 use App\Http\Controllers\Admin\HomepageConfigController;
 use App\Http\Controllers\Admin\RevisionReviewController;
+use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
@@ -16,6 +17,8 @@ Route::get('/', [HomeController::class, 'index'])->name('index');
 Route::get('overview', [HomeController::class, 'overview'])->name('overview');
 
 Route::get('faq', [FaqController::class, 'index'])->name('faq');
+
+Route::get('changelog', [ChangelogController::class, 'index'])->name('changelog');
 
 Route::prefix('graph-schema')->name('graph-schema.')->scopeBindings()->group(function () {
     Route::resource('vertex-type', \App\Http\Controllers\GraphSchema\VertexTypeController::class);
