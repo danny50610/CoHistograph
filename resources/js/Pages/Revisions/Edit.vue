@@ -2,15 +2,18 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ActionModal from './Partials/ActionModal.vue';
+import RevisionGraphPreview from './Partials/RevisionGraphPreview.vue';
 
 const props = defineProps({
     revision: Object,
     vertexTypes: Array,
     edgeTypes: Array,
     graphLocales: Object,
+    graphPreview: Object,
     routeShow: String,
     routeUpdate: String,
     routeValidate: String,
+    routeGraphPreview: String,
     routeSearchVertices: String,
     routeSearchEdges: String,
 });
@@ -51,6 +54,12 @@ const hasRuleWarnings = computed(() => Object.keys(ruleActionWarningMessages.val
 const RULE_CHECK_DEBOUNCE_MS = 500;
 let ruleCheckTimer = null;
 let ruleCheckController = null;
+let graphPreviewTimer = null;
+let graphPreviewController = null;
+
+const activeTab = ref('actions');
+const liveGraphPreview = ref(props.graphPreview ?? { vertices: [], edges: [] });
+const isLoadingGraph = ref(false);
 
 function collectFieldErrors(validationErrors) {
     return Object.values(validationErrors).flatMap((messages) =>
@@ -154,6 +163,79 @@ async function runRuleCheck() {
     }
 }
 
+function selectTab(tab) {
+    activeTab.value = tab;
+    if (tab === 'graph') {
+        scheduleGraphPreview(0);
+    }
+}
+
+function scheduleGraphPreview(delay = RULE_CHECK_DEBOUNCE_MS) {
+    if (graphPreviewTimer !== null) {
+        clearTimeout(graphPreviewTimer);
+    }
+
+    graphPreviewTimer = setTimeout(() => {
+        void runGraphPreview();
+    }, delay);
+}
+
+async function runGraphPreview() {
+    const csrfToken = getCsrfToken();
+    if (!csrfToken || !props.routeGraphPreview) {
+        return;
+    }
+
+    if (graphPreviewController !== null) {
+        graphPreviewController.abort();
+    }
+
+    const controller = new AbortController();
+    graphPreviewController = controller;
+    isLoadingGraph.value = true;
+
+    try {
+        const response = await fetch(props.routeGraphPreview, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            credentials: 'same-origin',
+            signal: controller.signal,
+            body: JSON.stringify({
+                title: form.title,
+                description: form.description,
+                actions: form.actions.map((action, index) => ({
+                    ...action,
+                    order: index,
+                })),
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        liveGraphPreview.value = {
+            vertices: data.vertices ?? [],
+            edges: data.edges ?? [],
+        };
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
+    } finally {
+        if (graphPreviewController === controller) {
+            graphPreviewController = null;
+            isLoadingGraph.value = false;
+        }
+    }
+}
+
 function getActionRuleMessages(index) {
     return ruleActionMessages.value[index] ?? [];
 }
@@ -170,6 +252,9 @@ watch(
     }),
     () => {
         scheduleRuleCheck();
+        if (activeTab.value === 'graph') {
+            scheduleGraphPreview();
+        }
     },
     { deep: true },
 );
@@ -185,6 +270,14 @@ onBeforeUnmount(() => {
 
     if (ruleCheckController !== null) {
         ruleCheckController.abort();
+    }
+
+    if (graphPreviewTimer !== null) {
+        clearTimeout(graphPreviewTimer);
+    }
+
+    if (graphPreviewController !== null) {
+        graphPreviewController.abort();
     }
 });
 
@@ -454,113 +547,144 @@ const createEdgeActions = computed(() =>
             </div>
         </div>
 
-        <h2>操作清單</h2>
-
-        <button type="button" class="btn btn-outline-primary mb-3" @click="openAddModal">
-            <i class="fa-solid fa-plus"></i> 新增操作
-        </button>
-
-        <div class="card mb-3">
-            <div class="card-body py-2">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <div class="fw-semibold">規則檢查</div>
-                    <span v-if="isCheckingRules" class="badge text-bg-secondary">檢查中</span>
-                    <span v-else-if="hasCheckedRules && isRuleValid === true && hasRuleWarnings" class="badge text-bg-warning">符合規則（有警告）</span>
-                    <span v-else-if="hasCheckedRules && isRuleValid === true" class="badge text-bg-success">符合規則</span>
-                    <span v-else-if="hasCheckedRules && isRuleValid === false" class="badge text-bg-danger">不符合規則</span>
-                    <span v-else-if="hasCheckedRules" class="badge text-bg-warning">檢查未完成</span>
-                </div>
-
-                <div v-if="isCheckingRules" class="small text-secondary mt-1">正在檢查最新編輯內容...</div>
-                <div
-                    v-else-if="ruleSummary"
-                    class="small mt-1"
-                    :class="isRuleValid === false ? 'text-danger' : (hasRuleWarnings ? 'text-warning-emphasis' : 'text-secondary')"
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button
+                    type="button"
+                    class="nav-link"
+                    :class="{ active: activeTab === 'actions' }"
+                    @click="selectTab('actions')"
                 >
-                    {{ ruleSummary }}
+                    操作清單
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button
+                    type="button"
+                    class="nav-link"
+                    :class="{ active: activeTab === 'graph' }"
+                    @click="selectTab('graph')"
+                >
+                    視覺化
+                </button>
+            </li>
+        </ul>
+
+        <div v-show="activeTab === 'actions'">
+            <button type="button" class="btn btn-outline-primary mb-3" @click="openAddModal">
+                <i class="fa-solid fa-plus"></i> 新增操作
+            </button>
+
+            <div class="card mb-3">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="fw-semibold">規則檢查</div>
+                        <span v-if="isCheckingRules" class="badge text-bg-secondary">檢查中</span>
+                        <span v-else-if="hasCheckedRules && isRuleValid === true && hasRuleWarnings" class="badge text-bg-warning">符合規則（有警告）</span>
+                        <span v-else-if="hasCheckedRules && isRuleValid === true" class="badge text-bg-success">符合規則</span>
+                        <span v-else-if="hasCheckedRules && isRuleValid === false" class="badge text-bg-danger">不符合規則</span>
+                        <span v-else-if="hasCheckedRules" class="badge text-bg-warning">檢查未完成</span>
+                    </div>
+
+                    <div v-if="isCheckingRules" class="small text-secondary mt-1">正在檢查最新編輯內容...</div>
+                    <div
+                        v-else-if="ruleSummary"
+                        class="small mt-1"
+                        :class="isRuleValid === false ? 'text-danger' : (hasRuleWarnings ? 'text-warning-emphasis' : 'text-secondary')"
+                    >
+                        {{ ruleSummary }}
+                    </div>
+
+                    <ul v-if="ruleFieldErrors.length > 0" class="small text-danger mt-2 mb-0">
+                        <li v-for="(message, idx) in ruleFieldErrors" :key="`field-${idx}`">{{ message }}</li>
+                    </ul>
+
+                    <ul v-if="ruleGeneralErrors.length > 0" class="small text-danger mt-2 mb-0">
+                        <li v-for="(message, idx) in ruleGeneralErrors" :key="`general-${idx}`">{{ message }}</li>
+                    </ul>
                 </div>
-
-                <ul v-if="ruleFieldErrors.length > 0" class="small text-danger mt-2 mb-0">
-                    <li v-for="(message, idx) in ruleFieldErrors" :key="`field-${idx}`">{{ message }}</li>
-                </ul>
-
-                <ul v-if="ruleGeneralErrors.length > 0" class="small text-danger mt-2 mb-0">
-                    <li v-for="(message, idx) in ruleGeneralErrors" :key="`general-${idx}`">{{ message }}</li>
-                </ul>
             </div>
-        </div>
 
-        <!-- Actions list -->
-        <div class="card mb-3">
-            <div class="card-body">
-                <div v-if="form.actions.length === 0" class="text-secondary text-center py-4">
-                    尚無任何操作，點擊右上方「新增操作」開始
-                </div>
+            <!-- Actions list -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div v-if="form.actions.length === 0" class="text-secondary text-center py-4">
+                        尚無任何操作，點擊右上方「新增操作」開始
+                    </div>
 
-                <div
-                    v-for="(action, index) in form.actions"
-                    :key="index"
-                    class="card mb-2"
-                    :class="{
-                        'opacity-50': dragSrcIndex === index,
-                        'border-primary': dragOverIndex === index && dragSrcIndex !== index,
-                        'border-danger': getActionRuleMessages(index).length > 0,
-                        'border-warning': getActionRuleMessages(index).length === 0 && getActionRuleWarningMessages(index).length > 0,
-                    }"
-                    draggable="true"
-                    @dragstart="onDragStart($event, index)"
-                    @dragover="onDragOver($event, index)"
-                    @dragleave="onDragLeave"
-                    @drop="onDrop(index)"
-                    @dragend="onDragEnd"
-                >
-                    <div class="card-body py-2 px-3">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
-                            <div class="d-flex align-items-center gap-2">
-                                <span
-                                    class="text-secondary"
-                                    style="cursor: grab; touch-action: none"
-                                    title="拖曳排序"
-                                >
-                                    <i class="fa-solid fa-grip-vertical"></i>
-                                </span>
-                                <span class="fw-semibold small text-secondary">
-                                    #{{ index + 1 }} &middot; {{ actionLabels[action.action] ?? action.action }}
-                                </span>
+                    <div
+                        v-for="(action, index) in form.actions"
+                        :key="index"
+                        class="card mb-2"
+                        :class="{
+                            'opacity-50': dragSrcIndex === index,
+                            'border-primary': dragOverIndex === index && dragSrcIndex !== index,
+                            'border-danger': getActionRuleMessages(index).length > 0,
+                            'border-warning': getActionRuleMessages(index).length === 0 && getActionRuleWarningMessages(index).length > 0,
+                        }"
+                        draggable="true"
+                        @dragstart="onDragStart($event, index)"
+                        @dragover="onDragOver($event, index)"
+                        @dragleave="onDragLeave"
+                        @drop="onDrop(index)"
+                        @dragend="onDragEnd"
+                    >
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span
+                                        class="text-secondary"
+                                        style="cursor: grab; touch-action: none"
+                                        title="拖曳排序"
+                                    >
+                                        <i class="fa-solid fa-grip-vertical"></i>
+                                    </span>
+                                    <span class="fw-semibold small text-secondary">
+                                        #{{ index + 1 }} &middot; {{ actionLabels[action.action] ?? action.action }}
+                                    </span>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-primary py-0 px-1"
+                                        title="編輯"
+                                        @click="openEditModal(index)"
+                                    >
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger py-0 px-1"
+                                        title="刪除"
+                                        @click="deleteAction(index)"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="d-flex gap-1">
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-primary py-0 px-1"
-                                    title="編輯"
-                                    @click="openEditModal(index)"
-                                >
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-danger py-0 px-1"
-                                    title="刪除"
-                                    @click="deleteAction(index)"
-                                >
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
+                            <div class="small">{{ actionSummary(action) }}</div>
+                            <ul v-if="getActionRuleMessages(index).length > 0" class="small text-danger mt-2 mb-0">
+                                <li v-for="(message, msgIdx) in getActionRuleMessages(index)" :key="`a-${index}-m-${msgIdx}`">
+                                    {{ message }}
+                                </li>
+                            </ul>
+                            <ul v-if="getActionRuleWarningMessages(index).length > 0" class="small text-warning-emphasis mt-2 mb-0">
+                                <li v-for="(message, msgIdx) in getActionRuleWarningMessages(index)" :key="`a-${index}-w-${msgIdx}`">
+                                    {{ message }}
+                                </li>
+                            </ul>
                         </div>
-                        <div class="small">{{ actionSummary(action) }}</div>
-                        <ul v-if="getActionRuleMessages(index).length > 0" class="small text-danger mt-2 mb-0">
-                            <li v-for="(message, msgIdx) in getActionRuleMessages(index)" :key="`a-${index}-m-${msgIdx}`">
-                                {{ message }}
-                            </li>
-                        </ul>
-                        <ul v-if="getActionRuleWarningMessages(index).length > 0" class="small text-warning-emphasis mt-2 mb-0">
-                            <li v-for="(message, msgIdx) in getActionRuleWarningMessages(index)" :key="`a-${index}-w-${msgIdx}`">
-                                {{ message }}
-                            </li>
-                        </ul>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div v-if="activeTab === 'graph'" class="mb-3">
+            <div v-if="isLoadingGraph" class="small text-secondary mb-2">正在更新視覺化...</div>
+            <RevisionGraphPreview
+                :vertices="liveGraphPreview.vertices"
+                :edges="liveGraphPreview.edges"
+            />
         </div>
     </div>
 

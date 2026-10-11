@@ -9,6 +9,7 @@ use App\Http\Requests\RejectRevisionRequest;
 use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\VertexType;
+use App\Services\Revision\RevisionGraphPreviewBuilder;
 use App\Services\Revision\RevisionReviewService;
 use App\Services\Revision\RevisionValidationResult;
 use App\Services\Revision\RevisionValidationService;
@@ -22,6 +23,7 @@ class RevisionReviewController extends Controller
     public function __construct(
         private RevisionValidationService $revisionValidationService,
         private RevisionReviewService $revisionReviewService,
+        private RevisionGraphPreviewBuilder $graphPreviewBuilder,
     ) {
         $this->middleware('permission:revision.review');
     }
@@ -57,6 +59,7 @@ class RevisionReviewController extends Controller
         $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
         $vertexLabels = app(RevisionActionVertexLabelResolver::class)
             ->labelsForActions($revision->actions);
+        $graphPreview = $this->graphPreviewBuilder->build($revision->actions);
 
         return view('admin.revisions.show', compact(
             'revision',
@@ -64,6 +67,7 @@ class RevisionReviewController extends Controller
             'vertexTypes',
             'edgeTypes',
             'vertexLabels',
+            'graphPreview',
         ));
     }
 
