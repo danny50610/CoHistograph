@@ -882,15 +882,22 @@ draft → pending_review → rejected
 | `rejected` | 已退回 | 紅色 badge |
 | `approved` | 已接受 | 綠色 badge |
 
+**狀態分類：**
+
+- 頁首提供與「我的修訂」相同的狀態分類：`全部`、`草稿`、`待審核`、`已接受`、`已退回`
+- 以 query string `status` 篩選；未帶 `status` 時顯示全部
+- 未知 `status` 回傳 404
+- 分頁連結保留目前的 `status`
+
 **排序規則：**
 
-- 不提供篩選功能
 - 不提供搜尋功能
 - 預設依 `updated_at DESC` 排序
 
 **空狀態：**
 
 - 當系統中尚無任何 Revision 時，顯示空狀態訊息：`目前還沒有任何修訂`
+- 已選擇狀態但該狀態沒有資料時，顯示：`目前沒有「{狀態名稱}」狀態的修訂`
 
 **分頁：**
 
@@ -901,7 +908,7 @@ draft → pending_review → rejected
 
 - 不直接執行接受或退回操作
 - 不直接編輯 Revision 內容
-- 不提供篩選與搜尋功能
+- 不提供搜尋功能
 
 ---
 

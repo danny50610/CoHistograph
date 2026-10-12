@@ -67,6 +67,85 @@ class AdminRevisionReviewTest extends TestCase
             ->assertSee('目前還沒有任何修訂');
     }
 
+    public function test_admin_list_shows_status_filter_buttons(): void
+    {
+        $reviewer = $this->createReviewer();
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.revisions.index'))
+            ->assertOk()
+            ->assertSee('全部', false)
+            ->assertSee('草稿', false)
+            ->assertSee('待審核', false)
+            ->assertSee('已接受', false)
+            ->assertSee('已退回', false)
+            ->assertSee(route('admin.revisions.index', ['status' => RevisionStatus::Draft->value]), false)
+            ->assertSee(route('admin.revisions.index', ['status' => RevisionStatus::PendingReview->value]), false)
+            ->assertSee(route('admin.revisions.index', ['status' => RevisionStatus::Approved->value]), false)
+            ->assertSee(route('admin.revisions.index', ['status' => RevisionStatus::Rejected->value]), false);
+    }
+
+    public function test_reviewer_can_filter_admin_revisions_by_status(): void
+    {
+        $reviewer = $this->createReviewer();
+        $owner = User::factory()->createOne();
+
+        $this->createRevision($owner, 'Filter Draft Title', RevisionStatus::Draft);
+        $this->createRevision($owner, 'Filter Pending Title', RevisionStatus::PendingReview);
+        $this->createRevision($owner, 'Filter Approved Title', RevisionStatus::Approved);
+        $this->createRevision($owner, 'Filter Rejected Title', RevisionStatus::Rejected);
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.revisions.index', ['status' => RevisionStatus::PendingReview->value]))
+            ->assertOk()
+            ->assertSee('Filter Pending Title', false)
+            ->assertDontSee('Filter Draft Title', false)
+            ->assertDontSee('Filter Approved Title', false)
+            ->assertDontSee('Filter Rejected Title', false)
+            ->assertSee('btn btn-outline-primary active', false);
+    }
+
+    public function test_admin_status_filter_empty_state_uses_status_label(): void
+    {
+        $reviewer = $this->createReviewer();
+        $owner = User::factory()->createOne();
+
+        $this->createRevision($owner, 'Only Draft Exists', RevisionStatus::Draft);
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.revisions.index', ['status' => RevisionStatus::PendingReview->value]))
+            ->assertOk()
+            ->assertDontSee('Only Draft Exists', false)
+            ->assertSee('目前沒有「待審核」狀態的修訂', false);
+    }
+
+    public function test_unknown_admin_status_filter_returns_not_found(): void
+    {
+        $reviewer = $this->createReviewer();
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.revisions.index', ['status' => 'not-a-status']))
+            ->assertNotFound();
+    }
+
+    public function test_admin_pagination_preserves_status_query_string(): void
+    {
+        $reviewer = $this->createReviewer();
+        $owner = User::factory()->createOne();
+
+        foreach (range(1, 11) as $index) {
+            $this->createRevision($owner, "Paged Revision {$index}", RevisionStatus::PendingReview);
+        }
+
+        $html = $this->actingAs($reviewer)
+            ->get(route('admin.revisions.index', ['status' => RevisionStatus::PendingReview->value]))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('status=pending_review', $html);
+        $this->assertStringContainsString('page=2', $html);
+    }
+
     public function test_admin_list_shows_latest_review_time(): void
     {
         $reviewer = $this->createReviewer();

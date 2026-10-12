@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RevisionStatus;
 use App\Exceptions\CouldNotAcquireRevisionApplyLockException;
 use App\Exceptions\RevisionApprovalValidationException;
 use App\Http\Controllers\Controller;
@@ -15,6 +16,7 @@ use App\Services\Revision\RevisionValidationService;
 use App\Support\RevisionActionVertexLabelResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class RevisionReviewController extends Controller
@@ -26,15 +28,27 @@ class RevisionReviewController extends Controller
         $this->middleware('permission:revision.review');
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $statusValue = $request->query('status');
+        $currentStatus = null;
+
+        if (is_string($statusValue) && $statusValue !== '') {
+            $currentStatus = RevisionStatus::tryFrom($statusValue);
+            abort_if($currentStatus === null, 404);
+        }
+
         $revisions = Revision::query()
+            ->when($currentStatus instanceof RevisionStatus, fn ($query) => $query->where('status', $currentStatus))
             ->with(['user', 'reviews'])
             ->withCount('actions')
             ->orderByDesc('updated_at')
-            ->paginate();
+            ->paginate()
+            ->withQueryString();
 
-        return view('admin.revisions.index', compact('revisions'));
+        $statusFilters = RevisionStatus::cases();
+
+        return view('admin.revisions.index', compact('revisions', 'currentStatus', 'statusFilters'));
     }
 
     public function show(Revision $revision): View
