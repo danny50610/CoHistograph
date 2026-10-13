@@ -390,7 +390,7 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 | `update_edge_property` | 更新邊屬性值 |
 | `delete_edge_property` | 刪除邊屬性值 |
 
-`order` 為 0-based 連續整數，決定 action 執行順序與 `*_ref_order` 引用目標。調整順序後，其他 action 的 `order` 會重新編號；若某 action 的 `*_ref_order` 引用受影響，驗證結果會指出錯誤。
+`order` 為 0-based 連續整數，決定 action 執行順序與 `*_ref_order` 引用目標。調整順序、插入或刪除 action 後，其他 action 的 `order` 會重新編號，且 `*_ref_order` 會跟著指向同一個被引用的 action。若被引用的 action 被刪除，對應的 `*_ref_order` 會清空；若移動後引用變成指向後序操作，驗證會回報錯誤。
 
 #### 變更後回應格式
 
@@ -505,7 +505,7 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 | `order` | integer | 是 | 插入位置（0-based）；既有 `order >= 此值` 的 action 往後遞延 |
 | `action` | object | 是 | action 欄位結構，見上方 |
 
-**委派**：新增 `RevisionAction` 並重新編號 `order`，觸發驗證。
+**委派**：新增 `RevisionAction` 並重新編號 `order`，同時以插入前的編號解讀並重對應 `*_ref_order`，觸發驗證。
 
 **權限**：須登入，且 `RevisionPolicy::update`（本人且狀態為 draft）。
 
@@ -536,7 +536,7 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 | `revision_id` | integer | 是 | 修訂 ID |
 | `action_id` | integer | 是 | `revision_actions.id` |
 
-**委派**：刪除指定 `RevisionAction`，其後 action 的 `order` 遞減補齊，觸發驗證。
+**委派**：刪除指定 `RevisionAction`，其後 action 的 `order` 遞減補齊，並重對應其餘 action 的 `*_ref_order`（指向被刪除 action 的引用會清空），觸發驗證。
 
 **權限**：須登入，且 `RevisionPolicy::update`（本人且狀態為 draft）。
 
@@ -556,7 +556,7 @@ Revision 相關 Tool **不得直接寫入 AGE**，所有變更須經 Revision �
 - 使用 `to_order`：將該 action 移至指定位置，其餘 action 順序重排為連續 0..n-1。
 - 使用 `direction`：與上一筆（`up`）或下一筆（`down`）交換；已在最前/最後時回傳錯誤。
 
-**委派**：重排 `order` 後觸發驗證。
+**委派**：重排 `order` 並重對應 `*_ref_order` 後觸發驗證。
 
 **權限**：須登入，且 `RevisionPolicy::update`（本人且狀態為 draft）。
 
@@ -742,7 +742,7 @@ $response->assertOk();
 | 業務邏輯 | 驗證失敗時 submit 被拒、Schema / Revision 搜尋分頁與 `total` 正確 |
 | Graph 查詢 | `search-vertices` / `search-edges` 可找到後續 action 需要的 `target_age_id` |
 | Action CRUD | 新增/更新/刪除/移動後 `order` 重排正確、回應含驗證結果 |
-| `*_ref_order` | 重排後引用失效時驗證錯誤訊息正確 |
+| `*_ref_order` | 刪除／移動／插入後引用跟著重對應；被引用的 action 刪除後引用清空；移動導致引用後序時驗證錯誤訊息正確 |
 | Revision 狀態操作 | `reopen-revision` 僅允許 rejected，`delete-revision` 僅允許 draft |
 
 ### 手動驗證
