@@ -4,6 +4,7 @@ import VertexActionForm from './VertexActionForm.vue';
 import EdgeActionForm from './EdgeActionForm.vue';
 import VertexPropertyActionForm from './VertexPropertyActionForm.vue';
 import EdgePropertyActionForm from './EdgePropertyActionForm.vue';
+import { shouldCloseModalOnBackdropRelease } from './shouldCloseModalOnBackdropRelease.js';
 
 const props = defineProps({
     show: Boolean,
@@ -28,6 +29,22 @@ const selectedType = ref(null);
 /** The local form data being edited in the modal */
 const localForm = ref(emptyForm());
 
+/**
+ * Only dismiss when both mousedown and mouseup happen on the backdrop.
+ * Prevents closing after text selection that starts inside an input and ends outside the modal.
+ */
+const backdropPointerDown = ref(false);
+
+/** Snapshot of type + form when the modal opened; used to detect unsaved edits on close. */
+const initialStateSnapshot = ref(null);
+
+function serializeState() {
+    return JSON.stringify({
+        selectedType: selectedType.value,
+        form: localForm.value,
+    });
+}
+
 function emptyForm() {
     return {
         action: null,
@@ -50,6 +67,8 @@ watch(
     () => props.show,
     (val) => {
         if (val) {
+            backdropPointerDown.value = false;
+
             if (props.editingAction) {
                 // Edit mode — jump straight to form step
                 selectedType.value = props.editingAction.action;
@@ -61,6 +80,8 @@ watch(
                 selectedType.value = null;
                 localForm.value = emptyForm();
             }
+
+            initialStateSnapshot.value = serializeState();
         }
     },
 );
@@ -145,11 +166,35 @@ function confirm() {
 }
 
 function close() {
+    if (
+        initialStateSnapshot.value !== serializeState()
+        && !window.confirm('有未儲存的變更，確定要關閉？')
+    ) {
+        return;
+    }
+
     emit('close');
 }
 
 function backToTypeSelect() {
     step.value = 'type-select';
+}
+
+function onBackdropMouseDown(event) {
+    backdropPointerDown.value = event.target === event.currentTarget;
+}
+
+function onBackdropMouseUp(event) {
+    const mouseUpOnBackdrop = event.target === event.currentTarget;
+    const shouldClose = shouldCloseModalOnBackdropRelease(
+        backdropPointerDown.value,
+        mouseUpOnBackdrop,
+    );
+    backdropPointerDown.value = false;
+
+    if (shouldClose) {
+        close();
+    }
 }
 </script>
 
@@ -160,7 +205,8 @@ function backToTypeSelect() {
             class="modal fade show d-block"
             tabindex="-1"
             style="background: rgba(0,0,0,0.5)"
-            @click.self="close"
+            @mousedown="onBackdropMouseDown"
+            @mouseup="onBackdropMouseUp"
         >
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">

@@ -155,6 +155,14 @@ draft → pending_review → rejected
 
 驗證失敗時，回傳哪些 RevisionAction 有問題及原因。
 
+**軟性警告（warnings，不影響 `is_valid`，不阻擋 submit／approve）：**
+
+- `create_edge`：若 AGE 或同份 Revision 內已存在相同 `edge_type_label` + 起點 + 終點的邊，發出 `DUPLICATE_EDGE` 警告（方向敏感；不比較 edge property）
+- `create_vertex`：若該類型設有 `show_property_name`，且模擬後顯示名稱（trim）非空，且 AGE 或同份 Revision 內已有同類型同顯示名稱的節點，發出 `DUPLICATE_VERTEX` 警告
+- 顯示名稱為空、或未設定 `show_property_name`：不警告
+- 本 Revision 內先前已 `delete_edge`／`delete_vertex` 的對象不計入衝突
+- 警告結構與 error 相同：`{ code, message, meta }`；草稿／審核 UI 以黃色呈現；快取欄位 `last_validation_action_warnings` 完整儲存 code／message／meta
+
 ---
 
 #### 資料模型
@@ -458,6 +466,8 @@ draft → pending_review → rejected
 | `刪除 action` | 放在 action card 內，刪除單一 RevisionAction |
 | `調整順序` | 放在 action card 內，支援上移、下移 |
 
+- 刪除或調整順序時，其餘 action 的 `target_ref_order` / `start_vertex_ref_order` / `end_vertex_ref_order` 會跟著指向同一個被引用的 action
+- 若被引用的 action 被刪除，對應引用會清空（驗證會失敗直到使用者修正）
 - `draft` 狀態下才顯示上述互動控制項
 - `pending_review`、`rejected`、`approved` 狀態下，Action 清單區僅供檢視
 - 管理員經由 `GET /revisions/{revision}` 進入此頁時，即使 Revision 為 `draft` 也僅供檢視
@@ -874,15 +884,22 @@ draft → pending_review → rejected
 | `rejected` | 已退回 | 紅色 badge |
 | `approved` | 已接受 | 綠色 badge |
 
+**狀態分類：**
+
+- 頁首提供與「我的修訂」相同的狀態分類：`全部`、`草稿`、`待審核`、`已接受`、`已退回`
+- 以 query string `status` 篩選；未帶 `status` 時顯示全部
+- 未知 `status` 回傳 404
+- 分頁連結保留目前的 `status`
+
 **排序規則：**
 
-- 不提供篩選功能
 - 不提供搜尋功能
 - 預設依 `updated_at DESC` 排序
 
 **空狀態：**
 
 - 當系統中尚無任何 Revision 時，顯示空狀態訊息：`目前還沒有任何修訂`
+- 已選擇狀態但該狀態沒有資料時，顯示：`目前沒有「{狀態名稱}」狀態的修訂`
 
 **分頁：**
 
@@ -893,7 +910,7 @@ draft → pending_review → rejected
 
 - 不直接執行接受或退回操作
 - 不直接編輯 Revision 內容
-- 不提供篩選與搜尋功能
+- 不提供搜尋功能
 
 ---
 

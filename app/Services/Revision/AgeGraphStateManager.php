@@ -40,6 +40,11 @@ class AgeGraphStateManager
      */
     private array $ageEdgeCache = [];
 
+    /**
+     * @var array<string, list<array{age_id:int,type_label:string,properties:array<string,mixed>}>>
+     */
+    private array $verticesByTypeCache = [];
+
     public function bootSchemaMaps(): void
     {
         $this->vertexTypeByLabel = VertexType::query()
@@ -223,6 +228,80 @@ class AgeGraphStateManager
         }
 
         return array_values(array_unique($edgeIds));
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function findEdgeIdsByEndpoints(string $edgeLabel, int $startVertexId, int $endVertexId): array
+    {
+        $rows = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($edgeLabel, $startVertexId, $endVertexId) {
+            return $builder
+                ->matchNode('s')
+                ->withMatchEdge(Direction::RIGHT, 'e', $edgeLabel)
+                ->withMatchNode('t')
+                ->where('id(s)', '=', $startVertexId)
+                ->where('id(t)', '=', $endVertexId)
+                ->return('e');
+        })->get();
+
+        $edgeIds = [];
+        foreach ($rows as $row) {
+            $edgeId = (int) $row->e->id;
+            $edgeIds[] = $edgeId;
+            $this->loadAgeEdgeState($edgeId);
+        }
+
+        return array_values(array_unique($edgeIds));
+    }
+
+    /**
+     * @return list<array{age_id:int,type_label:string,properties:array<string,mixed>}>
+     */
+    public function loadVerticesByType(string $vertexTypeLabel): array
+    {
+        if (isset($this->verticesByTypeCache[$vertexTypeLabel])) {
+            return $this->verticesByTypeCache[$vertexTypeLabel];
+        }
+
+        $rows = $this->graphConnection()->apacheAgeCypher(config('cohistograph.app.graph.name'), function (Builder $builder) use ($vertexTypeLabel) {
+            return $builder
+                ->matchNode('v', $vertexTypeLabel)
+                ->return('v');
+        })->get();
+
+        $vertices = [];
+        foreach ($rows as $row) {
+            $vertex = $row->v;
+            $ageId = (int) $vertex->id;
+            $properties = $this->normalizeProperties($vertex->properties ?? []);
+
+            $propertyFlags = [];
+            $propertyValues = [];
+            foreach ($properties as $name => $value) {
+                $propertyFlags[$name] = ! is_null($value);
+                if (! is_null($value)) {
+                    $propertyValues[$name] = $value;
+                }
+            }
+
+            $this->ageVertexCache[$ageId] = [
+                'exists' => true,
+                'type_label' => (string) $vertex->label,
+                'properties' => $propertyFlags,
+                'property_values' => $propertyValues,
+            ];
+
+            $vertices[] = [
+                'age_id' => $ageId,
+                'type_label' => (string) $vertex->label,
+                'properties' => $properties,
+            ];
+        }
+
+        $this->verticesByTypeCache[$vertexTypeLabel] = $vertices;
+
+        return $vertices;
     }
 
     private function graphConnection(): PostgresConnection

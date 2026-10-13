@@ -100,4 +100,55 @@ class UserControllerTest extends TestCase
 
         $this->assertSame(1, $admin->fresh()->roles()->where('name', 'admin')->count());
     }
+
+    public function test_update_user_name_must_be_unique(): void
+    {
+        $admin = User::factory()->create();
+        $admin->addRole('admin');
+        $admin->givePermission('user.manage');
+
+        User::factory()->create([
+            'name' => 'Taken Name',
+        ]);
+
+        $targetUser = User::factory()->create([
+            'name' => 'Old Name',
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('user.edit', $targetUser))
+            ->patch(route('user.update', $targetUser), [
+                'name' => 'Taken Name',
+            ])
+            ->assertRedirect(route('user.edit', $targetUser))
+            ->assertSessionHasErrors(['name' => 'The name has already been taken.']);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $targetUser->id,
+            'name' => 'Old Name',
+        ]);
+    }
+
+    public function test_update_user_can_keep_same_name(): void
+    {
+        $admin = User::factory()->create();
+        $admin->addRole('admin');
+        $admin->givePermission('user.manage');
+
+        $targetUser = User::factory()->create([
+            'name' => 'Same Name',
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('user.update', $targetUser), [
+                'name' => 'Same Name',
+            ])
+            ->assertRedirect(route('user.show', $targetUser))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $targetUser->id,
+            'name' => 'Same Name',
+        ]);
+    }
 }

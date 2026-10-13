@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RevisionStatus;
 use App\Http\Requests\StoreRevisionRequest;
 use App\Http\Requests\UpdateRevisionRequest;
 use App\Models\EdgeType;
 use App\Models\Revision;
 use App\Models\VertexType;
 use App\Services\RevisionService;
+use App\Support\RevisionActionVertexLabelResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -20,17 +23,28 @@ class RevisionController extends Controller
 {
     public function __construct(private RevisionService $revisionService) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
+        $statusValue = $request->query('status');
+        $currentStatus = null;
+
+        if (is_string($statusValue) && $statusValue !== '') {
+            $currentStatus = RevisionStatus::tryFrom($statusValue);
+            abort_if($currentStatus === null, 404);
+        }
 
         $revisions = Revision::where('user_id', $user->id)
+            ->when($currentStatus instanceof RevisionStatus, fn ($query) => $query->where('status', $currentStatus))
             ->withCount('actions')
             ->with('reviews')
             ->orderByDesc('updated_at')
-            ->paginate();
+            ->paginate()
+            ->withQueryString();
 
-        return view('revisions.index', compact('revisions'));
+        $statusFilters = RevisionStatus::cases();
+
+        return view('revisions.index', compact('revisions', 'currentStatus', 'statusFilters'));
     }
 
     public function create(): View
@@ -62,8 +76,10 @@ class RevisionController extends Controller
 
         $vertexTypes = VertexType::with('properties')->orderBy('name')->get();
         $edgeTypes = EdgeType::with('properties')->orderBy('name')->get();
+        $vertexLabels = app(RevisionActionVertexLabelResolver::class)
+            ->labelsForActions($revision->actions);
 
-        return view('revisions.show', compact('revision', 'vertexTypes', 'edgeTypes'));
+        return view('revisions.show', compact('revision', 'vertexTypes', 'edgeTypes', 'vertexLabels'));
     }
 
     public function edit(Revision $revision): InertiaResponse
@@ -102,12 +118,12 @@ class RevisionController extends Controller
 
         return response()->json([
             'is_valid' => $validationResult->isValid(),
-            'summary' => $validationResult->isValid()
-                ? '檢查通過'
-                : '檢查未通過，請修正錯誤後再繼續',
+            'summary' => $validationResult->checkSummary(),
             'general_errors' => $validationResult->generalErrors(),
             'action_messages' => $validationResult->actionMessages(),
             'action_errors' => $validationResult->actionErrors(),
+            'action_warning_messages' => $validationResult->actionWarningMessages(),
+            'action_warnings' => $validationResult->actionWarnings(),
         ]);
     }
 
@@ -135,12 +151,14 @@ class RevisionController extends Controller
                 ->withErrors($validationResult->toMessageBag())
                 ->with('revision_error_summary', $validationResult->summary())
                 ->with('revision_action_errors', $validationResult->actionMessages())
-                ->with('revision_action_error_details', $validationResult->actionErrors());
+                ->with('revision_action_error_details', $validationResult->actionErrors())
+                ->with('revision_action_warnings', $validationResult->actionWarnings());
         }
 
         return redirect()
             ->route('revisions.show', $revision)
-            ->with('global', '修訂已提交審核');
+            ->with('global', '修訂已提交審核')
+            ->with('revision_action_warnings', $validationResult->actionWarnings());
     }
 
     public function reopen(Revision $revision): RedirectResponse

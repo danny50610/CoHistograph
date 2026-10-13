@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ActionModal from './Partials/ActionModal.vue';
+import { mappingForDelete, mappingForMove, remapActions } from './remapRevisionActionRefOrders';
 
 const props = defineProps({
     revision: Object,
@@ -44,7 +45,9 @@ const isRuleValid = ref(null);
 const ruleSummary = ref('');
 const ruleGeneralErrors = ref([]);
 const ruleActionMessages = ref({});
+const ruleActionWarningMessages = ref({});
 const ruleFieldErrors = ref([]);
+const hasRuleWarnings = computed(() => Object.keys(ruleActionWarningMessages.value).length > 0);
 
 const RULE_CHECK_DEBOUNCE_MS = 500;
 let ruleCheckTimer = null;
@@ -115,6 +118,7 @@ async function runRuleCheck() {
             ruleFieldErrors.value = collectFieldErrors(data.errors ?? {});
             ruleGeneralErrors.value = [];
             ruleActionMessages.value = {};
+            ruleActionWarningMessages.value = {};
 
             return;
         }
@@ -129,6 +133,7 @@ async function runRuleCheck() {
         ruleSummary.value = data.summary ?? '';
         ruleGeneralErrors.value = data.general_errors ?? [];
         ruleActionMessages.value = data.action_messages ?? {};
+        ruleActionWarningMessages.value = data.action_warning_messages ?? {};
         ruleFieldErrors.value = [];
     } catch (error) {
         if (error.name === 'AbortError') {
@@ -140,6 +145,7 @@ async function runRuleCheck() {
         ruleSummary.value = '目前無法完成規則檢查，請稍後再試';
         ruleGeneralErrors.value = [];
         ruleActionMessages.value = {};
+        ruleActionWarningMessages.value = {};
         ruleFieldErrors.value = [];
     } finally {
         if (ruleCheckController === controller) {
@@ -151,6 +157,10 @@ async function runRuleCheck() {
 
 function getActionRuleMessages(index) {
     return ruleActionMessages.value[index] ?? [];
+}
+
+function getActionRuleWarningMessages(index) {
+    return ruleActionWarningMessages.value[index] ?? [];
 }
 
 watch(
@@ -316,8 +326,10 @@ function onDrop(index) {
         return;
     }
     const arr = form.actions;
+    const mapping = mappingForMove(arr.length, dragSrcIndex.value, index);
     const [moved] = arr.splice(dragSrcIndex.value, 1);
     arr.splice(index, 0, moved);
+    remapActions(arr, mapping);
     renumber();
     dragSrcIndex.value = null;
     dragOverIndex.value = null;
@@ -332,7 +344,9 @@ function deleteAction(index) {
     if (!confirm('確認刪除此操作？')) {
         return;
     }
+    const mapping = mappingForDelete(form.actions.length, index);
     form.actions.splice(index, 1);
+    remapActions(form.actions, mapping);
     renumber();
 }
 
@@ -456,13 +470,18 @@ const createEdgeActions = computed(() =>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="fw-semibold">規則檢查</div>
                     <span v-if="isCheckingRules" class="badge text-bg-secondary">檢查中</span>
+                    <span v-else-if="hasCheckedRules && isRuleValid === true && hasRuleWarnings" class="badge text-bg-warning">符合規則（有警告）</span>
                     <span v-else-if="hasCheckedRules && isRuleValid === true" class="badge text-bg-success">符合規則</span>
                     <span v-else-if="hasCheckedRules && isRuleValid === false" class="badge text-bg-danger">不符合規則</span>
                     <span v-else-if="hasCheckedRules" class="badge text-bg-warning">檢查未完成</span>
                 </div>
 
                 <div v-if="isCheckingRules" class="small text-secondary mt-1">正在檢查最新編輯內容...</div>
-                <div v-else-if="ruleSummary" class="small mt-1" :class="isRuleValid === false ? 'text-danger' : 'text-secondary'">
+                <div
+                    v-else-if="ruleSummary"
+                    class="small mt-1"
+                    :class="isRuleValid === false ? 'text-danger' : (hasRuleWarnings ? 'text-warning-emphasis' : 'text-secondary')"
+                >
                     {{ ruleSummary }}
                 </div>
 
@@ -490,6 +509,8 @@ const createEdgeActions = computed(() =>
                     :class="{
                         'opacity-50': dragSrcIndex === index,
                         'border-primary': dragOverIndex === index && dragSrcIndex !== index,
+                        'border-danger': getActionRuleMessages(index).length > 0,
+                        'border-warning': getActionRuleMessages(index).length === 0 && getActionRuleWarningMessages(index).length > 0,
                     }"
                     draggable="true"
                     @dragstart="onDragStart($event, index)"
@@ -534,6 +555,11 @@ const createEdgeActions = computed(() =>
                         <div class="small">{{ actionSummary(action) }}</div>
                         <ul v-if="getActionRuleMessages(index).length > 0" class="small text-danger mt-2 mb-0">
                             <li v-for="(message, msgIdx) in getActionRuleMessages(index)" :key="`a-${index}-m-${msgIdx}`">
+                                {{ message }}
+                            </li>
+                        </ul>
+                        <ul v-if="getActionRuleWarningMessages(index).length > 0" class="small text-warning-emphasis mt-2 mb-0">
+                            <li v-for="(message, msgIdx) in getActionRuleWarningMessages(index)" :key="`a-${index}-w-${msgIdx}`">
                                 {{ message }}
                             </li>
                         </ul>

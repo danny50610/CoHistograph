@@ -6,6 +6,7 @@ use App\Enums\RevisionActionType;
 use App\Models\Revision;
 use App\Models\RevisionAction;
 use App\Support\PropertyValueCaster;
+use App\Support\VertexDisplayNameResolver;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,12 +24,16 @@ class RevisionValidationService
 
     private PropertyValueCaster $propertyValueCaster;
 
+    private VertexDisplayNameResolver $displayNameResolver;
+
     public function __construct(
         AgeGraphStateManager $graphManager,
         PropertyValueCaster $propertyValueCaster,
+        VertexDisplayNameResolver $displayNameResolver,
     ) {
         $this->graphManager = $graphManager;
         $this->propertyValueCaster = $propertyValueCaster;
+        $this->displayNameResolver = $displayNameResolver;
     }
 
     public function validate(Revision $revision): RevisionValidationResult
@@ -107,8 +112,12 @@ class RevisionValidationService
         foreach ($allValidatorErrors as $order => $hasError) {
             if ($hasError) {
                 $resolver->markActionErrorForDependency($order);
+                $actionHasError[$order] = true;
             }
         }
+
+        (new RevisionDuplicateWarningChecker($this->graphManager, $this->displayNameResolver))
+            ->check($actions, $resolver, $result, $actionHasError);
 
         return $result;
     }

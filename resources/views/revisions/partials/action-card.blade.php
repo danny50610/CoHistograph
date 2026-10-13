@@ -26,18 +26,22 @@
         $targetLabel = 'ID:' . $action->target_age_id;
     }
 
+    $vertexLabels = $vertexLabels ?? [];
+
     $startLabel = null;
     if (!is_null($action->start_vertex_ref_order)) {
         $startLabel = '#' . ($action->start_vertex_ref_order + 1) . ' 建立的 Vertex';
     } elseif (!is_null($action->start_vertex_age_id)) {
-        $startLabel = 'ID:' . $action->start_vertex_age_id;
+        $startLabel = $vertexLabels[(string) $action->start_vertex_age_id]
+            ?? ('ID:' . $action->start_vertex_age_id);
     }
 
     $endLabel = null;
     if (!is_null($action->end_vertex_ref_order)) {
         $endLabel = '#' . ($action->end_vertex_ref_order + 1) . ' 建立的 Vertex';
     } elseif (!is_null($action->end_vertex_age_id)) {
-        $endLabel = 'ID:' . $action->end_vertex_age_id;
+        $endLabel = $vertexLabels[(string) $action->end_vertex_age_id]
+            ?? ('ID:' . $action->end_vertex_age_id);
     }
 
     $propertyName = $action->age_property_name ?? '—';
@@ -89,7 +93,7 @@
     };
 @endphp
 
-<div class="card mb-2 {{ $hasError ?? false ? 'border-danger' : '' }}"
+<div class="card mb-2 {{ ($hasError ?? false) ? 'border-danger' : (($hasWarning ?? false) ? 'border-warning' : '') }}"
      id="action-card-{{ $action->order }}">
     <div class="card-body py-2 px-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
@@ -144,6 +148,14 @@
             @foreach ($actionErrors ?? [] as $error)
                 <div class="text-danger small mt-1">
                     <i class="fa-solid fa-circle-exclamation"></i> {{ $error }}
+                </div>
+            @endforeach
+        @endif
+
+        @if ($hasWarning ?? false)
+            @foreach ($actionWarnings ?? [] as $warning)
+                <div class="text-warning-emphasis small mt-1">
+                    <i class="fa-solid fa-triangle-exclamation"></i> {{ $warning }}
                 </div>
             @endforeach
         @endif
