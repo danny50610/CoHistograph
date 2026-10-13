@@ -97,14 +97,14 @@
 'graph' => [
     // 現有 connection-name, name, locales...
     'display_locale' => env('COHISTOGRAPH_DISPLAY_LOCALE', 'zh_tw'),
-    'display_locale_fallback' => ['zh_tw', 'en_us', 'ja_jp'],
+    'display_locale_fallback' => ['zh_tw', 'ja_jp', 'en_us'],
 ],
 ```
 
 - `display_locale`：解析顯示名稱時優先使用的 locale
-- `display_locale_fallback`：當優先 locale 無值時，依序嘗試的 locale 列表（值須為 `locales` config 的 key）
+- `display_locale_fallback`：當優先 locale 無值時，依序嘗試的 locale 列表（值須為 `locales` config 的 key）。**站台預設為繁中 → 日文 → 英文**。登入使用者可在 Profile 改順序，見 [`ui-i18n.md`](./ui-i18n.md) §3.1。HTTP 請求以 UI fallback 鏈為準；此 config 留給無使用者的 MCP / console。
 
-> 本階段**不**綁定 Laravel `APP_LOCALE`，站點顯示語言由 graph config 統一控制。未來若要做 per-user locale，再擴充 resolver 參數即可。
+> 本階段**不**綁定 Laravel `APP_LOCALE`，站點顯示語言由 graph config 統一控制。介面多語系與 per-user locale 見 [`ui-i18n.md`](./ui-i18n.md)（resolver 已預留 `$locale` 參數）。
 
 ### 3. `VertexDisplayNameResolver`（新建 Service）
 
@@ -137,8 +137,10 @@ public function resolve(
 
 4. 若無多語系 property → 回傳空字串（base name 不存在）
 
-5. 依 locale（參數或 config display_locale）→ display_locale_fallback 順序
+5. 依 locale（參數或 config display_locale）→ fallback 順序
    嘗試讀取 properties["{base}_{locale}"]，取第一個非空值
+   HTTP：fallback 來自使用者／站台 UI 鏈（[`ui-i18n.md`](./ui-i18n.md) §3.1）
+   MCP / console：`display_locale_fallback`（預設 `zh_tw` → `ja_jp` → `en_us`）
 
 6. 全部為空 → 回傳空字串
 ```
@@ -255,7 +257,7 @@ flowchart TD
 
 ## 明確排除（本階段不做）
 
-- 依登入使用者或 `APP_LOCALE` 動態切換顯示語言（resolver 已預留 `$locale` 參數，日後擴充）
+- 依登入使用者或 UI locale 動態切換顯示語言：改由 [`ui-i18n.md`](./ui-i18n.md) 階段 6 處理（resolver 已預留 `$locale` 參數）
 - Edge 的顯示名稱（EdgeType 目前無 `show_property_name`）
 - Revision 表單內的 Vertex 參照顯示（若有，另開議題）
 
